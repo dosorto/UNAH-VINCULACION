@@ -3,7 +3,9 @@
 namespace App\Services\InformeFinal;
 
 use App\Models\InformeFinal\InformeFinalProyecto;
+use App\Models\Proyecto\EntidadContraparteProyecto;
 use App\Models\Proyecto\Proyecto;
+use App\Support\InformeFinal\ConceptosPresupuestoInf001;
 use App\Support\InformeFinal\ParticipacionEstudiantil;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -48,12 +50,7 @@ class InformeFinalProyectoInitializer
                 is_array($proyecto->pais) ? $proyecto->pais : array_filter([$this->texto($proyecto->pais)]),
                 fn ($v) => filled($v)
             ));
-            $presupuestoPlanificado = (float) $proyecto->aportesInstitucionales->sum('costo_total')
-                + (float) optional($proyecto->presupuesto)->aporte_contraparte
-                + (float) optional($proyecto->presupuesto)->aporte_comunidad
-                + (float) optional($proyecto->presupuesto)->aporte_internacionales
-                + (float) optional($proyecto->presupuesto)->aporte_otras_universidades
-                + (float) optional($proyecto->presupuesto)->otros_aportes;
+            $presupuestoPlanificado = $this->presupuestoPlanificado($proyecto);
 
             $informe = InformeFinalProyecto::create([
                 'proyecto_id' => $proyecto->id,
@@ -76,7 +73,7 @@ class InformeFinalProyectoInitializer
                 'linea_investigacion' => $proyecto->lineas_investigacion_academica,
                 'modalidad' => $proyecto->modalidad?->nombre,
                 'ejes_prioritarios' => $proyecto->ejes_prioritarios_unah->pluck('nombre')->implode(', '),
-                'categoria' => $categoria?->nombre,
+                'categoria' => $this->categoriaFormato($proyecto) ?? $categoria?->nombre,
                 'fecha_inicio' => $proyecto->fecha_inicio,
                 'fecha_finalizacion' => $proyecto->fecha_finalizacion,
                 'pais' => $paisesProyecto,
@@ -86,7 +83,8 @@ class InformeFinalProyectoInitializer
                 'aldea_ciudad' => $proyecto->ciudad?->nombre ?: $this->texto($proyecto->aldea),
                 'caserio' => $this->texto($proyecto->caserio),
                 'problema_inicial' => $proyecto->definicion_problema,
-                'transformacion_lograda' => $proyecto->impacto_deseado,
+                // «Cambios que se logró con el proyecto» es un dato de la ejecución: no se
+                // precarga con el impacto deseado del registro.
                 'respuesta_reforma_universitaria' => $proyecto->alineamiento_reforma,
                 'bibliografia' => $proyecto->bibliografia,
                 'valoracion_total_beneficiarios' => max(0, (int) $proyecto->poblacion_participante),
@@ -143,24 +141,26 @@ class InformeFinalProyectoInitializer
 
             $this->sincronizarGruposEstudiantes($informe, $proyecto);
 
-            $contrapartesProyecto = $proyecto->entidad_contraparte_proyecto()->with('entidadContraparte')->get();
-            $aporteContrapartePlanificado = (float) optional($proyecto->presupuesto)->aporte_contraparte;
+            $contrapartesProyecto = $proyecto->entidad_contraparte_proyecto()->with(['entidadContraparte', 'instrumentoFormalizacion'])->get();
 
             foreach ($contrapartesProyecto as $pivot) {
                 $catalogo = $pivot->entidadContraparte;
                 $datosContraparte = [
                     'entidad_contraparte_id' => $catalogo->id,
                     'nombre' => $catalogo->nombre,
-                    'tipo' => $this->tipoContraparte($catalogo->tipo_entidad),
+                    'tipo' => $this->tipoContraparte($pivot->tipo_entidad ?: $catalogo->tipo_entidad),
                     'contacto' => $pivot->nombre_contacto ?: $catalogo->nombre_contacto,
                     'correo' => $pivot->correo ?: $catalogo->correo,
                     'cargo' => $pivot->cargo_contacto ?: $catalogo->cargo_contacto,
                     'telefono' => $pivot->telefono ?: $catalogo->telefono,
                     'compromisos_asumidos' => $pivot->descripcion_acuerdos,
                     'territorio' => collect([$departamentoTerritorial?->nombre, $municipio?->nombre])->filter()->implode(', '),
-                    // El presupuesto inicial sólo guarda un monto global. Se asigna únicamente
-                    // cuando existe una sola contraparte, para no duplicarlo entre entidades.
-                    'aporte_monetario' => $contrapartesProyecto->count() === 1 ? $aporteContrapartePlanificado : 0,
+                    // El instrumento se definió en el registro del proyecto (no se edita en el informe).
+                    'tipo_instrumento' => $this->tipoInstrumentoPlanificado($pivot),
+                    // Los aportes ejecutados los registra el usuario (0 es válido); no se
+                    // precargan con lo planificado porque no tienen que coincidir.
+                    'aporte_monetario' => null,
+                    'aporte_especie' => null,
                 ];
                 if (Schema::hasColumn('informe_final_contrapartes', 'origen')) {
                     $datosContraparte['origen'] = 'PLANIFICADO';
@@ -209,18 +209,24 @@ class InformeFinalProyectoInitializer
                 $this->crearParticipantesActividad($snapshot, $actividad->empleados);
             }
 
-            foreach ($proyecto->aportesInstitucionales as $aporte) {
-                $total = max(0, (float) $aporte->costo_total);
+            // Apartado X: los 12 conceptos UNAH (k y l se calculan) y los 7 de la contraparte.
+            // Los montos del registro se trasladan a su concepto equivalente del formato.
+            $aportesRegistro = $proyecto->aportesInstitucionales->keyBy('concepto');
+            foreach (ConceptosPresupuestoInf001::UNAH as $codigo => [$letra, $concepto, $unidad]) {
+                if (ConceptosPresupuestoInf001::esIndirecto($codigo)) {
+                    continue;
+                }
+                $aporte = $aportesRegistro->get($codigo);
                 $informe->presupuestoDetalles()->create([
                     'fuente' => 'UNAH',
-                    'concepto' => $aporte->concepto_label ?: 'Aporte institucional',
-                    'unidad' => 'aporte',
-                    'cantidad' => 1,
-                    'costo_unitario' => $total,
-                    'origen_fondos' => 'registro_proyecto',
+                    'concepto_codigo' => $codigo,
+                    'concepto' => "{$letra}) {$concepto}",
+                    'unidad' => $unidad,
+                    'cantidad' => $aporte ? max(0, (float) $aporte->cantidad) : 0,
+                    'costo_unitario' => $aporte ? max(0, (float) $aporte->costo_unitario) : 0,
                 ]);
             }
-            $this->sincronizarDetalleAporteContraparte($informe);
+            $this->asegurarConceptosPresupuesto($informe);
 
             foreach ($proyecto->ods as $ods) {
                 $metas = $proyecto->metasContribuye->where('ods_id', $ods->id);
@@ -269,8 +275,7 @@ class InformeFinalProyectoInitializer
         $this->sincronizarGruposEstudiantes($informe, $proyecto);
         $this->sincronizarEstudiantesConGrupos($informe, $proyecto);
         $this->sincronizarRolesEquipo($informe, $proyecto);
-        $this->sincronizarAporteMonetarioContraparte($informe, $proyecto);
-        $this->sincronizarDetalleAporteContraparte($informe);
+        $this->sincronizarBorrador($informe, $proyecto);
         $this->sincronizarInstrumentosContraparte($informe, $proyecto);
         $informe->load(['estudiantes', 'voluntarios', 'actividades.participantes']);
 
@@ -420,45 +425,127 @@ class InformeFinalProyectoInitializer
         }
     }
 
-    private function sincronizarAporteMonetarioContraparte(InformeFinalProyecto $informe, Proyecto $proyecto): void
+    /**
+     * Las contrapartes planificadas toman el instrumento que se registró en el proyecto;
+     * en el informe es de solo lectura, así que se mantiene alineado con el registro.
+     */
+    public function sincronizarTipoInstrumentoContraparte(InformeFinalProyecto $informe, Proyecto $proyecto): void
     {
-        $aporte = (float) optional($proyecto->presupuesto)->aporte_contraparte;
-        $contrapartes = $informe->contrapartes()->get();
+        $pivotes = $proyecto->entidad_contraparte_proyecto()->with('instrumentoFormalizacion')->get()->keyBy('entidad_contraparte_id');
 
-        if ($aporte <= 0 || $contrapartes->count() !== 1) {
-            return;
-        }
+        foreach ($informe->contrapartes()->whereNotNull('entidad_contraparte_id')->get() as $contraparte) {
+            if (($contraparte->origen ?? 'PLANIFICADO') !== 'PLANIFICADO') {
+                continue;
+            }
 
-        $contraparte = $contrapartes->first();
-        if ((float) $contraparte->aporte_monetario === 0.0) {
-            $contraparte->update(['aporte_monetario' => $aporte]);
+            $tipo = ($pivot = $pivotes->get($contraparte->entidad_contraparte_id)) ? $this->tipoInstrumentoPlanificado($pivot) : null;
+
+            if ($tipo && $contraparte->tipo_instrumento !== $tipo) {
+                $contraparte->update(['tipo_instrumento' => $tipo]);
+            }
         }
     }
 
-    /** La fila agregada al presupuesto es la única fuente del subtotal de contraparte. */
-    private function sincronizarDetalleAporteContraparte(InformeFinalProyecto $informe): void
+    /** Traduce el instrumento del registro (FORM-DVUS-001/015) al catálogo del INF-001. */
+    private function tipoInstrumentoPlanificado(EntidadContraparteProyecto $pivot): ?string
     {
-        $total = round($informe->contrapartes()
-            ->where('existe_apoyo', true)
-            ->get()
-            ->sum(fn ($contraparte) => (float) $contraparte->aporte_monetario + (float) $contraparte->aporte_especie), 2);
+        foreach ($pivot->instrumentoFormalizacion as $instrumento) {
+            $tipo = mb_strtolower((string) $instrumento->tipo_documento);
+            $mapeado = match (true) {
+                str_contains($tipo, 'convenio') => 'convenio_marco',
+                str_contains($tipo, 'intenci') => 'carta_intenciones',
+                str_contains($tipo, 'formal') || str_contains($tipo, 'solicitud') => 'carta_formal',
+                default => null,
+            };
 
-        if (! $informe->contrapartes()->exists()) {
-            return;
+            if ($mapeado) {
+                return $mapeado;
+            }
         }
 
-        $informe->presupuestoDetalles()->updateOrCreate(
-            ['origen_fondos' => 'contrapartes_proyecto'],
-            [
-                'fuente' => 'CONTRAPARTE',
-                'concepto' => 'Aporte contraparte',
-                'unidad' => 'aporte',
-                'cantidad' => 1,
-                'costo_unitario' => $total,
-            ]
-        );
+        return null;
     }
 
+    /**
+     * Mantiene un borrador alineado con el registro y con el formato oficial:
+     * instrumento de las contrapartes, categoría del proyecto y conceptos del apartado X.
+     */
+    /**
+     * Presupuesto planificado en el registro del proyecto: aporte institucional más los aportes
+     * de contraparte, comunidad, cooperación internacional, otras universidades y otros.
+     */
+    public function presupuestoPlanificado(Proyecto $proyecto): float
+    {
+        return round((float) $proyecto->aportesInstitucionales->sum('costo_total')
+            + (float) optional($proyecto->presupuesto)->aporte_contraparte
+            + (float) optional($proyecto->presupuesto)->aporte_comunidad
+            + (float) optional($proyecto->presupuesto)->aporte_internacionales
+            + (float) optional($proyecto->presupuesto)->aporte_otras_universidades
+            + (float) optional($proyecto->presupuesto)->otros_aportes, 2);
+    }
+
+    public function sincronizarBorrador(InformeFinalProyecto $informe, Proyecto $proyecto): void
+    {
+        $this->sincronizarTipoInstrumentoContraparte($informe, $proyecto);
+        $this->asegurarConceptosPresupuesto($informe);
+
+        // Si el registro trae presupuesto, manda el registro; si no lo trae, se escribe en el informe.
+        $planificado = $this->presupuestoPlanificado($proyecto);
+        if ($planificado > 0 && (float) $informe->presupuesto_planificado !== $planificado) {
+            $informe->update(['presupuesto_planificado' => $planificado]);
+        }
+
+        $categoria = $this->categoriaFormato($proyecto);
+        if ($categoria && $informe->categoria !== $categoria) {
+            $informe->update(['categoria' => $categoria]);
+        }
+    }
+
+    /** Crea las filas de los conceptos oficiales del apartado X que falten (k y l se calculan). */
+    private function asegurarConceptosPresupuesto(InformeFinalProyecto $informe): void
+    {
+        $filas = $informe->presupuestoDetalles()->orderBy('id')->get()
+            ->map(fn ($fila) => ['fila' => $fila, 'clave' => $fila->fuente.':'.ConceptosPresupuestoInf001::codigoDeFila($fila->fuente, $fila->concepto_codigo, $fila->concepto)]);
+
+        // Un concepto oficial repetido sin monto ni origen es un duplicado vacío: se elimina.
+        foreach ($filas->groupBy('clave') as $clave => $grupo) {
+            if (str_ends_with($clave, ':') || $grupo->count() < 2) {
+                continue;
+            }
+            $vacias = $grupo->filter(fn ($item) => (float) $item['fila']->costo_total === 0.0 && blank($item['fila']->origen_fondos));
+            $vacias->take($vacias->count() === $grupo->count() ? $grupo->count() - 1 : $vacias->count())
+                ->each(fn ($item) => $item['fila']->delete());
+        }
+
+        $existentes = $filas->pluck('clave')->all();
+
+        foreach (['UNAH', 'CONTRAPARTE'] as $fuente) {
+            foreach (ConceptosPresupuestoInf001::catalogo($fuente) as $codigo => [$letra, $concepto, $unidad]) {
+                if (ConceptosPresupuestoInf001::esIndirecto($codigo) || in_array("{$fuente}:{$codigo}", $existentes, true)) {
+                    continue;
+                }
+                $informe->presupuestoDetalles()->create([
+                    'fuente' => $fuente,
+                    'concepto_codigo' => $codigo,
+                    'concepto' => "{$letra}) {$concepto}",
+                    'unidad' => $unidad,
+                    'cantidad' => 0,
+                    'costo_unitario' => 0,
+                ]);
+            }
+        }
+    }
+
+    /** Categoría del apartado I.7 del formato según el tipo de acción del proyecto. */
+    private function categoriaFormato(Proyecto $proyecto): ?string
+    {
+        return match ($proyecto->tipoAccion?->codigo) {
+            'VOLUNTARIADO' => 'Voluntariado académico',
+            'DESARROLLO_LOCAL_REGIONAL' => 'Desarrollo local y/o regional',
+            'SEGUMIENTO_A_EGRESADOS' => 'Seguimiento a graduados',
+            default => null,
+        };
+    }
 
     private function texto(mixed $valor): ?string
     {

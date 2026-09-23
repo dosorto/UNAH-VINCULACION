@@ -197,7 +197,7 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento Institucional <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ $esVoluntariado ? 'Alineamiento con ejes prioritarios de la UNAH' : 'Alineamiento Institucional' }} <span class="text-red-500">*</span></label>
                 <div x-data="{
                         selected: $wire.entangle('ejes_prioritarios_unah').live,
                         get valorActual() { return (this.selected && this.selected[0]) ? String(this.selected[0]) : ''; },
@@ -239,7 +239,7 @@
                     ],
                     [
                         'field' => 'carreras',
-                        'label' => 'Carreras',
+                        'label' => $esVoluntariado ? 'Carrera' : 'Carreras',
                         'options' => $carrerasOpts,
                         'placeholder' => 'Buscar o seleccionar carreras...',
                         'disabled' => $carrera_no_aplica || empty($departamentos_academicos) || !$carrerasOpts->count(),
@@ -364,7 +364,7 @@
 
             {{-- Programa / Líneas --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Programa/Estrategia al que Pertenece <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ $esVoluntariado ? 'Programa al que pertenece' : 'Programa/Estrategia al que Pertenece' }} <span class="text-red-500">*</span></label>
                 <input type="text" wire:model.live.debounce.1000ms="programa_pertenece" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 @error('programa_pertenece') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
@@ -429,7 +429,10 @@
             {{-- Metas (carga automática al seleccionar ODS) --}}
             @if($metasList->count())
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meta(s) a la que se Contribuye</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ $esVoluntariado ? 'Meta a la que se contribuye' : 'Meta(s) a la que se Contribuye' }} @if($esVoluntariado)<span class="text-red-500">*</span>@endif</label>
+                @if($esVoluntariado)
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Seleccione al menos una meta por cada ODS.</p>
+                @endif
                 <div wire:key="metas-contribuye-{{ md5(json_encode($metasDisponibles)) }}" x-data="{
                         open: false,
                         search: '',
@@ -502,7 +505,7 @@
                         <template x-for="[id,name] in filteredOptions()" :key="id"><div @click="toggle(id)" class="px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 flex items-start gap-2" :class="isSelected(id)?'bg-blue-50 text-blue-700 font-medium':'text-gray-700 dark:text-gray-300'"><span class="mt-0.5 shrink-0" x-show="isSelected(id)">✓</span><span x-text="name"></span></div></template>
                     </div>
                 </div>
-
+                @foreach($errors->get('metasContribuye') as $mensaje) <p class="text-red-500 text-xs mt-1">{{ $mensaje }}</p> @endforeach
             </div>
             @endif
 
@@ -532,7 +535,8 @@
                 <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold shrink-0">C</div>
                 <div>
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $coordNombre }}</p>
-                    <p class="text-xs text-blue-600 dark:text-blue-400">Coordinador/a del Proyecto</p>
+                    <p class="text-xs text-blue-600 dark:text-blue-400">{{ $esVoluntariado ? 'Coordinador/a del Programa' : 'Coordinador/a del Proyecto' }}</p>
+                    @error('coordinador') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
 
@@ -572,6 +576,9 @@
                 @else
                 <p class="text-sm text-gray-500 text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">Sin empleados integrantes agregados.</p>
                 @endif
+                @foreach($errors->get('empleado_proyecto.*') as $mensajes)
+                    @foreach($mensajes as $mensaje) <p class="text-red-500 text-xs mt-1">{{ $mensaje }}</p> @endforeach
+                @endforeach
             </div>
 
             {{-- Participación de Estudiantes --}}
@@ -604,7 +611,7 @@
                             <tr>
                                 <td class="px-4 py-2 text-gray-900 dark:text-white">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                        {{ $est['tipo_participacion_estudiante'] ?: '-' }}
+                                        {{ $tiposParticipacionEstudiante[$est['tipo_participacion_estudiante'] ?? ''] ?? ($est['tipo_participacion_estudiante'] ?: '-') }}
                                     </span>
                                     @if(($est['tipo_participacion_estudiante'] ?? '') === 'Practica Asignatura')
                                     <p class="text-xs text-gray-500 mt-0.5">
@@ -643,7 +650,7 @@
             <div>
                 <div class="flex items-center justify-between mb-3">
                     <div>
-                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Docentes Internacionales Participantes en el Proyecto</h4>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ $esVoluntariado ? 'Integrantes del equipo de cooperación internacional' : 'Docentes Internacionales Participantes en el Proyecto' }}</h4>
                         <p class="text-xs text-gray-500 mt-0.5">Agregar más líneas de ser necesario.</p>
                     </div>
                     <button wire:click="openInternacionalModal" type="button"
@@ -656,18 +663,41 @@
                     <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>
+                                @if($esVoluntariado)
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Nombre Completo</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Pasaporte</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Correo electrónico</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">País</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Universidad</th>
+                                @else
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Nombre</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">RTN</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Sexo</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">País</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Institución</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Nivel Académico</th>
+                                @endif
                                 <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500"></th>
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
                             @foreach($integrante_internacional_proyecto as $i => $int)
                             <tr wire:key="integrante-internacional-{{ $int['integrante_internacional_id'] ?? $i }}-{{ $i }}">
+                                @if($esVoluntariado)
+                                @php
+                                    $internacionalIncompleto = empty($int['nivel_academico_id']) || !in_array($int['sexo'] ?? '', ['masculino', 'femenino'], true);
+                                @endphp
+                                <td class="px-4 py-2 text-gray-900 dark:text-white">
+                                    {{ $int['nombre'] ?: 'Integrante #'.($int['integrante_internacional_id'] ?? '-') }}
+                                    @if($internacionalIncompleto)
+                                        <p class="text-xs font-medium text-red-600">Falta sexo o nivel académico: use «Editar».</p>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ ($int['documento_identidad'] ?? '') ?: '-' }}</td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ ($int['email'] ?? '') ?: '-' }}</td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['pais'] ?? '-' }}</td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['institucion'] ?? '-' }}</td>
+                                @else
                                 <td class="px-4 py-2 text-gray-900 dark:text-white">{{ $int['nombre'] ?: 'Integrante #'.($int['integrante_internacional_id'] ?? '-') }}</td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['rtn'] ?? '-' }}</td>
                                 <td class="px-4 py-2 {{ in_array($int['sexo'] ?? '', ['masculino', 'femenino'], true) ? 'text-gray-700 dark:text-gray-300' : 'text-red-600 font-medium' }}">
@@ -676,6 +706,7 @@
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['pais'] ?? '-' }}</td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['institucion'] ?? '-' }}</td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ !empty($int['nivel_academico_nombre']) ? $int['nivel_academico_nombre'] : 'Sin registrar' }}</td>
+                                @endif
                                 <td class="px-4 py-2 text-right space-x-2">
                                     <button wire:click="openInternacionalModal({{ $i }})" type="button" class="text-xs text-blue-600 hover:text-blue-800">Editar</button>
                                     <button wire:click="removeInternacional({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button>
@@ -692,6 +723,37 @@
                 <p class="text-sm text-gray-500 text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">Sin integrantes internacionales.</p>
                 @endif
             </div>
+
+            {{-- Ítems 15 y 16 (FORM-DVUS-015 · sólo Voluntariado) --}}
+            @if($esVoluntariado)
+            @foreach([
+                ['titulo' => 'Voluntariado personal de la UNAH', 'subtitulo' => 'Desglose del tipo de participación de personal de la UNAH (cantidad)', 'columnas' => \App\Models\Proyecto\Proyecto::VOLUNTARIADO_PERSONAL_UNAH],
+                ['titulo' => 'Voluntariado internacional', 'subtitulo' => 'Desglose del voluntariado internacional (cantidad)', 'columnas' => \App\Models\Proyecto\Proyecto::VOLUNTARIADO_INTERNACIONAL],
+            ] as $bloque)
+            <div wire:key="voluntariado-{{ \Illuminate\Support\Str::slug($bloque['titulo']) }}">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ $bloque['titulo'] }} <span class="text-red-500">*</span></h4>
+                <p class="text-xs text-gray-500 mt-0.5 mb-3">{{ $bloque['subtitulo'] }}. Registre 0 si no aplica.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 {{ count($bloque['columnas']) === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-3">
+                    @foreach($bloque['columnas'] as $prefijo => $etiqueta)
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                        <p class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{{ $etiqueta }}</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            @foreach(['hombres' => 'Hombres', 'mujeres' => 'Mujeres'] as $sufijo => $sexo)
+                            <div>
+                                <label class="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{{ $sexo }}</label>
+                                <input type="number" min="0" step="1" inputmode="numeric"
+                                    wire:model.blur="voluntariado_participacion.{{ $prefijo }}_{{ $sufijo }}"
+                                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm focus:border-blue-500" />
+                                @error("voluntariado_participacion.{$prefijo}_{$sufijo}") <p class="text-red-500 text-[11px] mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endforeach
+            @endif
         </div>
 
         {{-- Modal: Buscar y seleccionar empleado --}}
@@ -797,11 +859,11 @@
                                 </select>
                                 @error('nuevoEstudiante.asignatura_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 @if(empty($asignaturasOpciones) && !empty($carreras))
-                                    <p class="text-xs text-amber-600 mt-1">Cree una asignatura asociada a una de las carreras seleccionadas para poder usarla aqui.</p>
+                                    <p class="text-xs text-amber-600 mt-1">Cree una asignatura asociada a una de las carreras seleccionadas para poder usarla aquí.</p>
                                 @endif
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Periodo Académico <span class="text-red-500">*</span></label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $esVoluntariado ? 'Período académico' : 'Periodo Académico' }} <span class="text-red-500">*</span></label>
                                 <select wire:model.live="nuevoEstudiante.periodo_academico_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
                                     <option value="">Seleccione...</option>
                                     @forelse($periodosAcademicos as $id => $nombre)
@@ -879,7 +941,11 @@
                 <div class="relative w-full max-w-2xl rounded-lg bg-white dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-700">
                     <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
                         <h4 class="text-sm font-semibold text-gray-900 dark:text-white">
-                            {{ $editIntegranteInternacionalIndex !== null ? 'Editar Docente Internacional' : 'Crear / Seleccionar Docente Internacional' }}
+                            @if($esVoluntariado)
+                                {{ $editIntegranteInternacionalIndex !== null ? 'Editar integrante del equipo de cooperación internacional' : 'Crear / Seleccionar integrante del equipo de cooperación internacional' }}
+                            @else
+                                {{ $editIntegranteInternacionalIndex !== null ? 'Editar Docente Internacional' : 'Crear / Seleccionar Docente Internacional' }}
+                            @endif
                         </h4>
                         <button wire:click="closeInternacionalModal" type="button" class="text-gray-500 hover:text-gray-800 text-lg leading-none">✕</button>
                     </div>
@@ -920,7 +986,7 @@
                                 @error('nuevoIntegranteInternacional.nombre_completo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pasaporte / Documento <span class="text-red-500">*</span></label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $esVoluntariado ? 'Pasaporte' : 'Pasaporte / Documento' }} <span class="text-red-500">*</span></label>
                                 <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.documento_identidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.documento_identidad') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -954,7 +1020,7 @@
                                 @error('nuevoIntegranteInternacional.pais') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Institución <span class="text-red-500">*</span></label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $esVoluntariado ? 'Universidad' : 'Institución' }} <span class="text-red-500">*</span></label>
                                 <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.institucion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.institucion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -984,7 +1050,7 @@
 
         {{-- ══════════════════ PASO 3: Entidades Contraparte ══════════════════ --}}
         @if($currentStep === 3)
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 3: Información de la Entidad Contraparte del Proyecto</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 3: {{ $esVoluntariado ? 'Información de la Entidad Contraparte' : 'Información de la Entidad Contraparte del Proyecto' }}</h3>
         <div class="space-y-4">
             <div class="flex items-center justify-between">
                 <p class="text-sm text-gray-500">Si existe más de una contraparte, añada una entidad por cada una de ellas.</p>
@@ -1015,7 +1081,9 @@
             @if($contraparteDocErrors->isNotEmpty())
             <div class="rounded-md border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700 px-3 py-2">
                 @foreach($contraparteDocErrors as $errorKey)
-                    <p class="text-red-600 dark:text-red-400 text-xs">{{ $errors->first($errorKey) }}</p>
+                    @foreach($errors->get($errorKey) as $mensaje)
+                    <p class="text-red-600 dark:text-red-400 text-xs">{{ $mensaje }}</p>
+                    @endforeach
                 @endforeach
             </div>
             @endif
@@ -1081,7 +1149,7 @@
                                             @endforeach
                                         </ul>
                                     @else
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">Sin instrumentos</span>
+                                        <span class="text-xs font-medium text-red-600 dark:text-red-400">Falta instrumento (obligatorio)</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-right">
@@ -1090,7 +1158,7 @@
                                             class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
                                             Editar
                                         </button>
-                                        <button x-on:click.prevent="confirmDialog('¿Eliminar esta entidad contraparte?', { type: 'danger' }).then((ok) => ok && $wire.removeContraparte({{ $ci }}))" type="button"
+                                        <button type="button" x-on:click.prevent="confirmDialog('¿Eliminar esta entidad contraparte?', { type: 'danger' }).then((ok) => ok && $wire.removeContraparte({{ $ci }}))" type="button"
                                             class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
                                             Eliminar
                                         </button>
@@ -1139,9 +1207,10 @@
                                 </div>
                                 <button wire:click="agregarContraparteExistente" type="button"
                                     class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium rounded-md bg-orange-600 text-white hover:bg-orange-700">
-                                    Agregar seleccionada
+                                    Usar seleccionada
                                 </button>
                             </div>
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Sus datos se cargarán en el formulario de abajo. Seleccione el tipo de instrumento, adjunte el documento y presione «Guardar».</p>
                         </div>
 
                         <div class="flex items-center gap-3">
@@ -1180,7 +1249,7 @@
                                 @error('nuevaContraparte.nombre_contacto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cargo del Contacto del Proyecto</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $esVoluntariado ? 'Cargo del contacto' : 'Cargo del Contacto del Proyecto' }}</label>
                                 <input type="text" wire:model="nuevaContraparte.cargo_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                                 @error('nuevaContraparte.cargo_contacto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -1195,7 +1264,7 @@
                                 @error('nuevaContraparte.correo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Breve Descripción de los Compromisos Asumidos por la Contraparte</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Breve Descripción de los Compromisos Asumidos por la Contraparte @if($esVoluntariado)<span class="text-red-500">*</span>@endif</label>
                                 <textarea wire:model="nuevaContraparte.descripcion_acuerdos" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
                                 @error('nuevaContraparte.descripcion_acuerdos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -1338,7 +1407,7 @@
                                             class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
                                             Editar
                                         </button>
-                                        <button x-on:click.prevent="confirmDialog('¿Eliminar esta actividad?', { type: 'danger' }).then((ok) => ok && $wire.removeActividad({{ $i }}))" type="button"
+                                        <button type="button" x-on:click.prevent="confirmDialog('¿Eliminar esta actividad?', { type: 'danger' }).then((ok) => ok && $wire.removeActividad({{ $i }}))" type="button"
                                             class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
                                             Eliminar
                                         </button>
@@ -1404,7 +1473,7 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Responsables <span class="text-red-500">*</span></label>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $esVoluntariado ? 'Responsable' : 'Responsables' }} <span class="text-red-500">*</span></label>
                             <div
                                 x-data="{
                                     open: false,
@@ -1456,16 +1525,28 @@
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 5: Formulación del Proyecto</h3>
         <div class="space-y-4">
             <div>
+                @if($esVoluntariado)
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Antecedentes <span class="text-red-500">*</span></label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Explicar brevemente en qué consiste el programa, los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH. Este programa es de carácter.</p>
+                @else
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de los Antecedentes del Proyecto <span class="text-red-500">*</span></label>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Explicar brevemente los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH.</p>
+                @endif
                 <textarea wire:model.live.debounce.1000ms="resumen" rows="8" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('resumen') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
+                @if($esVoluntariado)
+                <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">Descripción de las participantes</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Descripción breve de las unidades académicas participantes y su alineamiento con la estrategia de vinculación de la unidad. También se realizará una breve descripción de las contrapartes participantes, a qué se dedican y cómo se alinea el programa a los planes estratégicos.
+                </p>
+                @else
                 <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">Descripción de los Participantes del Proyecto</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
                     Breve descripción de los alcances de la participación de los actores del proyecto. En el caso de la participación de la UNAH, se describirá de manera sucinta, cómo se articula el proyecto de vinculación con las funciones de la docencia (participación de asignaturas) y/o la investigación (si participa un grupo de investigación, o se generan insumos de una investigación en marcha).
                 </p>
+                @endif
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de la participación de la UNAH en el proyecto a través de las funciones de docencia e investigación <span class="text-red-500">*</span></label>
@@ -1484,7 +1565,11 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema <span class="text-red-500">*</span></label>
+                @if($esVoluntariado)
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración para la definición de los resultados del programa.</p>
+                @else
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración para la definición de los resultados del proyecto. La línea base debe representarse con datos y debe de describirse las causas del problema identificado.</p>
+                @endif
                 <textarea wire:model.live.debounce.1000ms="definicion_problema" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('definicion_problema') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
@@ -1494,17 +1579,17 @@
             <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-4 space-y-4">
                 <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Descripción de la experiencia académica que se desarrollará</h4>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conocimientos teóricos que se aplicarán <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de los conocimientos teóricos que se aplicarán <span class="text-red-500">*</span></label>
                     <textarea wire:model.live.debounce.1000ms="experiencia_conocimientos_teoricos" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                     @error('experiencia_conocimientos_teoricos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Habilidades técnicas que se aplicarán <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de las habilidades técnicas que se aplicarán <span class="text-red-500">*</span></label>
                     <textarea wire:model.live.debounce.1000ms="experiencia_habilidades_tecnicas" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                     @error('experiencia_habilidades_tecnicas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Competencias blandas que adquirirán los(as) estudiantes <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de las competencias blandas que adquirirán los(as) estudiantes con esta experiencia <span class="text-red-500">*</span></label>
                     <textarea wire:model.live.debounce.1000ms="experiencia_competencias_blandas" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                     @error('experiencia_competencias_blandas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -1513,7 +1598,7 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento con lo Esencial de la Reforma de la UNAH <span class="text-red-500">*</span></label>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Detalle brevemente cómo se alinean los ejes de lo esencial de la reforma en la ejecución de este proyecto. En resumen, describa qué competencias relacionadas con los ejes de lo esencial de la reforma adquirirán los(as) estudiantes con la participación en este proyecto.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Detalle brevemente cómo se alinean los ejes de lo esencial de la reforma en la ejecución de este {{ $esVoluntariado ? 'programa' : 'proyecto' }}. En resumen, describa qué competencias relacionadas con los ejes de lo esencial de la reforma adquirirán los{{ $esVoluntariado ? '' : '(as)' }} estudiantes con la participación en este {{ $esVoluntariado ? 'programa' : 'proyecto' }}.</p>
                 <textarea wire:model.live.debounce.1000ms="alineamiento_reforma" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('alineamiento_reforma') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
@@ -1536,7 +1621,7 @@
         <div class="space-y-6">
             {{-- Tabla beneficiarios por etnia --}}
             <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipo de Población a la que está Dirigido el Proyecto</h4>
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ $esVoluntariado ? 'Indicar tipo de etnia' : 'Tipo de Población a la que está Dirigido el Proyecto' }}</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Marque los grupos que se atenderán. Puede seleccionar más de una opción.</p>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -1550,9 +1635,9 @@
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             @php
                             $grupos = [
-                                ['label' => 'Indígenas', 'h' => 'indigenas_hombres_marcado', 'm' => 'indigenas_mujeres_marcado'],
-                                ['label' => 'Afrodescendientes', 'h' => 'afroamericanos_hombres_marcado', 'm' => 'afroamericanos_mujeres_marcado'],
-                                ['label' => 'Mestizos', 'h' => 'mestizos_hombres_marcado', 'm' => 'mestizos_mujeres_marcado'],
+                                ['label' => $esVoluntariado ? 'Pueblo originario' : 'Indígenas', 'h' => 'indigenas_hombres_marcado', 'm' => 'indigenas_mujeres_marcado'],
+                                ['label' => $esVoluntariado ? 'Afrodescendiente' : 'Afrodescendientes', 'h' => 'afroamericanos_hombres_marcado', 'm' => 'afroamericanos_mujeres_marcado'],
+                                ['label' => $esVoluntariado ? 'Mestizo' : 'Mestizos', 'h' => 'mestizos_hombres_marcado', 'm' => 'mestizos_mujeres_marcado'],
                             ];
                             @endphp
                             @foreach($grupos as $g)
@@ -1573,8 +1658,13 @@
 
             {{-- Cantidad aproximada de beneficiarios --}}
             <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                @if($esVoluntariado)
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Beneficiarios directos <span class="text-red-500">*</span></h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Cantidad de hombres y mujeres beneficiados directamente.</p>
+                @else
                 <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Cantidad Aproximada de Beneficiarios</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Cantidad total estimada.</p>
+                @endif
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Hombres</label>
@@ -1820,8 +1910,12 @@
                         @error('pais') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
+                        @if($esVoluntariado)
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aldea (incluye ciudad) <span class="text-red-500">*</span></label>
+                        @else
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aldea <span class="text-red-500">*</span></label>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Aplica también para ciudad.</p>
+                        @endif
                         <input type="text" wire:model.live.debounce.1000ms="aldea" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                         @error('aldea') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -1841,7 +1935,7 @@
             {{-- Metodología de seguimiento (FORM-DVUS-015 · sólo Voluntariado) --}}
             @if($esVoluntariado)
             <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-4">
-                <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Metodología de seguimiento</h4>
+                <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Metodología de seguimiento <span class="text-red-500">*</span></h4>
                 <div class="flex flex-wrap gap-3">
                     @foreach($metodologiaSeguimientoOpciones as $valor => $etiqueta)
                     <label class="flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer hover:border-blue-400">
@@ -1867,7 +1961,7 @@
             {{-- Objetivo General (full width) --}}
             <div class="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <label class="block text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">Objetivo General <span class="text-red-500">*</span></label>
-                <p class="text-xs text-blue-700/80 dark:text-blue-300/80 mb-2">El objetivo debe estar basado en la población participante del proyecto.</p>
+                <p class="text-xs text-blue-700/80 dark:text-blue-300/80 mb-2">El objetivo debe estar basado en la población participante del {{ $esVoluntariado ? 'programa' : 'proyecto' }}.</p>
                 <textarea wire:model.live.debounce.1000ms="objetivo_general" rows="3" placeholder="Describe el propósito central del proyecto..."
                     class="w-full rounded-md border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('objetivo_general') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -1884,7 +1978,7 @@
                             + Agregar
                         </button>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Deben estar relacionados con los resultados que esperan obtener en el proyecto.</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Deben estar relacionados con los resultados que esperan obtener en el {{ $esVoluntariado ? 'programa' : 'proyecto' }}.</p>
                     <div class="space-y-2 max-h-[520px] overflow-y-auto pr-1">
                         @foreach($objetivosEspecificos as $oi => $objetivo)
                         <div wire:key="objetivo-{{ $objetivo['wire_key'] ?? $objetivo['id'] ?? 'nuevo-'.$oi }}" wire:click="selectObjetivo({{ $oi }})" class="cursor-pointer rounded-lg border-2 p-3 transition-colors
@@ -1929,7 +2023,7 @@
                 {{-- Columna 3: Resultados Esperados del objetivo activo --}}
                 <div wire:key="objetivo-resultados-{{ $objetivoActivoKey }}" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div class="flex items-center justify-between mb-1">
-                        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Resultados de Corto Plazo del Proyecto <span class="text-red-500">*</span></p>
+                        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ $esVoluntariado ? 'Resultados de corto plazo' : 'Resultados de Corto Plazo del Proyecto' }} <span class="text-red-500">*</span></p>
                         <button wire:click="addResultado({{ $selectedObjetivoIndex }})" type="button"
                             class="text-xs text-blue-600 hover:text-blue-800">+ Agregar</button>
                     </div>
@@ -1979,7 +2073,7 @@
             {{-- Resultados de Mediano y Largo Plazo (efectos e impacto del proyecto, no ligados a un objetivo específico) --}}
             <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <div class="flex items-center justify-between mb-1">
-                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Resultados de Mediano y Largo Plazo</h4>
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ $esVoluntariado ? 'Indicadores de mediano plazo e impacto que se desea generar (largo plazo)' : 'Resultados de Mediano y Largo Plazo' }} @if($esVoluntariado)<span class="text-red-500">*</span>@endif</h4>
                     <button wire:click="openResultadoProyectoModal" type="button"
                         class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                         + Agregar
@@ -1989,7 +2083,7 @@
                     Mediano plazo: son los efectos que se esperan alcanzar del proyecto, es decir, la transformación esperada en la población beneficiada.
                     Largo plazo (impacto): debe expresar los indicadores de impacto que se desea generar en el proyecto.
                 </p>
-                @error('resultadosProyecto') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
+                @foreach($errors->get('resultadosProyecto') as $mensaje) <p class="text-red-500 text-xs mb-2">{{ $mensaje }}</p> @endforeach
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -2188,7 +2282,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
                                     <a href="{{ Storage::url($anexo->documento_url) }}" target="_blank" rel="noopener" class="text-xs text-blue-600 hover:text-blue-800">Ver</a>
-                                    <button x-on:click.prevent="confirmDialog('¿Eliminar este anexo?', { type: 'danger' }).then((ok) => ok && $wire.deleteAnexo({{ $anexo->id }}))" type="button" class="ml-3 text-xs text-red-600 hover:text-red-800">Eliminar</button>
+                                    <button type="button" x-on:click.prevent="confirmDialog('¿Eliminar este anexo?', { type: 'danger' }).then((ok) => ok && $wire.deleteAnexo({{ $anexo->id }}))" type="button" class="ml-3 text-xs text-red-600 hover:text-red-800">Eliminar</button>
                                 </td>
                             </tr>
                         @empty
@@ -2279,31 +2373,34 @@
             @if($esVoluntariado)
             <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-4">
                 <div class="flex items-center justify-between mb-3">
-                    <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Uso de espacios, servicios y medios institucionales</h4>
+                    <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Información sobre el uso de espacios, servicios y medios institucionales <span class="text-red-500">*</span></h4>
                     <button wire:click="addEspacioInstitucional" type="button" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                         + Agregar
                     </button>
                 </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Detalle los espacios o servicios de la UNAH que se utilizarán (laboratorios, aulas, auditorios, medios de comunicación, etc).</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">En esta sección detallarán los espacios o servicios de la UNAH, que utilizará para el desarrollo de la actividad, tales como: uso de laboratorios, aulas, auditorios, medios de comunicación, etc.</p>
+                @error('espacios_institucionales') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
 
                 <div class="space-y-3">
                     @foreach($espacios_institucionales as $i => $espacio)
                     <div wire:key="espacio-{{ $i }}" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end border-b border-gray-100 dark:border-gray-700 pb-3">
                         <div class="md:col-span-4">
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción del servicio o infraestructura</label>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción del servicio o infraestructura <span class="text-red-500">*</span></label>
                             <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.descripcion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                             @error('espacios_institucionales.'.$i.'.descripcion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div class="md:col-span-3">
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ubicación</label>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ubicación <span class="text-red-500">*</span></label>
                             <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.ubicacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                            @error('espacios_institucionales.'.$i.'.ubicacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div class="md:col-span-3">
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Unidad gestora</label>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Unidad gestora <span class="text-red-500">*</span></label>
                             <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.unidad_gestora" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                            @error('espacios_institucionales.'.$i.'.unidad_gestora') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div class="md:col-span-1">
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas</label>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tiempo de uso (horas) <span class="text-red-500">*</span></label>
                             <input type="number" min="0" step="0.5" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.tiempo_uso_horas" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm focus:border-blue-500" />
                             @error('espacios_institucionales.'.$i.'.tiempo_uso_horas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>

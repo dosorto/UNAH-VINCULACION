@@ -182,10 +182,10 @@
                         </button>
                     @endif
                     @if($informeIntermedio['informe']?->estado === \App\Models\InformeIntermedio\InformeIntermedioProyecto::ESTADO_BORRADOR)
-                        <button wire:click="eliminarInformeIntermedio" wire:confirm="¿Eliminar el PDF en borrador?" class="rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 dark:border-rose-800 dark:text-rose-300">Eliminar</button>
+                        <button type="button" x-on:click.prevent="confirmDialog('¿Eliminar el PDF en borrador?', { type: 'danger' }).then((ok) => ok && $wire.eliminarInformeIntermedio())"  class="rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 dark:border-rose-800 dark:text-rose-300">Eliminar</button>
                     @endif
                     @if($informeIntermedio['puede_enviar'])
-                        <button wire:click="enviarInformeIntermedio" wire:confirm="¿Enviar el Informe Intermedio a revisión?" class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Enviar a revisión</button>
+                        <button type="button" x-on:click.prevent="confirmDialog('¿Enviar el Informe Intermedio a revisión?').then((ok) => ok && $wire.enviarInformeIntermedio())"  class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Enviar a revisión</button>
                     @endif
                 </div>
             </div>
@@ -261,10 +261,12 @@
                     @elseif($cierreInformeFinal['accion'] === 'subsanar')
                         <a href="{{ route('proyectos.informe-final', $proyecto) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Editar subsanación</a>
                         @if($cierreInformeFinal['puede_enviar'])
-                            <button wire:click="enviarInformeFinal" wire:confirm="¿Reenviar el INF-001 a la etapa que solicitó la subsanación?" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Reenviar informe final</button>
+                            <button type="button" x-on:click.prevent="confirmDialog('¿Reenviar el INF-001 a la etapa que solicitó la subsanación?').then((ok) => ok && $wire.enviarInformeFinal())"  class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Reenviar informe final</button>
                         @endif
                     @elseif($cierreInformeFinal['accion'] === 'enviar' && $cierreInformeFinal['puede_enviar'])
-                        <button wire:click="enviarInformeFinal" wire:confirm="¿Enviar el INF-001 al flujo de cierre? La edición quedará bloqueada." class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</button>
+                        {{-- Mientras no se envíe, el informe sigue siendo editable: sin este enlace no habría cómo volver a él. --}}
+                        <a href="{{ route('proyectos.informe-final', $proyecto) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Editar informe final</a>
+                        <button type="button" x-on:click.prevent="confirmDialog('La edición quedará bloqueada.', { title: '¿Enviar el INF-001 al flujo de cierre?' }).then((ok) => ok && $wire.enviarInformeFinal())"  class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</button>
                     @elseif($cierreInformeFinal['accion'] === 'ver')
                         <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-200">Informe final en revisión</a>
                     @elseif($cierreInformeFinal['accion'] === 'aprobado')
@@ -288,6 +290,7 @@
             @include('components.fichas.ficha-proyecto-vinculacion', [
                 'proyecto' => $proyecto,
                 'hideEmbeddedDocuments' => true,
+                'embebido' => true,
             ])
         </section>
 

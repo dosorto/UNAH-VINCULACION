@@ -142,7 +142,7 @@
                     class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700">
                     Subsanar
                 </button>
-                <button x-on:click.prevent="confirmDialog('¿Está seguro de aprobar esta etapa ENF?').then((ok) => ok && $wire.aprobarEnfRevision({{ $viewEnfRevision->id }}))"
+                <button type="button" x-on:click.prevent="confirmDialog('¿Está seguro de aprobar esta etapa ENF?').then((ok) => ok && $wire.aprobarEnfRevision({{ $viewEnfRevision->id }}))"
                     class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700">
                     Aprobar
                 </button>

@@ -654,9 +654,9 @@ class ProyectoVinculacionFormularioTest extends TestCase
     {
         $component = $this->formComponent();
         $component->currentStep = 1;
-        $method = new \ReflectionMethod(CreateProyectoVinculacion::class, 'rulesPasoActualBase');
+        $method = new \ReflectionMethod(CreateProyectoVinculacion::class, 'rulesPasoBase');
         $method->setAccessible(true);
-        $rules = $method->invoke($component);
+        $rules = $method->invoke($component, 1);
 
         $this->assertTrue(Validator::make(['ods' => [1, 2, 3]], ['ods' => $rules['ods']])->passes());
         $this->assertTrue(Validator::make(['ods' => [1, 2, 3, 4]], ['ods' => $rules['ods']])->fails());
@@ -816,6 +816,54 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $this->assertSame(2, $component->currentStep);
         $this->assertTrue($component->getErrorBag()->has('estudiante_proyecto'));
         $this->assertTrue($component->getErrorBag()->has('estudiante_proyecto.0.total_estudiantes'));
+    }
+
+    public function test_paso_de_contraparte_no_avanza_si_una_contraparte_no_tiene_instrumento(): void
+    {
+        $component = $this->formComponent();
+        $component->currentStep = 3;
+        $component->entidad_contraparte = [[
+            'entidad_contraparte_id' => 1,
+            'nombre' => 'Universidad Internacional',
+            'tipo_entidad' => 'internacional',
+            'instrumento_formalizacion' => [],
+        ]];
+
+        $component->nextStep();
+
+        $this->assertSame(3, $component->currentStep);
+        $this->assertTrue($component->getErrorBag()->has('entidad_contraparte.0'));
+        $this->assertFalse($component->isStepComplete(3));
+    }
+
+    public function test_paso_de_contraparte_avanza_con_instrumento_y_documento(): void
+    {
+        $component = $this->formComponent();
+        $component->currentStep = 3;
+        $component->entidad_contraparte = [[
+            'entidad_contraparte_id' => 1,
+            'nombre' => 'Universidad Internacional',
+            'tipo_entidad' => 'internacional',
+            'instrumento_formalizacion' => [[
+                'id' => 10,
+                'tipo_documento' => 'convenio_marco',
+                'documento_url' => 'proyectos/contrapartes/instrumentos/convenio.pdf',
+                'nombre_archivo' => 'convenio.pdf',
+                'documento_file' => null,
+            ]],
+        ]];
+
+        $component->nextStep();
+
+        $this->assertSame(4, $component->currentStep);
+    }
+
+    public function test_modal_de_contraparte_existente_pide_instrumento_antes_de_agregar(): void
+    {
+        $html = File::get(resource_path('views/livewire/proyectos/vinculacion/create-proyecto-vinculacion.blade.php'));
+
+        $this->assertStringContainsString('Usar seleccionada', $html);
+        $this->assertStringNotContainsString('Agregar seleccionada', $html);
     }
 
     public function test_catalogo_base_contiene_los_tres_periodos_academicos(): void

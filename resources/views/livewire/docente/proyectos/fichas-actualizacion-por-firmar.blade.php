@@ -76,6 +76,7 @@
                         @include('components.fichas.ficha-actualizacion-proyecto-vinculacion', [
                             'fichaActualizacion' => $viewFicha,
                             'proyecto' => $viewProyecto,
+                            'embebido' => true,
                         ])
                     @endif
                 </div>
@@ -84,7 +85,7 @@
                         class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700">
                         Rechazar
                     </button>
-                    <button x-on:click.prevent="confirmDialog('¿Estás seguro de que deseas aprobar la firma de esta ficha de actualización?').then((ok) => ok && $wire.aprobar({{ $viewFirma->id }}))"
+                    <button type="button" x-on:click.prevent="confirmDialog('¿Estás seguro de que deseas aprobar la firma de esta ficha de actualización?').then((ok) => ok && $wire.aprobar({{ $viewFirma->id }}))"
                         class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700">
                         Aprobar
                     </button>

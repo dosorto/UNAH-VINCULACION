@@ -9,8 +9,14 @@ import {
 // Hacer ApexCharts disponible globalmente
 window.ApexCharts = ApexCharts;
 
-// Modal de confirmación propio del sistema (reemplaza window.confirm() nativo)
-document.addEventListener('alpine:init', () => {
+// Modal de confirmación propio del sistema (reemplaza window.confirm() nativo).
+// Se registra en alpine:init y también al vuelo, porque este módulo puede cargar
+// después de que Livewire ya arrancó Alpine y el evento no se vuelve a emitir.
+const registrarConfirmDialog = (Alpine) => {
+    if (! Alpine || Alpine.store('confirmDialog')) {
+        return;
+    }
+
     Alpine.store('confirmDialog', {
         show: false,
         title: 'Confirmar acción',
@@ -42,6 +48,12 @@ document.addEventListener('alpine:init', () => {
             this.resolve = null;
         },
     });
+};
+
+document.addEventListener('alpine:init', () => registrarConfirmDialog(window.Alpine));
+registrarConfirmDialog(window.Alpine);
+
+document.addEventListener('alpine:init', () => {
 
     Alpine.data('workflowStageAnimator', () => ({
         stagePositions: {},
@@ -120,7 +132,11 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 
-window.confirmDialog = (message, options) => window.Alpine.store('confirmDialog').open(message, options);
+window.confirmDialog = (message, options) => {
+    registrarConfirmDialog(window.Alpine);
+
+    return window.Alpine.store('confirmDialog').open(message, options);
+};
 
 const THEME_KEY = 'theme';
 const LEGACY_THEME_KEY = 'color-theme';

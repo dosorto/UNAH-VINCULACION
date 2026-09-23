@@ -27,7 +27,10 @@ class InformeFinalInf001AsteriscosObligatoriosTest extends TestCase
     {
         [$faltan, , $analizados] = $this->comparar();
 
-        $this->assertGreaterThanOrEqual(48, $analizados, 'La comparación dejó de encontrar campos; revisa los patrones.');
+        // 43 desde que la sección V sigue el formato (sin aportes ni compromisos cumplidos por
+        // contraparte), el total de la valoración se toma del apartado 9 (solo lectura) y los
+        // responsables de una acción emergente se eligen de una lista (no es un input).
+        $this->assertGreaterThanOrEqual(43, $analizados, 'La comparación dejó de encontrar campos; revisa los patrones.');
 
         $this->assertSame([], $faltan, "Campos obligatorios sin asterisco:\n  - ".implode("\n  - ", $faltan));
     }

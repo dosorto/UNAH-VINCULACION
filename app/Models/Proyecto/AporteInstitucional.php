@@ -48,6 +48,12 @@ class AporteInstitucional extends Model
             'gastos_impresion' => 'e) Gastos de impresión',
             'costos_indirectos_infraestructura' => 'f) Costos indirectos por infraestructura universidad',
             'costos_indirectos_servicios' => 'g) Costos indirectos por servicios públicos',
+            // Conceptos adicionales del apartado X del INF-001 (el registro no los usa).
+            'contratacion_personal' => 'Contratación de personal - consultorías',
+            'gastos_alimentacion' => 'Gastos de alimentación',
+            'viaticos_estipendios' => 'Viáticos / estipendios',
+            'combustible' => 'Combustible',
+            'insumos_estudiantes' => 'Aportación insumos/materiales adquiridos por estudiantes',
             default => $this->concepto
         };
     }

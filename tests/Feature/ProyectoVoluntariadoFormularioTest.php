@@ -86,6 +86,11 @@ class ProyectoVoluntariadoFormularioTest extends TestCase
 
         $component->tematica_principal = 'educacion';
 
+        // El FORM-DVUS-015 también exige la meta a la que se contribuye (ítem 30).
+        $this->assertFalse($component->isStepComplete(1));
+
+        $component->metasContribuye = ['1'];
+
         $this->assertTrue($component->isStepComplete(1));
     }
 
@@ -104,9 +109,11 @@ class ProyectoVoluntariadoFormularioTest extends TestCase
 
         $infra = collect($component->aporte_institucional)->firstWhere('concepto', 'costos_indirectos_infraestructura');
 
-        // 3% de 100 (sumatoria de "cantidad" de los conceptos a–e).
+        // 3% de L 20,000 (sumatoria del costo total de los conceptos a–e): la fila
+        // muestra el porcentaje como cantidad y la sumatoria como costo unitario.
         $this->assertSame(3.0, $infra['cantidad']);
-        $this->assertSame(6.0, $infra['costo_unitario']);
+        $this->assertSame(20000.0, $infra['costo_unitario']);
+        $this->assertSame(600.0, $infra['costo_total']);
     }
 
     public function test_resultados_de_mediano_largo_plazo_se_gestionan_por_modal(): void
