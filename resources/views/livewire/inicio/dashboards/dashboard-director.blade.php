@@ -94,13 +94,26 @@
 
             {{-- ── Lo que antes no existía: el estado de su unidad ─────────── --}}
             @if ($institucional)
-                @if (! empty($carriles))
-                    <x-dashboard.panel titulo="Recorrido de los trámites"
-                        subtitulo="Cada formulario con el itinerario que le corresponde"
+                <x-dashboard.panel titulo="Estado de los trámites en {{ $ambito->etiqueta }}"
+                    subtitulo="Todos los formularios, resumidos en los mismos cinco estados"
+                    icono="heroicon-o-squares-2x2">
+                    <x-dashboard.estado-tramites :resumen="$tramites" :matriz="$matriz"
+                        :seleccionado="$detalleFormulario['codigo'] ?? null" />
+                </x-dashboard.panel>
+
+                @if ($detalleFormulario)
+                    <x-dashboard.panel titulo="Recorrido de {{ $detalleFormulario['codigo'] }}"
+                        subtitulo="{{ $detalleFormulario['nombre'] }} · en qué etapa espera cada trámite"
                         icono="heroicon-o-arrow-long-right">
-                        <x-dashboard.carriles-tramite :carriles="$carriles" />
+                        <x-dashboard.recorrido-formulario :detalle="$detalleFormulario" :opciones="$opcionesDetalle" />
                     </x-dashboard.panel>
                 @endif
+
+                <x-dashboard.panel titulo="Dónde se atascan los trámites"
+                    subtitulo="Etapas con más trámites esperando, de todos los formularios"
+                    icono="heroicon-o-funnel" :sinPadding="true">
+                    <x-dashboard.atascos :items="$atascos" />
+                </x-dashboard.panel>
 
                 <div class="grid gap-5" :class="barra ? '2xl:grid-cols-2' : 'xl:grid-cols-2'">
                     @if ($serieGrafico)
@@ -121,7 +134,7 @@
 
                     @if (! empty($tiempos))
                         <x-dashboard.panel titulo="Salud del flujo"
-                            subtitulo="Días promedio por etapa" icono="heroicon-o-heart">
+                            subtitulo="Proyectos: días promedio por etapa" icono="heroicon-o-heart">
                             <x-dashboard.salud-flujo :etapas="$tiempos" :esperando="$esperando" />
                         </x-dashboard.panel>
                     @endif
@@ -130,7 +143,7 @@
                 @if (! empty($detenidos))
                     @php
                         $detenidosLista = collect($detenidos)->map(fn (array $d) => (object) [
-                            'tipo' => 'Proyecto',
+                            'tipo' => $d['tipo'] ?? 'Proyecto',
                             'codigo' => $d['codigo'],
                             'nombre' => $d['nombre'],
                             'etapa' => $d['etapa'],
@@ -194,7 +207,7 @@
                                                 <span class="mt-0.5 block font-mono text-[11px] text-slate-400">{{ $proyecto->codigo_proyecto }}</span>
                                             @endif
                                         </span>
-                                        <x-dashboard.chip-estado :nombre="$proyecto->estadoActual?->tipoestado?->nombre" tamano="xs" />
+                                        <x-dashboard.chip-estado :nombre="$proyecto->estado_general" tamano="xs" />
                                     </a>
                                 </li>
                             @endforeach
@@ -272,7 +285,7 @@
                                             </a>
                                         </td>
                                         <td class="px-5 py-3">
-                                            <x-dashboard.chip-estado :nombre="$proyecto->estadoActual?->tipoestado?->nombre" tamano="xs" />
+                                            <x-dashboard.chip-estado :nombre="$proyecto->estado_general" tamano="xs" />
                                         </td>
                                         <td class="px-5 py-3 align-top">
                                             <x-dashboard.stepper-progreso :stepper="$stepperDirector" />

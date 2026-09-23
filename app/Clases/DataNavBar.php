@@ -5,13 +5,13 @@ namespace App\Clases;
 use App\Concerns\ResolvesFirmasPendientes;
 use App\Models\DAFT\ProgramaRevision;
 use App\Models\ENF\EnfRevision;
+use App\Models\Pasantia;
 use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\Proyecto;
 use App\Services\DAFT\ProgramaWorkflowService;
 use App\Support\Dashboard\EstadosProyecto;
-use Illuminate\Database\Eloquent\Builder;
 
 class DataNavBar
 {
@@ -99,66 +99,23 @@ class DataNavBar
 
         return $firmasPendientes
             + self::obtenerCantidadEnfPorRevisar()
-            + self::obtenerCantidadPpsPorRevisar();
+            + self::obtenerCantidadPpsPorRevisar()
+            + self::obtenerCantidadPasantiasPorRevisar();
     }
 
     public static function obtenerCantidadEnfPorRevisar(): int
     {
-        $user = auth()->user();
-        $activeRoleName = $user?->activeRole?->name;
-
-        if (! $user || ! $activeRoleName) {
-            return 0;
-        }
-
-        $pendingStates = ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO'];
-
-        return EnfRevision::query()
-            ->whereIn('estado', $pendingStates)
-            ->whereHas('accion', fn (Builder $query) => $query
-                ->where('estado_flujo', 'EN_REVISION')
-                ->whereColumn('enf_revisiones.revision_ciclo', 'enf_acciones.revision_ciclo'))
-            ->whereNotExists(function ($previousQuery) use ($pendingStates): void {
-                $previousQuery
-                    ->selectRaw('1')
-                    ->from('enf_revisiones as enf_revisiones_anteriores')
-                    ->whereColumn('enf_revisiones_anteriores.enf_accion_id', 'enf_revisiones.enf_accion_id')
-                    ->whereColumn('enf_revisiones_anteriores.revision_ciclo', 'enf_revisiones.revision_ciclo')
-                    ->whereColumn('enf_revisiones_anteriores.orden', '<', 'enf_revisiones.orden')
-                    ->whereIn('enf_revisiones_anteriores.estado', $pendingStates);
-            })
-            ->where(function (Builder $responsableQuery) use ($user, $activeRoleName): void {
-                $responsableQuery
-                    ->where(function (Builder $assignedQuery) use ($user, $activeRoleName): void {
-                        $assignedQuery
-                            ->where('asignado_usuario_id', $user->id)
-                            ->where(function (Builder $roleQuery) use ($activeRoleName): void {
-                                $roleQuery
-                                    ->whereNull('rol_requerido')
-                                    ->orWhere('rol_requerido', $activeRoleName);
-                            });
-                    })
-                    ->orWhere(function (Builder $roleQuery) use ($activeRoleName): void {
-                        $roleQuery
-                            ->whereNull('asignado_usuario_id')
-                            ->where('rol_requerido', $activeRoleName);
-                    })
-                    ->orWhere(function (Builder $assignmentQuery) use ($user, $activeRoleName): void {
-                        $assignmentQuery
-                            ->where('responsable_usuario_id', $user->id)
-                            ->where(function (Builder $roleQuery) use ($activeRoleName): void {
-                                $roleQuery
-                                    ->whereNull('rol_requerido')
-                                    ->orWhere('rol_requerido', $activeRoleName);
-                            });
-                    });
-            })
-            ->count();
+        return EnfRevision::pendientesParaUsuario(auth()->user())->count();
     }
 
     public static function obtenerCantidadPpsPorRevisar(): int
     {
         return PpsServicioSocial::pendientesParaUsuario(auth()->user())->count();
+    }
+
+    public static function obtenerCantidadPasantiasPorRevisar(): int
+    {
+        return Pasantia::pendientesParaUsuario(auth()->user())->count();
     }
 
     public static function obtenerCantidadRevisionesDaft(): int

@@ -102,6 +102,36 @@ class PanelesRenderizanTest extends TestCase
             ->assertSet('proyectosVisibles', 20);
     }
 
+    public function test_el_panel_del_director_muestra_el_estado_general_de_sus_proyectos(): void
+    {
+        $usuario = $this->usuarioCon('director-mis-proyectos', ['director.proyectos'], centroFacultadId: 4);
+        $proyecto = \App\Models\Proyecto\Proyecto::create([
+            'nombre_proyecto' => 'Proyecto propio en revisión',
+            'codigo_proyecto' => 'DIR-'.uniqid(),
+        ]);
+        \Illuminate\Support\Facades\DB::table('empleado_proyecto')->insert([
+            'empleado_id' => $usuario->empleado->id,
+            'proyecto_id' => $proyecto->id,
+            'rol' => 'Coordinador',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $proyecto->estado_proyecto()->create([
+            'empleado_id' => $usuario->empleado->id,
+            'tipo_estado_id' => \App\Support\Proyecto\EstadoGeneralProyecto::id('Enlace Vinculacion'),
+            'fecha' => now(),
+            'es_actual' => true,
+        ]);
+
+        // El chip leía $proyecto->estadoActual, que por el accessor homónimo
+        // devuelve un TipoEstado y no la relación: salía "Sin estado" siempre.
+        Livewire::actingAs($usuario)
+            ->test(DashboardDirector::class)
+            ->assertSee('Proyecto propio en revisión')
+            ->assertSee('En revision')
+            ->assertDontSee('Sin estado');
+    }
+
     public function test_el_panel_institucional_se_monta(): void
     {
         $usuario = $this->usuarioCon('admin', ['proyectos.historial']);

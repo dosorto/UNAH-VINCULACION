@@ -4,29 +4,39 @@ namespace App\Services\Dashboard;
 
 use App\Concerns\ResolvesFirmasPendientes;
 use App\Models\ENF\EnfRevision;
+use App\Models\Pasantia;
 use App\Models\PpsServicioSocial;
+use App\Models\Proyecto\DocumentoProyecto;
+use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
+use App\Support\Proyecto\EtapaActualFirma;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Bandeja de revisión del rol activo: Proyecto + PPS/SS + ENF en una sola lista
- * ordenada por antigüedad.
+ * Bandeja de revisión del rol activo: proyectos y sus informes, PPS/SS,
+ * pasantías y ENF en una sola lista ordenada por antigüedad.
  *
  * Unifica lo que estaba repartido entre DashboardDirector (proyectos y PPS) y
  * DasboardDocente (ENF), de modo que cada panel mostraba una parte distinta de
- * lo mismo.
+ * lo mismo. Cada tipo sale de la misma consulta que la bandeja de tareas
+ * (ProyectosPorFirmar) y el contador de la barra, para que los tres coincidan.
  *
  * El orden es del más antiguo al más reciente, al revés que antes: a quien
  * revisa le importa lo que lleva más tiempo esperando, no lo último que entró.
  *
- * Nada de esto se cachea: quien aprueba algo debe ver bajar el contador en el
- * siguiente render.
+ * Nada de esto se cachea entre peticiones: quien aprueba algo debe ver bajar
+ * el contador en el siguiente render. Dentro de una misma petición sí se
+ * reutiliza: el panel del director pide la lista, el total, el conteo por tipo
+ * y la espera más larga, y antes cada uno la recalculaba entera.
  */
 class PendientesRevisionService
 {
     use ResolvesFirmasPendientes;
+
+    /** @var array<string, Collection<int, object>> */
+    private array $memo = [];
 
     /**
      * @return Collection<int, object{tipo:string,codigo:?string,nombre:string,etapa:?string,dias_espera:int,fecha_inicio:mixed,href:?string,sort_date:mixed}>
@@ -37,12 +47,16 @@ class PendientesRevisionService
             return collect();
         }
 
-        return $this->proyectos($user)
+        $clave = $user->id.':'.$user->activeRole->id;
+
+        $this->memo[$clave] ??= $this->proyectos()
             ->concat($this->pps($user))
+            ->concat($this->pasantias($user))
             ->concat($this->enf($user))
             ->sortBy('sort_date')       // más antiguo primero
-            ->take($limite)
             ->values();
+
+        return $this->memo[$clave]->take($limite)->values();
     }
 
     public function total(?User $user): int
@@ -67,127 +81,167 @@ class PendientesRevisionService
         return $primero?->dias_espera;
     }
 
-    /** @return Collection<int, object> */
-    private function proyectos(User $user): Collection
+    /**
+     * Inscripciones de proyecto e informes (intermedio y final) que esperan
+     * la firma del usuario.
+     *
+     * Antes solo se miraban las firmas del proyecto, así que un informe final
+     * en revisión —el cierre de un FORM-DVUS-015, por ejemplo— aparecía en la
+     * bandeja y en el contador de la barra, pero no en el panel.
+     *
+     * @return Collection<int, object>
+     */
+    private function proyectos(): Collection
     {
-        $ids = $this->proyectoIdsConFirmaPendienteParaRolActivo();
+        $firmas = $this->firmasDisponiblesQuery()
+            ->whereIn('firma_proyecto.firmable_type', [Proyecto::class, DocumentoProyecto::class])
+            ->selectRaw(EtapaActualFirma::llegadaSql().' as espera_desde')
+            ->with('cargo_firma.tipoCargoFirma')
+            ->get()
+            // Una fila por expediente: la etapa puede tener varias firmas
+            // candidatas cuando se envió a todos los usuarios de un rol.
+            ->groupBy(fn (FirmaProyecto $firma): string => $firma->firmable_type.'#'.$firma->firmable_id)
+            ->map(fn (Collection $candidatas): FirmaProyecto => $candidatas->sortBy('espera_desde')->first());
 
-        if ($ids->isEmpty()) {
+        if ($firmas->isEmpty()) {
             return collect();
         }
 
-        // La fecha de creación de la firma pendiente es la que marca desde
-        // cuándo espera este proyecto, no la del proyecto.
-        $esperaDesde = $this->firmasDisponiblesQuery()
-            ->where('firma_proyecto.firmable_type', Proyecto::class)
-            ->get(['firma_proyecto.firmable_id', 'firma_proyecto.created_at'])
-            ->groupBy('firmable_id')
-            ->map(fn (Collection $g) => $g->min('created_at'));
-
-        return Proyecto::query()
-            ->whereIn('id', $ids)
-            ->with(['estadoActual.tipoestado'])
+        $documentos = DocumentoProyecto::query()
+            ->whereIn('id', $firmas->where('firmable_type', DocumentoProyecto::class)->pluck('firmable_id'))
             ->get()
-            ->map(function (Proyecto $p) use ($esperaDesde): object {
-                $desde = $esperaDesde->get($p->id) ?: $p->created_at;
+            ->keyBy('id');
+
+        $proyectos = Proyecto::query()
+            ->whereIn('id', $firmas->where('firmable_type', Proyecto::class)->pluck('firmable_id')
+                ->concat($documentos->pluck('proyecto_id')))
+            ->get()
+            ->keyBy('id');
+
+        return $firmas
+            ->map(function (FirmaProyecto $firma) use ($documentos, $proyectos): ?object {
+                $documento = $firma->firmable_type === DocumentoProyecto::class
+                    ? $documentos->get($firma->firmable_id)
+                    : null;
+                $proyecto = $proyectos->get($documento ? $documento->proyecto_id : $firma->firmable_id);
+
+                if (! $proyecto) {
+                    return null;
+                }
+
+                $desde = Carbon::parse($firma->espera_desde ?: $firma->created_at);
 
                 return (object) [
-                    'tipo' => 'Proyecto',
-                    'codigo' => $p->codigo_proyecto,
-                    'nombre' => $p->nombre_proyecto,
-                    'etapa' => $p->estadoActual?->tipoestado?->nombre,
+                    'tipo' => $documento ? ($documento->tipo_documento ?: 'Informe') : 'Proyecto',
+                    'codigo' => $proyecto->codigo_proyecto,
+                    'nombre' => $proyecto->nombre_proyecto,
+                    // La etapa de la firma, no el estado: desde que el proyecto
+                    // queda "En revision" toda la inscripción, el estado ya no
+                    // dice en qué paso está.
+                    'etapa' => $firma->etapa_nombre ?: $firma->cargo_firma?->tipoCargoFirma?->nombre,
                     'dias_espera' => $this->diasDesde($desde),
-                    'fecha_inicio' => $p->fecha_inicio,
-                    'href' => route('historialproyecto', $p->id),
+                    'fecha_inicio' => $proyecto->fecha_inicio,
+                    // Los informes se revisan desde la bandeja, no desde el
+                    // historial del proyecto.
+                    'href' => $documento
+                        ? route('SolicitudProyectosDocente')
+                        : route('historialproyecto', $proyecto->id),
                     'sort_date' => $desde,
                 ];
-            });
+            })
+            ->filter()
+            ->values();
     }
 
     /** @return Collection<int, object> */
     private function pps(User $user): Collection
     {
         return PpsServicioSocial::pendientesParaUsuario($user)
+            ->select('pps_servicio_social.*')
+            ->selectRaw($this->ultimaAprobacionSql('pps_servicio_social').' as ultima_aprobacion', [PpsServicioSocial::class])
             ->with('etapaActual')
             ->get()
-            ->map(fn (PpsServicioSocial $r): object => (object) [
-                'tipo' => 'PPS/SS',
-                'codigo' => $r->codigo_registro,
-                'nombre' => $r->nombre_estudiante ?: $r->nombre_institucion,
-                'etapa' => $r->etapaActual?->nombre,
-                'dias_espera' => $this->diasDesde($r->fecha_envio ?: $r->created_at),
-                'fecha_inicio' => $r->fecha_inicio,
-                'href' => null,
-                'sort_date' => $r->fecha_envio ?: $r->created_at,
-            ]);
+            ->map(function (PpsServicioSocial $r): object {
+                $desde = Carbon::parse($r->ultima_aprobacion ?: $r->fecha_envio ?: $r->created_at);
+
+                return (object) [
+                    'tipo' => 'PPS/SS',
+                    'codigo' => $r->codigo_registro,
+                    'nombre' => $r->nombre_estudiante ?: $r->nombre_institucion,
+                    'etapa' => $r->etapaActual?->nombre,
+                    'dias_espera' => $this->diasDesde($desde),
+                    'fecha_inicio' => $r->fecha_inicio,
+                    'href' => route('pps-servicio-social.show', $r->id),
+                    'sort_date' => $desde,
+                ];
+            });
+    }
+
+    /** @return Collection<int, object> */
+    private function pasantias(User $user): Collection
+    {
+        return Pasantia::pendientesParaUsuario($user)
+            ->select('pasantias.*')
+            ->selectRaw($this->ultimaAprobacionSql('pasantias').' as ultima_aprobacion', [Pasantia::class])
+            ->with('etapaActual')
+            ->get()
+            ->map(function (Pasantia $r): object {
+                $desde = Carbon::parse($r->ultima_aprobacion ?: $r->fecha_envio ?: $r->created_at);
+
+                return (object) [
+                    'tipo' => 'Pasantía',
+                    'codigo' => $r->codigo_registro,
+                    'nombre' => $r->nombre_estudiante ?: ($r->nombre_institucion ?: 'Registro de pasantía'),
+                    'etapa' => $r->etapaActual?->nombre,
+                    'dias_espera' => $this->diasDesde($desde),
+                    'fecha_inicio' => $r->fecha_inicio,
+                    'href' => route('pasantias.show', $r->id),
+                    'sort_date' => $desde,
+                ];
+            });
     }
 
     /** @return Collection<int, object> */
     private function enf(User $user): Collection
     {
-        return $this->revisionesEnfDisponibles($user)
+        // Las revisiones de todas las etapas se crean al enviar: la de esta
+        // etapa empieza a esperar cuando decide la anterior del mismo ciclo.
+        return EnfRevision::pendientesParaUsuario($user)
+            ->select('enf_revisiones.*')
+            ->selectRaw(EnfRevision::llegadaSql().' as llegada')
             ->with('accion')
             ->get()
-            ->map(fn (EnfRevision $r): object => (object) [
-                'tipo' => 'ENF',
-                'codigo' => $r->accion?->codigo_formulario,
-                'nombre' => $r->accion?->nombre_accion ?: 'Educación no formal',
-                'etapa' => $r->etapa_nombre,
-                'dias_espera' => $this->diasDesde($r->created_at),
-                'fecha_inicio' => $r->accion?->fecha_inicio,
-                'href' => null,
-                'sort_date' => $r->created_at,
-            ]);
+            ->map(function (EnfRevision $r): object {
+                $desde = Carbon::parse($r->llegada ?: $r->created_at);
+
+                return (object) [
+                    'tipo' => 'ENF',
+                    'codigo' => $r->accion?->codigo_formulario,
+                    'nombre' => $r->accion?->nombre_accion ?: 'Educación no formal',
+                    'etapa' => $r->etapa_nombre,
+                    'dias_espera' => $this->diasDesde($desde),
+                    'fecha_inicio' => $r->accion?->fecha_inicio,
+                    // ENF se revisa en el modal de la bandeja, no tiene ruta propia.
+                    'href' => route('SolicitudProyectosDocente'),
+                    'sort_date' => $desde,
+                ];
+            });
     }
 
     /**
-     * Revisiones ENF que le tocan al rol activo.
-     *
-     * Movido tal cual desde DasboardDocente::enfRevisionesDisponiblesQuery():
-     * vivía solo en el panel del docente, así que el director nunca veía sus
-     * pendientes de Educación No Formal.
+     * Última aprobación del ciclo vigente de un registro con firmas por etapa
+     * (PPS/SS, pasantías): como se aprueba etapa por etapa, es la fecha en que
+     * le llegó la etapa actual. Nula mientras espera la primera.
      */
-    private function revisionesEnfDisponibles(User $user): Builder
+    private function ultimaAprobacionSql(string $tabla): string
     {
-        $rolActivo = $user->activeRole?->name;
-
-        if (! $rolActivo) {
-            return EnfRevision::query()->whereRaw('1 = 0');
-        }
-
-        $pendientes = ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO'];
-
-        return EnfRevision::query()
-            ->whereHas('accion', fn (Builder $q): Builder => $q->whereIn('codigo_formulario', ['FORM-DVUS-016', 'FORM-DVUS-018']))
-            ->whereIn('estado', $pendientes)
-            // Solo la primera etapa pendiente de cada ciclo: las siguientes aún
-            // no le tocan a nadie.
-            ->whereNotExists(function ($anterior) use ($pendientes): void {
-                $anterior->selectRaw('1')
-                    ->from('enf_revisiones as previas')
-                    ->whereColumn('previas.enf_accion_id', 'enf_revisiones.enf_accion_id')
-                    ->whereColumn('previas.proceso', 'enf_revisiones.proceso')
-                    ->whereColumn('previas.revision_ciclo', 'enf_revisiones.revision_ciclo')
-                    ->whereColumn('previas.orden', '<', 'enf_revisiones.orden')
-                    ->whereIn('previas.estado', $pendientes);
-            })
-            // Y descarta ciclos superados por una subsanación posterior.
-            ->whereNotExists(function ($cicloNuevo): void {
-                $cicloNuevo->selectRaw('1')
-                    ->from('enf_revisiones as posteriores')
-                    ->whereColumn('posteriores.enf_accion_id', 'enf_revisiones.enf_accion_id')
-                    ->whereColumn('posteriores.proceso', 'enf_revisiones.proceso')
-                    ->whereColumn('posteriores.revision_ciclo', '>', 'enf_revisiones.revision_ciclo');
-            })
-            ->where(function (Builder $responsable) use ($user, $rolActivo): void {
-                $responsable
-                    ->where(fn (Builder $q) => $q->where('asignado_usuario_id', $user->id)
-                        ->where(fn (Builder $r) => $r->whereNull('rol_requerido')->orWhere('rol_requerido', $rolActivo)))
-                    ->orWhere(fn (Builder $q) => $q->whereNull('asignado_usuario_id')
-                        ->where('rol_requerido', $rolActivo))
-                    ->orWhere(fn (Builder $q) => $q->where('responsable_usuario_id', $user->id)
-                        ->where(fn (Builder $r) => $r->whereNull('rol_requerido')->orWhere('rol_requerido', $rolActivo)));
-            });
+        return "(SELECT MAX(aprobada.fecha_firma) FROM firma_proyecto aprobada
+                 WHERE aprobada.firmable_type = ? AND aprobada.firmable_id = {$tabla}.id
+                   AND aprobada.estado_revision = 'Aprobado' AND aprobada.deleted_at IS NULL
+                   AND aprobada.revision_ciclo = (SELECT MAX(ciclo.revision_ciclo) FROM firma_proyecto ciclo
+                        WHERE ciclo.firmable_type = aprobada.firmable_type
+                          AND ciclo.firmable_id = aprobada.firmable_id
+                          AND ciclo.deleted_at IS NULL))";
     }
 
     private function diasDesde(mixed $fecha): int
@@ -196,6 +250,6 @@ class PendientesRevisionService
             return 0;
         }
 
-        return (int) \Carbon\Carbon::parse($fecha)->startOfDay()->diffInDays(now()->startOfDay());
+        return (int) Carbon::parse($fecha)->startOfDay()->diffInDays(now()->startOfDay());
     }
 }

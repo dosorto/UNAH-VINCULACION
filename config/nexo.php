@@ -20,31 +20,74 @@ return [
         'anio_inicio' => 2025,
 
         /*
-         * Familias de trámite que muestra el panel estadístico.
+         * Formularios que muestra el panel estadístico.
          *
-         * NEXO digitaliza decenas de formularios y cada uno trae su propio
-         * itinerario: un proyecto de vinculación recorre inscripción, informe
-         * intermedio y cierre; una práctica profesional se agota en la
-         * autorización del coordinador; una acción de educación no formal
-         * repite el ciclo dentro de cada uno de sus procesos.
+         * NEXO digitaliza más de treinta formularios, cada uno con su flujo y
+         * sus estados. El panel no conoce ninguno: solo esta lista. De cada
+         * formulario pregunta en qué estado general está cada trámite, en qué
+         * etapa espera y qué etapas tiene su flujo configurado
+         * (App\Support\Dashboard\Formularios\FormularioPanel).
          *
-         * El panel no conoce formularios, solo esta lista. Para dar de alta uno
-         * nuevo basta con añadir aquí su familia:
+         * Para dar de alta uno nuevo basta con añadir su entrada:
          *
-         *  - Si sigue el patrón habitual (estado actual en `estado_proyecto` y
-         *    firmas por `flujos_aprobacion`), se declara con FamiliaPorEstados
-         *    indicando modelo, fases y los estados de cada fase. No hace falta
+         *  - Si usa el motor común (App\Concerns\TieneFlujoPorEtapas: estado en
+         *    `estado_proyecto` y firmas en `firma_proyecto`), se declara con
+         *    FormularioMotorComun indicando su modelo y columnas. No hace falta
          *    escribir una clase.
-         *  - Si se sale del patrón —como ENF, que lleva su estado en una
-         *    columna propia y sus revisiones en tablas aparte— implementa
-         *    FamiliaTramite a medida.
+         *  - Si tiene un motor propio —como ENF— necesita una clase que
+         *    implemente FormularioPanel.
          *
-         * Ninguna vista ni servicio del panel cambia al añadir una familia.
+         * `tipoAccion` es el código de `vinculacion_tipos_accion` con el que
+         * se agrupa en el panel. Ninguna vista ni servicio cambia al añadir uno.
          */
-        'familias_tramite' => [
-            \App\Support\Dashboard\Tramites\FamiliaProyectos::class,
-            \App\Support\Dashboard\Tramites\FamiliaPps::class,
-            \App\Support\Dashboard\Tramites\FamiliaEnf::class,
+        'formularios' => [
+            [
+                'clase' => \App\Support\Dashboard\Formularios\FormularioProyecto::class,
+                'codigo' => 'FORM-DVUS-001',
+                'nombre' => 'Proyecto de desarrollo local y regional',
+                'tipoAccion' => 'DESARROLLO_LOCAL_REGIONAL',
+            ],
+            [
+                'clase' => \App\Support\Dashboard\Formularios\FormularioProyecto::class,
+                'codigo' => 'FORM-DVUS-015',
+                'nombre' => 'Proyecto de voluntariado',
+                'tipoAccion' => 'VOLUNTARIADO',
+            ],
+            [
+                // Proyectos heredados sin tipo de acción: sin esta entrada no
+                // aparecerían en ningún formulario.
+                'clase' => \App\Support\Dashboard\Formularios\FormularioProyecto::class,
+                'codigo' => 'PROYECTO-SIN-TIPO',
+                'nombre' => 'Proyectos sin tipo de acción',
+                'tipoAccion' => null,
+            ],
+            [
+                'clase' => \App\Support\Dashboard\Formularios\FormularioMotorComun::class,
+                'codigo' => 'FORM-DVUS-014',
+                'nombre' => 'PPS y servicio social',
+                'tipoAccion' => 'PPS_VOLUNTARIADO_GESTION_RIESGO',
+                'modelo' => \App\Models\PpsServicioSocial::class,
+                // La facultad se guarda como texto: no se puede acotar por centro.
+                'columnaAutor' => 'created_by',
+            ],
+            [
+                'clase' => \App\Support\Dashboard\Formularios\FormularioMotorComun::class,
+                'codigo' => 'FORM-DVUS-013',
+                'nombre' => 'Pasantía universitaria',
+                'tipoAccion' => 'PASANTIAS',
+                'modelo' => \App\Models\Pasantia::class,
+                'columnaAutor' => 'created_by',
+            ],
+            [
+                'clase' => \App\Support\Dashboard\Formularios\FormularioEnf::class,
+                'codigo' => 'FORM-DVUS-016',
+                'nombre' => 'Educación no formal: certificado',
+            ],
+            [
+                'clase' => \App\Support\Dashboard\Formularios\FormularioEnf::class,
+                'codigo' => 'FORM-DVUS-018',
+                'nombre' => 'Educación no formal: acción',
+            ],
         ],
     ],
 

@@ -9,7 +9,8 @@ use App\Services\Dashboard\MisFormulariosService;
 use App\Support\Dashboard\AmbitoPanel;
 use App\Support\Dashboard\EstadosProyecto;
 use App\Support\Dashboard\TipoAmbito;
-use App\Support\Dashboard\Tramites\FamiliaEnf;
+use App\Support\Dashboard\EstadoGeneral;
+use App\Support\Dashboard\Formularios\FormularioEnf;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -95,7 +96,7 @@ class EnfDelUsuarioTest extends TestCase
         $this->assertSame(1, $servicio->resumen($this->empleado->id, $this->usuario->id)['en_curso']);
     }
 
-    public function test_el_conteo_personal_de_la_familia_enf_incluye_las_participadas(): void
+    public function test_el_conteo_personal_del_formulario_enf_incluye_las_participadas(): void
     {
         [$otroUsuario] = $this->docente('Coordinador de la acción');
 
@@ -110,7 +111,10 @@ class EnfDelUsuarioTest extends TestCase
             userId: $this->usuario->id,
         );
 
-        $this->assertSame(2, app(FamiliaEnf::class)->total($personal));
+        $conteos = (new FormularioEnf('FORM-DVUS-018', 'Educación no formal'))->conteos($personal);
+
+        $this->assertSame(2, $conteos[EstadoGeneral::EN_REVISION]);
+        $this->assertSame(2, array_sum($conteos));
     }
 
     /** @return array{0: User, 1: Empleado} */

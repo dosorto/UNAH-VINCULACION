@@ -4,17 +4,23 @@ namespace App\Services\Dashboard;
 
 use App\Models\ENF\EnfAccion;
 use App\Models\ENF\EnfRevision;
+use App\Models\Pasantia;
 use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\Proyecto;
+use App\Support\Dashboard\EstadoGeneral;
 use App\Support\Proyecto\ProyectoFlujoStepper;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
- * "Mis proyectos": unifica en una sola lista los tres tipos de formulario que
- * puede tener un usuario —Proyecto (Desarrollo Local/Voluntariado), PPS/
- * Servicio Social y ENF— cada uno con su stepper de progreso calculado según
- * el flujo de aprobación que le corresponde.
+ * "Mis proyectos": unifica en una sola lista los formularios que puede tener
+ * un usuario —Proyecto (Desarrollo Local/Voluntariado), PPS/Servicio Social,
+ * pasantía y ENF— cada uno con su stepper de progreso calculado según el
+ * flujo de aprobación que le corresponde.
+ *
+ * Los estados de cada formulario se traducen con EstadoGeneral, el mismo
+ * vocabulario del panel institucional, para que las tarjetas de uno y otro
+ * cuenten igual.
  *
  * Extraído de DasboardDocente para que el panel del director pueda usarlo
  * igual. Hasta ahora DashboardDirector solo miraba empleado_proyecto, así que
@@ -29,10 +35,44 @@ class MisFormulariosService
     /** Códigos de formulario que pertenecen al módulo de Educación No Formal. */
     private const FORMULARIOS_ENF = ['FORM-DVUS-016', 'FORM-DVUS-018'];
 
+    /** @var array<string, Collection<int, array>> */
+    private array $memo = [];
+
+    /** Tarjeta del resumen en la que cuenta cada estado general. */
+    private const TARJETA = [
+        EstadoGeneral::BORRADOR => 'borrador',
+        EstadoGeneral::EN_REVISION => 'en_revision',
+        EstadoGeneral::SUBSANACION => 'subsanar',
+        EstadoGeneral::APROBADO => 'en_curso',
+        EstadoGeneral::FINALIZADO => 'finalizado',
+    ];
+
     /**
      * @return Collection<int, array{kind:string,codigo:?string,nombre:string,categoria:?string,fecha_inicio:mixed,fecha_fin:mixed,fase:string,stepper:array,href:?string,sort_date:mixed}>
      */
     public function para(?int $empleadoId, ?int $userId, int $limite = 15): Collection
+    {
+        // El panel pide la lista, el resumen y las subsanaciones: se arma una
+        // vez por petición.
+        $this->memo[$empleadoId.':'.$userId] ??= $this->todas($empleadoId, $userId);
+
+        return $this->memo[$empleadoId.':'.$userId]->take($limite)->values();
+    }
+
+    /**
+     * Trámites devueltos para corregir, de toda la lista y no solo de los
+     * visibles: una devolución antigua quedaba fuera de «Requiere tu atención».
+     *
+     * @return Collection<int, array>
+     */
+    public function porSubsanar(?int $empleadoId, ?int $userId): Collection
+    {
+        return $this->para($empleadoId, $userId, PHP_INT_MAX)
+            ->filter(fn (array $fila): bool => $fila['clave_estado'] === 'subsanar')
+            ->values();
+    }
+
+    private function todas(?int $empleadoId, ?int $userId): Collection
     {
         $filas = collect();
 
@@ -42,14 +82,15 @@ class MisFormulariosService
 
         if ($userId) {
             $this->agregarPps($filas, $userId);
+            $this->agregarPasantias($filas, $userId);
             $this->agregarEnf($filas, $userId, $empleadoId);
         }
 
-        return $filas->sortByDesc('sort_date')->take($limite)->values();
+        return $filas->sortByDesc('sort_date')->values();
     }
 
     /**
-     * Conteo unificado por estado de los tres tipos de formulario.
+     * Conteo unificado por estado de todos los formularios del usuario.
      *
      * @return array{total:int,borrador:int,en_revision:int,en_curso:int,finalizado:int,subsanar:int}
      */
@@ -60,14 +101,9 @@ class MisFormulariosService
 
         foreach ($this->para($empleadoId, $userId, PHP_INT_MAX) as $fila) {
             $resumen['total']++;
-            // ENF trae su propia categoría: su etiqueta "Aprobado" no dice por sí
-            // sola que la acción esté en curso.
-            $clave = array_key_exists('clave_estado', $fila)
-                ? $fila['clave_estado']
-                : $this->claveDeEstado($fila['estado'] ?? null);
 
-            if ($clave !== null) {
-                $resumen[$clave]++;
+            if ($fila['clave_estado'] !== null) {
+                $resumen[$fila['clave_estado']]++;
             }
         }
 
@@ -98,6 +134,7 @@ class MisFormulariosService
                     'fecha_fin' => $proyecto->fecha_finalizacion,
                     'fase' => $this->etiquetaDeFase($proceso),
                     'estado' => $proyecto->estado_general,
+                    'clave_estado' => $this->tarjeta($proyecto->estado_general),
                     'stepper' => ProyectoFlujoStepper::desdeFilas(
                         $proyecto->etapasParaStepper($proceso, $documento)
                     ),
@@ -121,9 +158,33 @@ class MisFormulariosService
                     'fecha_inicio' => $registro->fecha_inicio ?: $registro->created_at,
                     'fecha_fin' => $registro->fecha_finalizacion,
                     'fase' => 'Aprobación',
-                    'estado' => $registro->estado,
+                    'estado' => $this->etiqueta($registro->estado),
+                    'clave_estado' => $this->tarjeta($registro->estado),
                     'stepper' => ProyectoFlujoStepper::desdeFilas($registro->stepperDeAprobacion()),
-                    'href' => null,
+                    'href' => route('pps-servicio-social.show', $registro->id),
+                    'sort_date' => $registro->created_at,
+                ]);
+            });
+    }
+
+    private function agregarPasantias(Collection $filas, int $userId): void
+    {
+        Pasantia::query()
+            ->where('created_by', $userId)
+            ->get()
+            ->each(function (Pasantia $registro) use ($filas): void {
+                $filas->push([
+                    'kind' => 'pasantia',
+                    'codigo' => $registro->codigo_registro,
+                    'nombre' => $registro->nombre_estudiante ?: ($registro->nombre_institucion ?: 'Registro de pasantía'),
+                    'categoria' => 'Pasantía universitaria',
+                    'fecha_inicio' => $registro->fecha_inicio ?: $registro->created_at,
+                    'fecha_fin' => $registro->fecha_finalizacion,
+                    'fase' => 'Aprobación',
+                    'estado' => $this->etiqueta($registro->estado),
+                    'clave_estado' => $this->tarjeta($registro->estado),
+                    'stepper' => ProyectoFlujoStepper::desdeFilas($registro->stepperDeAprobacion()),
+                    'href' => route('pasantias.show', $registro->id),
                     'sort_date' => $registro->created_at,
                 ]);
             });
@@ -237,26 +298,15 @@ class MisFormulariosService
         };
     }
 
-    /**
-     * Normaliza los nombres de estado de los tres módulos a las categorías del
-     * panel. Devuelve null si el estado no encaja en ninguna tarjeta.
-     */
-    private function claveDeEstado(?string $estado): ?string
+    /** Tarjeta del resumen en la que cuenta un estado; null si no encaja en ninguna. */
+    private function tarjeta(?string $estado): ?string
     {
-        $normalizado = mb_strtolower(trim((string) $estado));
+        return self::TARJETA[EstadoGeneral::clasificar($estado)] ?? null;
+    }
 
-        return match (true) {
-            $normalizado === '' => 'borrador',
-            in_array($normalizado, ['borrador', 'autoguardado'], true) => 'borrador',
-            in_array($normalizado, ['subsanacion', 'subsanación', 'rechazado'], true) => 'subsanar',
-            in_array($normalizado, ['registrado', 'en curso'], true) => 'en_curso',
-            $normalizado === 'finalizado' => 'finalizado',
-            in_array($normalizado, [
-                'esperando documento', 'subsanar documento', 'enlace vinculacion',
-                'coordinador proyecto', 'jefe departamento', 'director centro',
-                'en revision', 'en revision final', 'enviado',
-            ], true) => 'en_revision',
-            default => null,
-        };
+    /** «en_revision» → «En revision», para el chip de estado. */
+    private function etiqueta(?string $estado): string
+    {
+        return ucfirst(str_replace('_', ' ', (string) ($estado ?: 'borrador')));
     }
 }

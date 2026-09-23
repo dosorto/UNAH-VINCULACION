@@ -6,8 +6,8 @@ use App\Models\Proyecto\Proyecto;
 use App\Services\Dashboard\ActividadRecienteService;
 use App\Services\Dashboard\MisFormulariosService;
 use App\Services\Dashboard\PanelEstadisticoService;
+use App\Services\Dashboard\PanelFormulariosService;
 use App\Services\Dashboard\PendientesRevisionService;
-use App\Services\Dashboard\RegistroFamiliasTramite;
 use App\Support\Dashboard\AmbitoPanel;
 use App\Support\Dashboard\TipoAmbito;
 use Illuminate\Contracts\View\View;
@@ -43,6 +43,14 @@ class DashboardDirector extends Component
 
     public int $proyectosVisibles = 10;
 
+    /** Formulario abierto en «Recorrido»; null abre el que más trámites tiene esperando. */
+    public ?string $formularioDetalle = null;
+
+    public function verFormulario(string $codigo): void
+    {
+        $this->formularioDetalle = $codigo;
+    }
+
     public function verMasPendientes(): void
     {
         $this->pendientesVisibles += 10;
@@ -69,7 +77,7 @@ class DashboardDirector extends Component
         PendientesRevisionService $pendientes,
         MisFormulariosService $formularios,
         ActividadRecienteService $actividad,
-        RegistroFamiliasTramite $familias,
+        PanelFormulariosService $panelFormularios,
     ): View {
         $usuario = auth()->user();
         $empleadoId = $usuario?->empleado?->id;
@@ -93,7 +101,13 @@ class DashboardDirector extends Component
 
             // Lo institucional: lo que llena el hueco del panel vacío.
             'resumen' => $institucional ? $panel->resumenEstados($ambito) : null,
-            'carriles' => $institucional ? $familias->carriles($ambito) : [],
+            'tramites' => $institucional ? $panelFormularios->resumen($ambito) : null,
+            'matriz' => $institucional ? $panelFormularios->matriz($ambito) : [],
+            'atascos' => $institucional ? $panelFormularios->atascos($ambito, 8) : [],
+            'detalleFormulario' => $institucional
+                ? $panelFormularios->detalle($ambito, $this->formularioDetalle ?? $panelFormularios->formularioConMasEspera($ambito))
+                : null,
+            'opcionesDetalle' => $institucional ? $panelFormularios->opcionesDetalle($ambito) : [],
             'tiempos' => $institucional ? $panel->tiemposPorEtapa($ambito, 6) : [],
             'esperando' => $institucional ? $panel->detenidosPorEtapa($ambito) : [],
             'detenidos' => $institucional ? $panel->cuellosDeBotella($ambito, 6, 14) : [],

@@ -7,6 +7,7 @@ use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -124,6 +125,55 @@ class Pasantia extends Model
         return $firma->responsable_usuario_id
             ? (int) $firma->responsable_usuario_id === (int) $user->id && (!$firma->rol_requerido || $firma->rol_requerido === $role)
             : filled($firma->rol_requerido) && $firma->rol_requerido === $role;
+    }
+
+    /**
+     * Pasantías que esperan una decisión del usuario con su rol activo.
+     * Única fuente de verdad para la bandeja de tareas (ProyectosPorFirmar),
+     * el contador de la barra de navegación (DataNavBar) y los paneles; hasta
+     * ahora una pasantía en revisión no aparecía en ninguno de los tres.
+     *
+     * Combina las dos comprobaciones que hace el flujo: usuarioPuedeRevisar()
+     * —responsable o rol de la firma de la etapa actual— y la de
+     * PasantiaWorkflowService::aprobar(), que exige que la firma pertenezca al
+     * empleado del usuario.
+     */
+    public static function pendientesParaUsuario(?User $user): Builder
+    {
+        $rolActivo = $user?->activeRole?->name;
+        $empleadoId = $user?->empleado?->id;
+
+        if (! $user || ! $rolActivo || ! $empleadoId) {
+            return self::query()->whereRaw('1 = 0');
+        }
+
+        return self::query()
+            ->whereNotNull('pasantias.flujo_aprobacion_id')
+            ->whereNotNull('pasantias.etapa_actual_id')
+            // Mismo criterio que getEstadoAttribute(): en revisión es todo lo
+            // que no es borrador, rechazo, subsanación ni aprobación.
+            ->where(fn (Builder $estado) => $estado
+                ->whereHas('estadoActual.tipoestado', fn (Builder $tipo) => $tipo
+                    ->whereNotIn('nombre', ['Borrador', 'Aprobado', 'Rechazado', 'Subsanacion']))
+                ->orWhere(fn (Builder $sinEstado) => $sinEstado
+                    ->whereDoesntHave('estadoActual.tipoestado')
+                    ->whereIn('pasantias.estado', ['en_revision', 'enviado'])))
+            ->whereHas('firmasDeEtapa', fn (Builder $firma) => $firma
+                ->whereColumn('firma_proyecto.flujo_aprobacion_etapa_id', 'pasantias.etapa_actual_id')
+                ->where('firma_proyecto.estado_revision', 'Pendiente')
+                ->where('firma_proyecto.empleado_id', $empleadoId)
+                // Las firmas de un ciclo anterior a una subsanación no cuentan.
+                ->whereRaw(
+                    'firma_proyecto.revision_ciclo = (SELECT MAX(ciclo.revision_ciclo) FROM firma_proyecto ciclo
+                      WHERE ciclo.firmable_type = ? AND ciclo.firmable_id = pasantias.id AND ciclo.deleted_at IS NULL)',
+                    [self::class]
+                )
+                ->where(fn (Builder $responsable) => $responsable
+                    ->where(fn (Builder $q) => $q->where('firma_proyecto.responsable_usuario_id', $user->id)
+                        ->where(fn (Builder $rol) => $rol->whereNull('firma_proyecto.rol_requerido')
+                            ->orWhere('firma_proyecto.rol_requerido', $rolActivo)))
+                    ->orWhere(fn (Builder $q) => $q->whereNull('firma_proyecto.responsable_usuario_id')
+                        ->where('firma_proyecto.rol_requerido', $rolActivo))));
     }
 
     public function estaEnRevision(): bool

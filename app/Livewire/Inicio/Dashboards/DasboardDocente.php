@@ -66,13 +66,7 @@ class DasboardDocente extends Component
         // Lo que exige acción del docente: primero sus propias subsanaciones,
         // después lo que espera su firma. Antes había que deducirlo recorriendo
         // la tabla entera.
-        $porSubsanar = $mis->filter(
-            fn (array $fila): bool => in_array(
-                mb_strtolower(trim((string) ($fila['estado'] ?? ''))),
-                ['subsanacion', 'subsanación', 'rechazado', 'subsanar documento'],
-                true
-            )
-        )->values();
+        $porSubsanar = $formularios->porSubsanar($empleadoId, $usuario?->id);
 
         return view('livewire.inicio.dashboards.dasboard-docente', [
             'ambito' => $ambito,
@@ -90,7 +84,7 @@ class DasboardDocente extends Component
             'categorias' => $panel->rankingPorCategoria($ambito, 6),
             'idGrafico' => self::ID_GRAFICO,
             'serieGrafico' => $panel->serieMensual($ambito, $this->mesesGrafico),
-            'hayMasFormularios' => $mis->count() >= $this->formulariosVisibles,
+            'hayMasFormularios' => $formularios->para($empleadoId, $usuario?->id, PHP_INT_MAX)->count() > $this->formulariosVisibles,
         ]);
     }
 }
