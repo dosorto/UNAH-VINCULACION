@@ -37,10 +37,10 @@ clave → base del 3 % → actividades por resultado.
   fuera, sin tener formato de cierre propio, `SEGUMIENTO_A_EGRESADOS` (el formato
   lo lista en I.7 como «Seguimiento a graduados»), `ALINEAMIENTO_CURRICULAR`,
   `PRACTICAS_EDUCATIVAS_INTEGRALES` y `PPS_VOLUNTARIADO_GESTION_RIESGO`.
-  Los proyectos con `tipo_accion_id` nulo (63 heredados) reciben un 404.
+  Los proyectos heredados sin tipo reciben Desarrollo local con la migración
+  `2026_09_17_000001_backfill_tipo_accion_on_legacy_proyectos`.
 - **Resolver:** invertir la regla y excluir solo los tipos con cierre propio
-  (`EDUCACION_NO_FORMAL`, `PRESTACION_SERVICIOS_TECNICOS`); asignar tipo a los
-  proyectos heredados.
+  (`EDUCACION_NO_FORMAL`, `PRESTACION_SERVICIOS_TECNICOS`).
 - **Tests:** `test_el_inf001_alcanza_a_las_categorias_de_proyecto_del_formato`,
   `test_un_proyecto_sin_tipo_de_accion_puede_cerrar_su_ciclo`.
 
@@ -156,6 +156,15 @@ Ya fallaban antes de los cambios recientes.
 ---
 
 ## Antes de desplegar
+
+- **Migraciones restituidas del 17-09:**
+  `2026_09_17_000001_backfill_tipo_accion_on_legacy_proyectos` y
+  `2026_09_17_000002_add_revision_vinculacion_stages_to_form_dvus_001_flow`. Se
+  habían ejecutado en algunas bases sin llegar al repositorio. Donde no constan,
+  `php artisan migrate` asigna Desarrollo local a los proyectos sin tipo y
+  completa el flujo del FORM-DVUS-001 con las etapas de Vinculación. Revisar
+  después en Configuración → Flujos los responsables de las etapas nuevas (se
+  crean enviando a todo el rol).
 
 - **Migración nueva:** correr
   `2026_09_11_000001_widen_texto_libre_on_informe_final_proyectos` en cada entorno.
