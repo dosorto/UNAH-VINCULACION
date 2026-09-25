@@ -2,23 +2,25 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
-use Closure;
-use App\Models\Pasantia;
+use App\Models\Asignatura;
+use App\Models\Demografia\Pais;
 use App\Models\JornadaLaboral;
+use App\Models\Pasantia;
 use App\Models\Personal\CategoriaEmpleado;
 use App\Models\Personal\Empleado;
-use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\Carrera;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
-use App\Support\Notification;
 use App\Services\Integraciones\IntegracionApiService;
 use App\Services\Pasantias\PasantiaWorkflowService;
+use App\Support\Notification;
+use Closure;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Livewire\Component;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class CreatePasantia extends Component
@@ -26,21 +28,41 @@ class CreatePasantia extends Component
     use WithFileUploads;
 
     public ?int $registroId = null;
+
     public int $pasoActual = 1;
+
     public bool $modoEdicion = false;
+
     public bool $autoguardadoActivo = true;
+
     public bool $bloquearNavegacionPasos = true;
+
     public array $form = [];
+
     public bool $buscandoEstudiante = false;
+
+    public string $busquedaAsignatura = '';
+
     public $cartaFormalizacionArchivo = null;
+
     public $convenioMarcoArchivo = null;
 
     // Envío al flujo, con el mismo patrón de confirmación utilizado por
     // FORM-DVUS-014.
     public bool $showEnviarModal = false;
+
     public int $modalStep = 1;
+
     public array $modalEtapas = [];
+
     public array $modalDestinatarios = [];
+
+    public const OPCIONES_FORMULARIO = [
+        'tipo_pasantia' => ['Nacional', 'Internacional'],
+        'modalidad_ejecucion' => ['Presencial', '100% virtual (teletrabajo)', 'Híbrida (presencial + teletrabajo)'],
+        'tipo_institucion' => ['Gobierno Nacional', 'Gobierno Municipal', 'ONG', 'Sociedad civil organizada', 'Sector Privado', 'Internacional'],
+        'sector_institucion' => ['Agricultura, alimentación y silvicultura', 'Energía y minería', 'Producción', 'Sectores de servicios privados', 'Infraestructura, construcción y sectores relacionados', 'Educación e investigación', 'Servicios y función públicos', 'Transporte, transporte marítimo y aéreo'],
+    ];
 
     public const PASOS = [
         1 => 'Estudiante', 2 => 'Información de la pasantía', 3 => 'Experiencia',
@@ -61,6 +83,44 @@ class CreatePasantia extends Component
         }
     }
 
+    public function agregarAsignatura(int $id): void
+    {
+        $asignatura = Asignatura::query()->where('activa', true)->findOrFail($id);
+        $asignaturas = $this->asignaturasSeleccionadas();
+        if (! collect($asignaturas)->contains('codigo', $asignatura->codigo)) {
+            $asignaturas[] = ['codigo' => $asignatura->codigo, 'nombre' => $asignatura->nombre];
+        }
+        $this->guardarAsignaturas($asignaturas);
+    }
+
+    public function quitarAsignatura(int $indice): void
+    {
+        $asignaturas = $this->asignaturasSeleccionadas();
+        unset($asignaturas[$indice]);
+        $this->guardarAsignaturas(array_values($asignaturas));
+    }
+
+    public function asignaturasSeleccionadas(): array
+    {
+        if (is_array($this->form['asignaturas'] ?? null)) {
+            return $this->form['asignaturas'];
+        }
+
+        return filled($this->form['codigo_asignatura'] ?? null) || filled($this->form['nombre_asignatura'] ?? null)
+            ? [['codigo' => $this->form['codigo_asignatura'], 'nombre' => $this->form['nombre_asignatura']]]
+            : [];
+    }
+
+    protected function guardarAsignaturas(array $asignaturas): void
+    {
+        $this->form['asignaturas'] = $asignaturas;
+        $this->form['codigo_asignatura'] = null;
+        $this->form['nombre_asignatura'] = null;
+        if ($this->autoguardadoActivo) {
+            $this->guardarBorrador(false, 'asignaturas');
+        }
+    }
+
     public function updatedForm($value, $key): void
     {
         $campo = str_starts_with((string) $key, 'form.')
@@ -69,6 +129,12 @@ class CreatePasantia extends Component
 
         if (! array_key_exists($campo, $this->form)) {
             return;
+        }
+
+        if (in_array($campo, ['pasantia_remunerada', 'monto_remuneracion'], true)
+            && ! $this->campoEsSi($this->form['pasantia_remunerada'] ?? null)) {
+            $this->form['monto_remuneracion'] = null;
+            $this->resetErrorBag('form.monto_remuneracion');
         }
 
         $regla = $this->reglaParaCampo($campo);
@@ -95,7 +161,7 @@ class CreatePasantia extends Component
     public function siguiente(): void
     {
         $this->resetErrorBag();
-        $reglas = $this->reglasPaso($this->pasoActual);
+        $reglas = $this->reglasPasoCompleto($this->pasoActual);
 
         if ($reglas !== []) {
             $this->validate($reglas, [], $this->atributos());
@@ -259,6 +325,7 @@ class CreatePasantia extends Component
 
         if ($cuenta === '' || ! ctype_digit($cuenta)) {
             $this->addError('form.numero_cuenta', 'Ingrese un número de cuenta válido.');
+
             return;
         }
 
@@ -268,6 +335,7 @@ class CreatePasantia extends Component
             $resultado = $integraciones->buscarEstudiantePorCuenta($cuenta);
             if (! ($resultado['ok'] ?? false)) {
                 $this->addError('form.numero_cuenta', $resultado['mensaje'] ?? 'No se encontró el estudiante.');
+
                 return;
             }
 
@@ -307,6 +375,7 @@ class CreatePasantia extends Component
             $cuentaRespuesta = preg_replace('/\s+/u', '', (string) ($datos['numero_cuenta'] ?? ''));
             if ($cuentaRespuesta !== '' && $cuentaRespuesta !== $cuenta) {
                 $this->addError('form.numero_cuenta', 'La respuesta de la búsqueda no corresponde al número de cuenta consultado.');
+
                 return;
             }
 
@@ -330,6 +399,7 @@ class CreatePasantia extends Component
 
         if ($numero === '' || ! ctype_digit($numero)) {
             $this->addError('form.numero_empleado_docente', 'Ingrese un número de empleado válido.');
+
             return;
         }
 
@@ -338,6 +408,7 @@ class CreatePasantia extends Component
 
         if (! $docente) {
             $this->addError('form.numero_empleado_docente', 'No se encontró un empleado con ese número.');
+
             return;
         }
 
@@ -365,7 +436,7 @@ class CreatePasantia extends Component
 
             if ($pasoIncompleto !== null) {
                 $this->pasoActual = $pasoIncompleto;
-                $this->validate($this->reglasPaso($pasoIncompleto), [], $this->atributos());
+                $this->validate($this->reglasPasoCompleto($pasoIncompleto), [], $this->atributos());
                 $this->agregarErroresDeCompletitud($pasoIncompleto);
 
                 return;
@@ -632,6 +703,14 @@ class CreatePasantia extends Component
             'categoriasDocente' => $categoriasDocente,
             'departamentosAcademicos' => $departamentosAcademicos,
             'jornadasLaborales' => $jornadasLaborales,
+            'catalogoAsignaturas' => $this->pasoActual === 3
+                ? Asignatura::query()->where('activa', true)
+                    ->when(trim($this->busquedaAsignatura) !== '', fn ($query) => $query->where(fn ($q) => $q
+                        ->where('codigo', 'like', '%'.trim($this->busquedaAsignatura).'%')
+                        ->orWhere('nombre', 'like', '%'.trim($this->busquedaAsignatura).'%')))
+                    ->orderBy('nombre')->limit(50)->get(['id', 'codigo', 'nombre'])
+                : collect(),
+            'paises' => Pais::query()->orderBy('nombre')->pluck('nombre', 'nombre'),
         ]);
     }
 
@@ -659,6 +738,16 @@ class CreatePasantia extends Component
 
     protected function normalizarPayload(array $payload): array
     {
+        if ((array_key_exists('pasantia_remunerada', $payload) || array_key_exists('monto_remuneracion', $payload))
+            && ! $this->campoEsSi($this->form['pasantia_remunerada'] ?? null)) {
+            $payload['monto_remuneracion'] = null;
+        }
+
+        if (array_key_exists('asignaturas', $payload) && is_array($payload['asignaturas'])) {
+            $payload['codigo_asignatura'] = null;
+            $payload['nombre_asignatura'] = null;
+        }
+
         $camposNumericos = [
             'duracion_semanas',
             'total_horas',
@@ -694,6 +783,7 @@ class CreatePasantia extends Component
                         }
                     }
                     unset($payload[$key]);
+
                     continue;
                 }
             }
@@ -1175,6 +1265,27 @@ class CreatePasantia extends Component
         return $this->esFechaFormularioValida($valor) ? trim((string) $valor) : null;
     }
 
+    protected function reglasPasoCompleto(int $paso): array
+    {
+        $reglas = $this->reglasPaso($paso);
+        foreach ($reglas as $atributo => &$regla) {
+            $campo = str_replace('form.', '', $atributo);
+            if ($this->campoObligatorio($campo, $paso)) {
+                $regla = array_values(array_filter($regla, fn ($item) => $item !== 'nullable'));
+                array_unshift($regla, 'required');
+            }
+        }
+
+        return $reglas;
+    }
+
+    public function campoObligatorio(string $campo, int $paso): bool
+    {
+        return in_array($campo, $this->camposRequeridosDelPaso($paso), true)
+            || ($campo === 'cantidad_creditos' && $this->campoEsSi($this->form['otorga_creditos'] ?? null))
+            || ($campo === 'monto_remuneracion' && $this->campoEsSi($this->form['pasantia_remunerada'] ?? null));
+    }
+
     protected function reglasPaso(int $paso): array
     {
         return match ($paso) {
@@ -1190,14 +1301,14 @@ class CreatePasantia extends Component
                 'form.correo_personal' => ['nullable', 'email', 'max:255'],
             ],
             2 => [
-                'form.tipo_pasantia' => ['nullable', 'string', Rule::in(['Nacional', 'Internacional', 'Pasantía profesional', 'Pasantía académica'])],
+                'form.tipo_pasantia' => ['nullable', 'string', Rule::in(array_unique(array_merge(self::OPCIONES_FORMULARIO['tipo_pasantia'], ['Nacional', 'Internacional', 'Pasantía profesional', 'Pasantía académica'])))],
                 'form.fecha_inicio' => ['nullable', 'date'],
                 'form.fecha_finalizacion' => ['nullable', 'date', 'after_or_equal:form.fecha_inicio'],
                 'form.duracion_semanas' => ['nullable', 'integer', 'min:0', 'max:520'],
                 'form.total_horas' => ['nullable', 'integer', 'min:0', 'max:10000'],
                 'form.horas_semanales' => ['nullable', 'integer', 'min:0', 'max:168'],
                 'form.cantidad_creditos' => ['nullable', 'numeric', 'min:0'],
-                'form.modalidad_ejecucion' => ['nullable', 'string', Rule::in(['Presencial', '100% virtual (teletrabajo)', 'Híbrida (presencial + teletrabajo)', '100% presencial', 'Híbrida', 'Teletrabajo'])],
+                'form.modalidad_ejecucion' => ['nullable', 'string', Rule::in(array_unique(array_merge(self::OPCIONES_FORMULARIO['modalidad_ejecucion'], ['Presencial', '100% virtual (teletrabajo)', 'Híbrida (presencial + teletrabajo)', '100% presencial', 'Híbrida', 'Teletrabajo'])))],
                 'form.pasantia_obligatoria' => ['nullable', Rule::in(['Sí', 'No'])],
                 'form.otorga_creditos' => ['nullable', Rule::in(['Sí', 'No'])],
             ],
@@ -1207,6 +1318,9 @@ class CreatePasantia extends Component
                 'form.resumen_responsabilidades' => ['nullable', 'string', $this->reglaTextoNoEtiquetaNiCorreo()],
                 'form.area_departamento' => ['nullable', 'string', 'max:255', $this->reglaTextoNoEtiquetaNiCorreo()],
                 'form.area_conocimiento' => ['nullable', 'string', 'max:255', $this->reglaTextoNoEtiquetaNiCorreo()],
+                'form.asignaturas' => ['nullable', 'array'],
+                'form.asignaturas.*.codigo' => ['nullable', 'string', 'max:100'],
+                'form.asignaturas.*.nombre' => ['required', 'string', 'max:255'],
                 'form.codigo_asignatura' => ['nullable', 'string', 'max:100'],
                 'form.nombre_asignatura' => ['nullable', 'string', 'max:255', $this->reglaTextoNoEtiquetaNiCorreo()],
                 'form.descripcion_conocimientos_teoricos' => ['nullable', 'string', $this->reglaTextoNoEtiquetaNiCorreo()],
@@ -1222,8 +1336,8 @@ class CreatePasantia extends Component
                 'form.representante_legal' => ['nullable', 'string', 'max:255', $this->reglaTextoNoEtiquetaNiCorreo()],
                 'form.telefono_representante' => ['nullable', 'string', 'min:8', 'max:30', 'regex:/^[0-9+()\s.-]+$/'],
                 'form.correo_rrhh' => ['nullable', 'email', 'max:255'],
-                'form.tipo_institucion' => ['nullable', Rule::in(['Pública', 'Privada', 'ONG', 'Organismo internacional'])],
-                'form.sector_institucion' => ['nullable', Rule::in(['Educación', 'Gobierno', 'Empresa privada', 'Sociedad civil'])],
+                'form.tipo_institucion' => ['nullable', Rule::in(array_unique(array_merge(self::OPCIONES_FORMULARIO['tipo_institucion'], ['Pública', 'Privada', 'ONG', 'Organismo internacional'])))],
+                'form.sector_institucion' => ['nullable', Rule::in(array_unique(array_merge(self::OPCIONES_FORMULARIO['sector_institucion'], ['Educación', 'Gobierno', 'Empresa privada', 'Sociedad civil'])))],
                 'form.compromisos_institucion' => ['nullable', 'string', $this->reglaTextoNoEtiquetaNiCorreo()],
             ],
             5 => [
