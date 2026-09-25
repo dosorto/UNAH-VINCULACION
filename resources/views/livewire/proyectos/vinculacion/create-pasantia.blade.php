@@ -9,17 +9,19 @@
     @php
         $inputClass = 'min-w-0 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
         $selectOptions = [
-            'tipo_pasantia' => ['Nacional' => 'Nacional', 'Internacional' => 'Internacional', 'Pasantía profesional' => 'Pasantía profesional', 'Pasantía académica' => 'Pasantía académica'],
-            'modalidad_ejecucion' => ['Presencial' => 'Presencial', '100% virtual (teletrabajo)' => '100% virtual (teletrabajo)', 'Híbrida (presencial + teletrabajo)' => 'Híbrida (presencial + teletrabajo)', '100% presencial' => '100% presencial', 'Híbrida' => 'Híbrida', 'Teletrabajo' => 'Teletrabajo'],
+            'tipo_pasantia' => array_combine(\App\Livewire\Proyectos\Vinculacion\CreatePasantia::OPCIONES_FORMULARIO['tipo_pasantia'], \App\Livewire\Proyectos\Vinculacion\CreatePasantia::OPCIONES_FORMULARIO['tipo_pasantia']),
+            'modalidad_ejecucion' => array_combine(\App\Livewire\Proyectos\Vinculacion\CreatePasantia::OPCIONES_FORMULARIO['modalidad_ejecucion'], \App\Livewire\Proyectos\Vinculacion\CreatePasantia::OPCIONES_FORMULARIO['modalidad_ejecucion']),
             'pasantia_obligatoria' => ['Sí' => 'Sí', 'No' => 'No'],
             'otorga_creditos' => ['Sí' => 'Sí', 'No' => 'No'],
             'pasantia_remunerada' => ['Sí' => 'Sí', 'No' => 'No'],
-            'tipo_institucion' => ['Pública' => 'Pública', 'Privada' => 'Privada', 'ONG' => 'ONG', 'Organismo internacional' => 'Organismo internacional'],
-            'sector_institucion' => ['Educación' => 'Educación', 'Gobierno' => 'Gobierno', 'Empresa privada' => 'Empresa privada', 'Sociedad civil' => 'Sociedad civil'],
+            'tipo_institucion' => array_combine(\App\Livewire\Proyectos\Vinculacion\CreatePasantia::OPCIONES_FORMULARIO['tipo_institucion'], \App\Livewire\Proyectos\Vinculacion\CreatePasantia::OPCIONES_FORMULARIO['tipo_institucion']),
+            'sector_institucion' => array_combine(\App\Livewire\Proyectos\Vinculacion\CreatePasantia::OPCIONES_FORMULARIO['sector_institucion'], \App\Livewire\Proyectos\Vinculacion\CreatePasantia::OPCIONES_FORMULARIO['sector_institucion']),
             'tipo_instrumento' => ['carta_formal_solicitud' => 'Carta formal de solicitud', 'carta_intenciones' => 'Carta de intenciones', 'convenio_marco' => 'Convenio marco'],
             'grado_academico_contacto_directo' => ['Secundaria completa' => 'Secundaria completa', 'Licenciatura' => 'Licenciatura', 'Maestría' => 'Maestría', 'Doctorado' => 'Doctorado', 'Postdoctorado' => 'Postdoctorado'],
             'adjunta_carta_formalizacion' => ['Sí' => 'Sí', 'No' => 'No'],
             'adjunta_convenio_marco' => ['Sí' => 'Sí', 'No' => 'No'],
+            'escuela_departamento' => $departamentosAcademicos,
+            'pais_institucion' => $paises,
             'categoria_docente' => $categoriasDocente,
             'departamento_docente' => $departamentosAcademicos,
             'jornada_laboral_docente' => $jornadasLaborales,
@@ -64,68 +66,62 @@
                 8 => [['adjunta_carta_formalizacion','Adjunta carta de formalización (Sí/No)','text'],['archivo_carta_formalizacion','Archivo de carta','text'],['adjunta_convenio_marco','Adjunta convenio marco (Sí/No)','text'],['archivo_convenio_marco','Archivo de convenio','text']],
             ];
         @endphp
+        <p class="mb-3 text-sm text-gray-500">Los campos con * son obligatorios para avanzar. Puede guardar un borrador incompleto.</p>
         <h2 class="mb-5 text-lg font-semibold text-gray-900">Paso {{ $pasoActual }}: {{ $pasos[$pasoActual] }}</h2>
         <div wire:key="pasantia-paso-{{ $pasoActual }}" class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        @if($pasoActual === 7)
+        @if($pasoActual === 3)
+            @include('livewire.proyectos.vinculacion.partials.pasantia-experiencia')
+        @elseif($pasoActual === 7)
             <div class="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 p-5 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
                 Las firmas se asignan y registran mediante el flujo de revisión. No deben editarse manualmente en este formulario.
             </div>
         @else
         @foreach($secciones[$pasoActual] as $indice => [$campo, $etiqueta, $tipo])
-                <label wire:key="pasantia-paso-{{ $pasoActual }}-campo-{{ $campo }}" class="block min-w-0 {{ $tipo === 'textarea' ? 'md:col-span-2' : '' }}">
-                    <span class="mb-1 block break-words text-sm font-medium text-gray-700">{{ $etiqueta }}</span>
+                <div wire:key="pasantia-paso-{{ $pasoActual }}-campo-{{ $campo }}" class="block min-w-0 {{ $tipo === 'textarea' ? 'md:col-span-2' : '' }}">
+                    <span class="mb-1 block break-words text-sm font-medium text-gray-700">{{ $etiqueta }} @if($this->campoObligatorio($campo, $pasoActual))<span class="text-red-600" aria-label="obligatorio">*</span>@endif</span>
                     <span class="block">
                     @if(isset($selectOptions[$campo]))
-                        <select wire:model="form.{{ $campo }}" class="{{ $inputClass }}">
-                            <option value="">Seleccione...</option>
-                            @foreach($selectOptions[$campo] as $valor => $opcion)
-                                <option value="{{ $valor }}">{{ $opcion }}</option>
-                            @endforeach
-                        </select>
+                        @php
+                            $opcionesCampo = collect($selectOptions[$campo]);
+                            if (filled($form[$campo] ?? null) && !$opcionesCampo->has($form[$campo])) {
+                                $opcionesCampo->put($form[$campo], $form[$campo].' (valor registrado)');
+                            }
+                        @endphp
+                        <x-forms.searchable-select :model="'form.'.$campo" :options="$opcionesCampo" :selected="$form[$campo] ?? null" :label="$etiqueta" />
                     @elseif($campo === 'facultad_centro')
-                        <select wire:model.live="form.{{ $campo }}" class="{{ $inputClass }}">
-                            <option value="">Seleccione...</option>
-                            @foreach($facultadesCentros as $nombre)
-                                <option value="{{ $nombre }}">{{ $nombre }}</option>
-                            @endforeach
-                        </select>
+                        <x-forms.searchable-select :model="'form.'.$campo" :options="$facultadesCentros" :selected="$form[$campo] ?? null" :label="$etiqueta" />
                     @elseif($campo === 'carrera')
-                        <select wire:model="form.{{ $campo }}" class="{{ $inputClass }}" @disabled(blank($form['facultad_centro'] ?? '') || $carreras->isEmpty())>
-                            <option value="">Seleccione...</option>
-                            @foreach($carreras as $nombre)
-                                <option value="{{ $nombre }}">{{ $nombre }}</option>
-                            @endforeach
-                        </select>
+                        <x-forms.searchable-select :model="'form.'.$campo" :options="$carreras" :selected="$form[$campo] ?? null" :label="$etiqueta" :disabled="blank($form['facultad_centro'] ?? '') || $carreras->isEmpty()" />
                     @elseif(in_array($campo, ['numero_cuenta', 'numero_empleado_docente'], true))
                         <div x-data="{ cuenta: @js($form[$campo] ?? '') }" class="flex gap-2">
-                            <input type="text" wire:model.blur="form.{{ $campo }}" x-model="cuenta" class="{{ $inputClass }}">
+                            <input aria-label="{{ $etiqueta }}" type="text" wire:model.blur="form.{{ $campo }}" x-model="cuenta" class="{{ $inputClass }}">
                             <button type="button" x-cloak x-show="cuenta.trim().length > 0" wire:click="{{ $campo === 'numero_cuenta' ? 'buscarEstudiante' : 'buscarDocente' }}" wire:loading.attr="disabled" wire:target="{{ $campo === 'numero_cuenta' ? 'buscarEstudiante' : 'buscarDocente' }}" class="inline-flex shrink-0 items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
                                 <span wire:loading.remove wire:target="{{ $campo === 'numero_cuenta' ? 'buscarEstudiante' : 'buscarDocente' }}">Buscar</span>
                                 <span wire:loading wire:target="{{ $campo === 'numero_cuenta' ? 'buscarEstudiante' : 'buscarDocente' }}">Buscando…</span>
                             </button>
                         </div>
                     @elseif($campo === 'archivo_carta_formalizacion')
-                        <input type="file" wire:model="cartaFormalizacionArchivo" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700">
+                        <input aria-label="{{ $etiqueta }}" type="file" wire:model="cartaFormalizacionArchivo" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700">
                         <span wire:loading wire:target="cartaFormalizacionArchivo" class="mt-1 block text-xs text-blue-600">Cargando archivo...</span>
                         @if(filled($form['archivo_carta_formalizacion'] ?? null))
                             <span class="mt-1 block text-xs text-gray-500">Archivo actual: {{ basename($form['archivo_carta_formalizacion']) }}</span>
                         @endif
                         @error('cartaFormalizacionArchivo')<span class="mt-1 block text-xs text-red-500">{{ $message }}</span>@enderror
                     @elseif($campo === 'archivo_convenio_marco')
-                        <input type="file" wire:model="convenioMarcoArchivo" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700">
+                        <input aria-label="{{ $etiqueta }}" type="file" wire:model="convenioMarcoArchivo" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700">
                         <span wire:loading wire:target="convenioMarcoArchivo" class="mt-1 block text-xs text-blue-600">Cargando archivo...</span>
                         @if(filled($form['archivo_convenio_marco'] ?? null))
                             <span class="mt-1 block text-xs text-gray-500">Archivo actual: {{ basename($form['archivo_convenio_marco']) }}</span>
                         @endif
                         @error('convenioMarcoArchivo')<span class="mt-1 block text-xs text-red-500">{{ $message }}</span>@enderror
                     @elseif($tipo === 'textarea')
-                        <textarea wire:model.blur="form.{{ $campo }}" rows="3" class="{{ $inputClass }}"></textarea>
+                        <textarea aria-label="{{ $etiqueta }}" wire:model.blur="form.{{ $campo }}" rows="3" class="{{ $inputClass }}"></textarea>
                     @else
-                        <input type="{{ $tipo }}" wire:model.blur="form.{{ $campo }}" class="{{ $inputClass }}">
+                        <input aria-label="{{ $etiqueta }}" type="{{ $tipo }}" wire:model.blur="form.{{ $campo }}" class="{{ $inputClass }}" @if($tipo === 'number') min="0" step="{{ in_array($campo, ['cantidad_creditos', 'monto_remuneracion']) ? '0.01' : '1' }}" @endif>
                     @endif
                     </span>
                     @error('form.'.$campo)<span class="mt-1 block text-xs text-red-500">{{ $message }}</span>@enderror
-                </label>
+                </div>
         @endforeach
         @endif
         </div>
@@ -193,12 +189,12 @@
                                     Selecciona el usuario que recibirá el registro en esta etapa. Rol de la etapa: <strong>{{ $etapa['rol_nombre'] }}</strong>.
                                 </p>
                                 <div class="mt-4">
-                                    <select wire:model="modalDestinatarios.{{ $etapa['id'] }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                        <option value="">Buscar por nombre o correo</option>
-                                        @foreach($etapa['usuarios'] as $usuario)
-                                            <option value="{{ $usuario['id'] }}">{{ $usuario['name'] }}{{ filled($usuario['email']) ? ' — '.$usuario['email'] : '' }}</option>
-                                        @endforeach
-                                    </select>
+                                    <x-forms.searchable-select
+                                        :model="'modalDestinatarios.'.$etapa['id']"
+                                        :options="collect($etapa['usuarios'])->mapWithKeys(fn ($usuario) => [$usuario['id'] => $usuario['name'].(filled($usuario['email']) ? ' — '.$usuario['email'] : '')])"
+                                        :selected="$modalDestinatarios[$etapa['id']] ?? null"
+                                        :label="'Destinatario de '.$etapa['nombre']"
+                                    />
                                     @error('modal_destinatario_'.($i + 1))
                                         <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                     @enderror

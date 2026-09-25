@@ -125,7 +125,6 @@ class FormDvus018DocumentService
 
     private function validatePdf(string $pdfPath): void
     {
-        $expectedPages = (int) config('documents.form_dvus_018_expected_pages', 11);
         $pdfInfo = $this->resolveExecutable(
             (string) config('documents.pdfinfo_binary'),
             (array) config('documents.pdfinfo_candidates', [])
@@ -137,11 +136,8 @@ class FormDvus018DocumentService
         $process = new Process([$pdfInfo, $pdfPath]);
         $process->setTimeout(30);
         $process->run();
-        if (! $process->isSuccessful() || ! preg_match('/^Pages:\s+(\d+)/mi', $process->getOutput(), $match)) {
-            throw new RuntimeException('No se pudo validar la cantidad de páginas del PDF FORM-DVUS-018.');
-        }
-        if ((int) $match[1] !== $expectedPages) {
-            throw new RuntimeException("El PDF FORM-DVUS-018 contiene {$match[1]} páginas; se esperaban {$expectedPages}.");
+        if (! $process->isSuccessful() || ! preg_match('/^Pages:\s+(\d+)/mi', $process->getOutput(), $match) || (int) $match[1] < 1) {
+            throw new RuntimeException('No se pudo validar el PDF FORM-DVUS-018.');
         }
     }
 
