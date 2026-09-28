@@ -581,71 +581,6 @@
                 @endforeach
             </div>
 
-            {{-- Participación de Estudiantes --}}
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <div>
-                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Participación de Estudiantes UNAH <span class="text-red-500">*</span></h4>
-                        <p class="text-xs text-gray-500 mt-0.5">Debe agregar al menos un grupo para continuar.</p>
-                    </div>
-                    <button wire:click="openEstudianteModal" type="button"
-                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                        + Agregar grupo
-                    </button>
-                </div>
-                @error('estudiante_proyecto') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
-                @if(count($estudiante_proyecto))
-                <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                    <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-800">
-                            <tr>
-                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Tipo Participación</th>
-                                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Hombres</th>
-                                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Mujeres</th>
-                                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Total</th>
-                                <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
-                            @foreach($estudiante_proyecto as $i => $est)
-                            <tr>
-                                <td class="px-4 py-2 text-gray-900 dark:text-white">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                        {{ $tiposParticipacionEstudiante[$est['tipo_participacion_estudiante'] ?? ''] ?? ($est['tipo_participacion_estudiante'] ?: '-') }}
-                                    </span>
-                                    @if(($est['tipo_participacion_estudiante'] ?? '') === 'Practica Asignatura')
-                                    <p class="text-xs text-gray-500 mt-0.5">
-                                        {{ $asignaturasOpciones[$est['asignatura_id'] ?? ''] ?? 'Asignatura pendiente' }}
-                                    </p>
-                                    <p class="text-xs text-gray-500">
-                                        {{ $periodosAcademicos[$est['periodo_academico_id'] ?? ''] ?? ($est['periodo_academico_id'] ?? 'Periodo pendiente') }}
-                                    </p>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-2 text-center text-gray-700 dark:text-gray-300">{{ $est['cantidad_estudiantes_hombres'] ?? 0 }}</td>
-                                <td class="px-4 py-2 text-center text-gray-700 dark:text-gray-300">{{ $est['cantidad_estudiantes_mujeres'] ?? 0 }}</td>
-                                <td class="px-4 py-2 text-center font-semibold text-gray-900 dark:text-white">{{ $est['total_estudiantes'] ?? 0 }}</td>
-                                <td class="px-4 py-2 text-right space-x-2">
-                                    <button wire:click="openEstudianteModal({{ $i }})" type="button" class="text-xs text-blue-600 hover:text-blue-800">Editar</button>
-                                    <button wire:click="removeEstudiante({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button>
-                                </td>
-                            </tr>
-                            @endforeach
-                            <tr class="bg-gray-50 dark:bg-gray-800 font-semibold">
-                                <td class="px-4 py-2 text-xs text-gray-600 dark:text-gray-400">Total</td>
-                                <td class="px-4 py-2 text-center text-xs">{{ collect($estudiante_proyecto)->sum('cantidad_estudiantes_hombres') }}</td>
-                                <td class="px-4 py-2 text-center text-xs">{{ collect($estudiante_proyecto)->sum('cantidad_estudiantes_mujeres') }}</td>
-                                <td class="px-4 py-2 text-center text-xs">{{ collect($estudiante_proyecto)->sum('total_estudiantes') }}</td>
-                                <td></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                @else
-                <p class="text-sm text-red-500 text-center py-4 border border-dashed border-red-300 rounded-lg">Sin grupos de estudiantes agregados. Este paso es obligatorio.</p>
-                @endif
-            </div>
-
             {{-- Integrantes Internacionales --}}
             <div>
                 <div class="flex items-center justify-between mb-3">
@@ -724,15 +659,111 @@
                 @endif
             </div>
 
-            {{-- Ítems 15 y 16 (FORM-DVUS-015 · sólo Voluntariado) --}}
-            @if($esVoluntariado)
+            {{-- Sección III del formato: estudiantes (ítem 12) separados del voluntariado de personal e internacional (13 y 14) --}}
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ $esVoluntariado ? 'Participación de la comunidad universitaria' : 'Participación de estudiantes y voluntarios' }}</p>
+            </div>
+
+            {{-- Participación de Estudiantes --}}
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Participación de Estudiantes UNAH <span class="text-red-500">*</span></h4>
+                        <p class="text-xs text-gray-500 mt-0.5">Solo estudiantes UNAH. Debe agregar al menos un grupo para continuar.</p>
+                    </div>
+                    <button wire:click="openEstudianteModal" type="button"
+                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                        + Agregar grupo
+                    </button>
+                </div>
+                @error('estudiante_proyecto') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
+                @if(count($estudiante_proyecto))
+                <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                    <table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Tipo Participación</th>
+                                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Hombres</th>
+                                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Mujeres</th>
+                                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Total</th>
+                                <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
+                            @foreach($estudiante_proyecto as $i => $est)
+                            <tr>
+                                <td class="px-4 py-2 text-gray-900 dark:text-white">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                        {{ $tiposParticipacionEstudiante[$est['tipo_participacion_estudiante'] ?? ''] ?? ($est['tipo_participacion_estudiante'] ?: '-') }}
+                                    </span>
+                                    @if(($est['tipo_participacion_estudiante'] ?? '') === 'Practica Asignatura')
+                                    <p class="text-xs text-gray-500 mt-0.5">
+                                        {{ $asignaturasOpciones[$est['asignatura_id'] ?? ''] ?? 'Asignatura pendiente' }}
+                                    </p>
+                                    <p class="text-xs text-gray-500">
+                                        {{ $periodosAcademicos[$est['periodo_academico_id'] ?? ''] ?? ($est['periodo_academico_id'] ?? 'Periodo pendiente') }}
+                                    </p>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-2 text-center text-gray-700 dark:text-gray-300">{{ $est['cantidad_estudiantes_hombres'] ?? 0 }}</td>
+                                <td class="px-4 py-2 text-center text-gray-700 dark:text-gray-300">{{ $est['cantidad_estudiantes_mujeres'] ?? 0 }}</td>
+                                <td class="px-4 py-2 text-center font-semibold text-gray-900 dark:text-white">{{ $est['total_estudiantes'] ?? 0 }}</td>
+                                <td class="px-4 py-2 text-right space-x-2">
+                                    <button wire:click="openEstudianteModal({{ $i }})" type="button" class="text-xs text-blue-600 hover:text-blue-800">Editar</button>
+                                    <button wire:click="removeEstudiante({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                {{-- Desglose del tipo de participación de estudiantes, como en la ficha --}}
+                @php
+                    $gruposEstudiantes = collect($estudiante_proyecto);
+                    $desgloseEstudiantes = collect([
+                        'Practica Asignatura' => 'Práctica de asignatura / posgrado',
+                        'Servicio Social o PPS' => 'Servicio social o PPS',
+                        'Voluntariado' => 'Voluntariado',
+                    ])->map(function ($etiqueta, $tipo) use ($gruposEstudiantes) {
+                        $grupos = $gruposEstudiantes->where('tipo_participacion_estudiante', $tipo);
+
+                        return ['etiqueta' => $etiqueta, 'hombres' => $grupos->sum('cantidad_estudiantes_hombres'), 'mujeres' => $grupos->sum('cantidad_estudiantes_mujeres')];
+                    })->push([
+                        'etiqueta' => 'Total estudiantes',
+                        'hombres' => $gruposEstudiantes->sum('cantidad_estudiantes_hombres'),
+                        'mujeres' => $gruposEstudiantes->sum('cantidad_estudiantes_mujeres'),
+                    ]);
+                @endphp
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                    @foreach($desgloseEstudiantes as $desglose)
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 {{ $loop->last ? 'bg-gray-50 dark:bg-gray-800' : '' }}">
+                        <p class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{{ $desglose['etiqueta'] }}</p>
+                        <div class="grid grid-cols-2 gap-2 text-center">
+                            <div>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Hombres</p>
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $desglose['hombres'] }}</p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400">Mujeres</p>
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $desglose['mujeres'] }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                <p class="text-sm text-red-500 text-center py-4 border border-dashed border-red-300 rounded-lg">Sin grupos de estudiantes agregados. Este paso es obligatorio.</p>
+                @endif
+            </div>
+
+            {{-- Voluntariado personal de la UNAH e internacional: ítems 13 y 14 del FORM-DVUS-001 (opcionales), 15 y 16 del FORM-DVUS-015 (obligatorios) --}}
             @foreach([
                 ['titulo' => 'Voluntariado personal de la UNAH', 'subtitulo' => 'Desglose del tipo de participación de personal de la UNAH (cantidad)', 'columnas' => \App\Models\Proyecto\Proyecto::VOLUNTARIADO_PERSONAL_UNAH],
                 ['titulo' => 'Voluntariado internacional', 'subtitulo' => 'Desglose del voluntariado internacional (cantidad)', 'columnas' => \App\Models\Proyecto\Proyecto::VOLUNTARIADO_INTERNACIONAL],
             ] as $bloque)
             <div wire:key="voluntariado-{{ \Illuminate\Support\Str::slug($bloque['titulo']) }}">
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ $bloque['titulo'] }} <span class="text-red-500">*</span></h4>
-                <p class="text-xs text-gray-500 mt-0.5 mb-3">{{ $bloque['subtitulo'] }}. Registre 0 si no aplica.</p>
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ $bloque['titulo'] }} @if($esVoluntariado)<span class="text-red-500">*</span>@endif</h4>
+                <p class="text-xs text-gray-500 mt-0.5 mb-3">{{ $bloque['subtitulo'] }}. {{ $esVoluntariado ? 'Registre 0 si no aplica.' : 'Deje en blanco o en 0 si no aplica.' }}</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 {{ count($bloque['columnas']) === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-3">
                     @foreach($bloque['columnas'] as $prefijo => $etiqueta)
                     <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
@@ -741,7 +772,7 @@
                             @foreach(['hombres' => 'Hombres', 'mujeres' => 'Mujeres'] as $sufijo => $sexo)
                             <div>
                                 <label class="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{{ $sexo }}</label>
-                                <input type="number" min="0" step="1" inputmode="numeric"
+                                <input type="number" min="0" step="1" inputmode="numeric" @unless($esVoluntariado) placeholder="0" @endunless
                                     wire:model.blur="voluntariado_participacion.{{ $prefijo }}_{{ $sufijo }}"
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm focus:border-blue-500" />
                                 @error("voluntariado_participacion.{$prefijo}_{$sufijo}") <p class="text-red-500 text-[11px] mt-1">{{ $message }}</p> @enderror
@@ -753,7 +784,6 @@
                 </div>
             </div>
             @endforeach
-            @endif
         </div>
 
         {{-- Modal: Buscar y seleccionar empleado --}}
@@ -1067,14 +1097,7 @@
                     'carta_intenciones' => 'Carta de intenciones con la UNAH',
                     'convenio_marco' => 'Convenio marco con la UNAH',
                 ];
-                $tipoContraparteLabels = [
-                    'gobierno_nacional' => 'Gobierno Nacional',
-                    'gobierno_municipal' => 'Gobierno Municipal',
-                    'ong' => 'ONG',
-                    'sociedad_civil' => 'Sociedad Civil Organizada',
-                    'sector_privado' => 'Sector Privado',
-                    'internacional' => 'Internacional',
-                ];
+                $tipoContraparteLabels = \App\Models\Proyecto\EntidadContraparte::TIPOS;
                 $contraparteDocErrors = collect($errors->keys())->filter(fn($k) => preg_match('/^entidad_contraparte\.\d+$/', $k));
             @endphp
 
@@ -1190,19 +1213,52 @@
                         <button wire:click="closeContraparteModal" type="button" class="text-gray-500 hover:text-gray-800 text-lg leading-none">✕</button>
                     </div>
                     <div class="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
-                        {{-- Seleccionar contraparte existente --}}
+                        {{-- Seleccionar contraparte existente o crear una nueva (solo al agregar) --}}
+                        @if($editContraparteIndex === null)
                         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                             <h5 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Seleccionar contraparte existente</h5>
                             <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start">
-                                <div>
-                                    <label class="sr-only" for="contraparte-existente">Seleccione una contraparte</label>
-                                    <select id="contraparte-existente" wire:model="contraparteSeleccionadoId"
-                                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
-                                        <option value="">Seleccione una contraparte existente</option>
-                                        @foreach($contrapartesExistentes as $id => $nombre)
-                                            <option value="{{ $id }}">{{ $nombre }}</option>
-                                        @endforeach
-                                    </select>
+                                <div wire:key="buscador-contraparte" x-data="{
+                                    open: false,
+                                    search: '',
+                                    selected: @js(filled($contraparteSeleccionadoId) ? (string) $contraparteSeleccionadoId : ''),
+                                    options: @js($contrapartesExistentes),
+                                    tipos: @js($tipoContraparteLabels),
+                                    normalizar(texto) { return String(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); },
+                                    filtradas() {
+                                        const term = this.normalizar(this.search);
+                                        return this.options.filter(option => !term || this.normalizar(option.nombre).includes(term));
+                                    },
+                                    etiqueta(option) { return option ? option.nombre + ' (' + (this.tipos[option.tipo] ?? option.tipo) + ')' : ''; },
+                                    seleccionada() { return this.options.find(option => option.id === this.selected); },
+                                    elegir(option) {
+                                        this.selected = option.id;
+                                        this.search = '';
+                                        this.open = false;
+                                        this.$wire.set('contraparteSeleccionadoId', option.id, false);
+                                    }
+                                }" @click.outside="open = false">
+                                    <label class="sr-only" for="contraparte-existente">Buscar contraparte por nombre</label>
+                                    <div class="relative">
+                                        <input id="contraparte-existente" type="text" autocomplete="off" x-model="search"
+                                            @focus="open = true" @click="open = true" @input="open = true" @keydown.escape="open = false"
+                                            @keydown.enter.prevent="filtradas().length && elegir(filtradas()[0])"
+                                            :placeholder="seleccionada() ? etiqueta(seleccionada()) : 'Buscar contraparte por nombre...'"
+                                            :class="seleccionada() ? 'placeholder:text-gray-900 dark:placeholder:text-white' : 'placeholder:text-gray-400'"
+                                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-3 pr-8 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                                        <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-gray-400" x-text="open ? '▴' : '▾'"></span>
+                                    </div>
+                                    <div x-show="open" x-cloak class="mt-1 max-h-56 overflow-y-auto rounded-md border border-blue-200 bg-white shadow-sm dark:border-blue-700 dark:bg-gray-800">
+                                        <template x-if="filtradas().length === 0">
+                                            <div class="px-3 py-2 text-sm text-gray-500">Sin resultados. Si no existe, use «Crear contraparte».</div>
+                                        </template>
+                                        <template x-for="option in filtradas()" :key="option.id">
+                                            <div @click="elegir(option)" class="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700"
+                                                :class="option.id === selected ? 'bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'">
+                                                <span x-text="etiqueta(option)"></span>
+                                            </div>
+                                        </template>
+                                    </div>
                                     @error('contraparteSeleccionadoId') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <button wire:click="agregarContraparteExistente" type="button"
@@ -1210,61 +1266,80 @@
                                     Usar seleccionada
                                 </button>
                             </div>
-                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Sus datos se cargarán en el formulario de abajo. Seleccione el tipo de instrumento, adjunte el documento y presione «Guardar».</p>
+                            <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Busque la contraparte por nombre y presione «Usar seleccionada». Si no existe, presione «Crear contraparte».</p>
+                                <button wire:click="crearContraparteNueva" type="button"
+                                    class="inline-flex shrink-0 items-center justify-center px-3 py-2 text-xs font-medium rounded-md border border-blue-600 text-blue-700 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-300 dark:hover:bg-blue-900/30">
+                                    + Crear contraparte
+                                </button>
+                            </div>
                         </div>
+                        @endif
 
-                        <div class="flex items-center gap-3">
-                            <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">O crear/editar manualmente</span>
-                            <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+                        @if($modoContraparte)
+                        @php
+                            $soloLectura = $modoContraparte === 'existente';
+                            $asterisco = $soloLectura ? '' : '<span class="text-red-500">*</span>';
+                            $claseCampo = 'w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm '
+                                . ($soloLectura ? 'bg-gray-100 text-gray-600 cursor-not-allowed dark:bg-gray-800/60 dark:text-gray-400' : 'bg-white dark:bg-gray-800 focus:border-blue-500');
+                        @endphp
+                        @if($soloLectura)
+                        <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-300">
+                            Los datos de la contraparte vienen del catálogo y no se pueden modificar. Complete los compromisos asumidos y el instrumento que da lugar a la alianza.
                         </div>
+                        @endif
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            @php
+                                // El RTN se escribe al crear, o si la contraparte del catálogo no lo tiene.
+                                $rtnEditable = !$soloLectura || $contraparteSinRtn;
+                            @endphp
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">RTN / identificador fiscal <span class="text-xs text-gray-400">(opcional; RTN Honduras: 14 dígitos)</span></label>
-                                <input type="text" wire:model="nuevaContraparte.rtn" maxlength="50" placeholder="Identificador fiscal" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">RTN / identificador fiscal @if($rtnEditable && !$esVoluntariado)<span class="text-red-500">*</span>@endif @if($rtnEditable && $esVoluntariado)<span class="text-xs text-gray-400">(opcional)</span>@endif</label>
+                                <input type="text" wire:model="nuevaContraparte.rtn" maxlength="50" @readonly(!$rtnEditable) placeholder="{{ $rtnEditable ? 'Identificador fiscal' : 'Sin registrar' }}"
+                                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm {{ $rtnEditable ? 'bg-white dark:bg-gray-800 focus:border-blue-500' : 'bg-gray-100 text-gray-600 cursor-not-allowed dark:bg-gray-800/60 dark:text-gray-400' }}" />
+                                @if($soloLectura && $contraparteSinRtn)
+                                    <p class="text-xs text-amber-700 dark:text-amber-400 mt-1">Esta contraparte no tiene RTN registrado. Escríbalo y se guardará en el catálogo.</p>
+                                @endif
                                 @error('nuevaContraparte.rtn') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre <span class="text-red-500">*</span></label>
-                                <input type="text" wire:model="nuevaContraparte.nombre" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre {!! $asterisco !!}</label>
+                                <input type="text" wire:model="nuevaContraparte.nombre" @readonly($soloLectura) class="{{ $claseCampo }}" />
                                 @error('nuevaContraparte.nombre') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de Contraparte <span class="text-red-500">*</span></label>
-                                <select wire:model="nuevaContraparte.tipo_entidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
-                                    <option value="">Seleccione...</option>
-                                    <option value="gobierno_nacional">Gobierno Nacional</option>
-                                    <option value="gobierno_municipal">Gobierno Municipal</option>
-                                    <option value="ong">ONG</option>
-                                    <option value="sociedad_civil">Sociedad Civil Organizada</option>
-                                    <option value="sector_privado">Sector Privado</option>
-                                    <option value="internacional">Internacional</option>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de Contraparte {!! $asterisco !!}</label>
+                                <select wire:model="nuevaContraparte.tipo_entidad" @disabled($soloLectura) class="{{ $claseCampo }}">
+                                    <option value="">{{ $soloLectura ? 'Sin registrar' : 'Seleccione...' }}</option>
+                                    @foreach($tipoContraparteLabels as $valorTipo => $etiquetaTipo)
+                                        <option value="{{ $valorTipo }}">{{ $etiquetaTipo }}</option>
+                                    @endforeach
                                 </select>
                                 @error('nuevaContraparte.tipo_entidad') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre del Contacto Directo</label>
-                                <input type="text" wire:model="nuevaContraparte.nombre_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre del Contacto Directo {!! $asterisco !!}</label>
+                                <input type="text" wire:model="nuevaContraparte.nombre_contacto" @readonly($soloLectura) placeholder="{{ $soloLectura ? 'Sin registrar' : '' }}" class="{{ $claseCampo }}" />
                                 @error('nuevaContraparte.nombre_contacto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $esVoluntariado ? 'Cargo del contacto' : 'Cargo del Contacto del Proyecto' }}</label>
-                                <input type="text" wire:model="nuevaContraparte.cargo_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $esVoluntariado ? 'Cargo del contacto' : 'Cargo del Contacto del Proyecto' }} {!! $asterisco !!}</label>
+                                <input type="text" wire:model="nuevaContraparte.cargo_contacto" @readonly($soloLectura) placeholder="{{ $soloLectura ? 'Sin registrar' : '' }}" class="{{ $claseCampo }}" />
                                 @error('nuevaContraparte.cargo_contacto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Teléfono</label>
-                                <input type="text" wire:model="nuevaContraparte.telefono" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Teléfono {!! $asterisco !!}</label>
+                                <input type="text" wire:model="nuevaContraparte.telefono" @readonly($soloLectura) placeholder="{{ $soloLectura ? 'Sin registrar' : '' }}" class="{{ $claseCampo }}" />
                                 @error('nuevaContraparte.telefono') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo Electrónico</label>
-                                <input type="email" wire:model="nuevaContraparte.correo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo Electrónico {!! $asterisco !!}</label>
+                                <input type="email" wire:model="nuevaContraparte.correo" @readonly($soloLectura) placeholder="{{ $soloLectura ? 'Sin registrar' : '' }}" class="{{ $claseCampo }}" />
                                 @error('nuevaContraparte.correo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Breve Descripción de los Compromisos Asumidos por la Contraparte @if($esVoluntariado)<span class="text-red-500">*</span>@endif</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Breve Descripción de los Compromisos Asumidos por la Contraparte <span class="text-red-500">*</span></label>
                                 <textarea wire:model="nuevaContraparte.descripcion_acuerdos" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
                                 @error('nuevaContraparte.descripcion_acuerdos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -1328,10 +1403,13 @@
                             </div>
                             @endforeach
                         </div>
+                        @endif
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
                         <button wire:click="closeContraparteModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>
+                        @if($modoContraparte)
                         <button wire:click="saveContraparte" wire:loading.attr="disabled" wire:target="nuevaContraparte.instrumento_formalizacion" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">Guardar</button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -1953,218 +2031,211 @@
 
         {{-- ══════════════════ PASO 7: Marco Lógico ══════════════════ --}}
         @if($currentStep === 7)
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Paso 7: Marco Lógico</h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-            El indicador de resultado es una medida específica y observable que permite evaluar el grado de cumplimiento de los resultados que se han planteado. Sirven para evaluar en qué medida y calidad se lograron los objetivos del proyecto. Hay tres tipos de resultados: 1) corto plazo, que son los productos que se obtendrán con el proyecto, 2) los de mediano plazo, que son los efectos que alcanzará el proyecto, y 3) los de largo plazo, resultados de impacto.
-        </p>
-        <div class="space-y-4">
-            {{-- Objetivo General (full width) --}}
-            <div class="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <label class="block text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">Objetivo General <span class="text-red-500">*</span></label>
-                <p class="text-xs text-blue-700/80 dark:text-blue-300/80 mb-2">El objetivo debe estar basado en la población participante del {{ $esVoluntariado ? 'programa' : 'proyecto' }}.</p>
-                <textarea wire:model.live.debounce.1000ms="objetivo_general" rows="3" placeholder="Describe el propósito central del proyecto..."
-                    class="w-full rounded-md border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
-                @error('objetivo_general') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-            </div>
+        @php
+            $unidad = $esVoluntariado ? 'programa' : 'proyecto';
+            $textoLleno = fn ($valor) => trim((string) ($valor ?? '')) !== '';
+            $resultadoCompleto = fn (array $resultado) => $textoLleno($resultado['nombre_resultado'] ?? null)
+                && $textoLleno($resultado['nombre_indicador'] ?? null)
+                && $textoLleno($resultado['nombre_medio_verificacion'] ?? null);
 
-            {{-- Three-column layout: Objetivos Específicos | Descripción | Resultados Esperados --}}
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {{-- Columna 1: Objetivos Específicos list --}}
-                <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Objetivos Específicos <span class="text-red-500">*</span></h4>
-                        <button wire:click="addObjetivo" type="button"
-                            class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                            + Agregar
-                        </button>
-                    </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Deben estar relacionados con los resultados que esperan obtener en el {{ $esVoluntariado ? 'programa' : 'proyecto' }}.</p>
-                    <div class="space-y-2 max-h-[520px] overflow-y-auto pr-1">
-                        @foreach($objetivosEspecificos as $oi => $objetivo)
-                        <div wire:key="objetivo-{{ $objetivo['wire_key'] ?? $objetivo['id'] ?? 'nuevo-'.$oi }}" wire:click="selectObjetivo({{ $oi }})" class="cursor-pointer rounded-lg border-2 p-3 transition-colors
-                            {{ $selectedObjetivoIndex === $oi
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-blue-300' }}">
-                            <div class="flex items-start justify-between gap-2">
-                                <div class="flex-1 min-w-0">
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold
-                                        {{ $selectedObjetivoIndex === $oi ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300' }}">
-                                        OE {{ $oi + 1 }}
+            // Lo que le falta a cada objetivo específico (null = completo), con la misma regla que marca el paso como completo.
+            $pendienteObjetivo = collect($objetivosEspecificos)->map(fn (array $objetivo) => match (true) {
+                !$textoLleno($objetivo['descripcion'] ?? null) => 'Falta la descripción',
+                empty($objetivo['resultados']) => 'Falta un resultado',
+                !collect($objetivo['resultados'])->every($resultadoCompleto) => 'Hay un resultado incompleto',
+                default => null,
+            });
+            $objetivosPorCompletar = $pendienteObjetivo->filter()->count();
+
+            // Mediano y largo plazo se agrupan conservando el índice real de resultadosProyecto.
+            $resultadosPorPlazo = collect($resultadosProyecto)->groupBy(
+                fn (array $resultado) => ($resultado['plazo'] ?? '') === 'largo_plazo' ? 'largo_plazo' : 'mediano_plazo',
+                true
+            );
+            $listasPlazo = [
+                'mediano_plazo' => [
+                    'titulo' => $esVoluntariado ? 'b) Indicadores de mediano plazo' : 'b) Resultados de mediano plazo',
+                    'ayuda' => "Son los efectos que se esperan alcanzar del {$unidad}, es decir, la transformación esperada en la población beneficiada.",
+                    'agregar' => '+ Agregar resultado de mediano plazo',
+                    'resumen' => 'Mediano plazo',
+                    'ejemplos' => ['resultado' => 'Ej.: Productores aplican prácticas de conservación de suelos', 'indicador' => 'Ej.: % de productores que aplican las prácticas', 'medio' => 'Ej.: Informe de visitas de seguimiento'],
+                ],
+                'largo_plazo' => [
+                    'titulo' => $esVoluntariado ? 'c) Impacto que se desea generar' : 'c) Impacto que se desea generar en el proyecto',
+                    'ayuda' => "Debe expresar los indicadores de impacto del {$unidad} (largo plazo).",
+                    'agregar' => '+ Agregar resultado de largo plazo',
+                    'resumen' => 'Largo plazo',
+                    'ejemplos' => ['resultado' => 'Ej.: Mejora del rendimiento de los cultivos de la comunidad', 'indicador' => 'Ej.: Variación del rendimiento por manzana', 'medio' => 'Ej.: Registros de producción de la cooperativa'],
+                ],
+            ];
+            $ejemplosCortoPlazo = ['resultado' => 'Ej.: 30 productores capacitados en manejo de suelos', 'indicador' => 'Ej.: N.º de productores que aprueban la evaluación', 'medio' => 'Ej.: Listas de asistencia y evaluaciones'];
+
+            $claseChip = fn (string $estado) => match ($estado) {
+                'listo' => 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300',
+                'pendiente' => 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300',
+                default => 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300',
+            };
+            $mediano = count($resultadosPorPlazo->get('mediano_plazo', []));
+            $largo = count($resultadosPorPlazo->get('largo_plazo', []));
+            // En el 015 mediano y largo plazo son obligatorios; en el 001 son opcionales.
+            $estadoPlazos = $esVoluntariado
+                ? ($mediano > 0 && $largo > 0 ? 'listo' : 'pendiente')
+                : ($mediano + $largo > 0 ? 'listo' : 'neutro');
+        @endphp
+
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Paso 7: Marco Lógico</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Complete en orden: el objetivo general, cada objetivo específico con sus resultados de corto plazo y, al final, los resultados de mediano y largo plazo del {{ $unidad }}.</p>
+        <details wire:ignore class="mt-1 mb-4 text-xs text-gray-600 dark:text-gray-400">
+            <summary class="cursor-pointer select-none font-medium text-blue-700 hover:text-blue-900 dark:text-blue-300">¿Qué es cada tipo de resultado?</summary>
+            <p class="mt-2 rounded-md bg-gray-50 p-3 dark:bg-gray-800/60">
+                El indicador de resultado es una medida específica y observable que permite evaluar el grado de cumplimiento de los resultados que se han planteado. Sirven para evaluar en qué medida y calidad se lograron los objetivos del {{ $unidad }}. Hay tres tipos de resultados: 1) corto plazo, que son los productos que se obtendrán con el {{ $unidad }}, 2) los de mediano plazo, que son los efectos que alcanzará el {{ $unidad }}, y 3) los de largo plazo, resultados de impacto.
+            </p>
+        </details>
+
+        {{-- Resumen de avance --}}
+        <nav aria-label="Avance del marco lógico" class="mb-6 flex flex-wrap items-center gap-2 text-xs font-medium">
+            <a href="#marco-objetivo-general" class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 {{ $claseChip($textoLleno($objetivo_general) ? 'listo' : 'pendiente') }}">
+                <span>1</span> Objetivo general · {{ $textoLleno($objetivo_general) ? '✓' : 'pendiente' }}
+            </a>
+            <span class="text-gray-400" aria-hidden="true">→</span>
+            <a href="#marco-objetivos" class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 {{ $claseChip($objetivosPorCompletar === 0 ? 'listo' : 'pendiente') }}">
+                <span>2</span> {{ count($objetivosEspecificos) }} {{ count($objetivosEspecificos) === 1 ? 'objetivo específico' : 'objetivos específicos' }} · {{ $objetivosPorCompletar === 0 ? '✓' : $objetivosPorCompletar . ' por completar' }}
+            </a>
+            <span class="text-gray-400" aria-hidden="true">→</span>
+            <a href="#marco-mediano-largo" class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 {{ $claseChip($estadoPlazos) }}">
+                <span>3</span> Mediano plazo: {{ $mediano }} · Largo plazo: {{ $largo }}
+            </a>
+        </nav>
+
+        <div class="space-y-8">
+            {{-- 1. Objetivo general --}}
+            <section id="marco-objetivo-general" class="scroll-mt-24">
+                <h4 class="text-sm font-semibold text-gray-900 dark:text-white">1. Objetivo general <span class="text-red-500">*</span></h4>
+                <p class="mt-0.5 mb-2 text-xs text-gray-500 dark:text-gray-400">El objetivo debe estar basado en la población participante del {{ $unidad }}.</p>
+                <textarea wire:model.live.debounce.1000ms="objetivo_general" rows="3" placeholder="Describa el propósito central del {{ $unidad }}..."
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
+                @error('objetivo_general') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            </section>
+
+            {{-- 2. Objetivos específicos, cada uno con sus resultados de corto plazo --}}
+            <section id="marco-objetivos" class="scroll-mt-24">
+                <h4 class="text-sm font-semibold text-gray-900 dark:text-white">2. Objetivos específicos y sus resultados de corto plazo <span class="text-red-500">*</span></h4>
+                <p class="mt-0.5 mb-3 text-xs text-gray-500 dark:text-gray-400">Los objetivos deben estar relacionados con los resultados que se esperan obtener. Cada objetivo necesita al menos un resultado de corto plazo (producto) con su indicador y su medio de verificación.</p>
+                @error('objetivosEspecificos') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
+
+                <div class="space-y-3">
+                    @foreach($objetivosEspecificos as $oi => $objetivo)
+                        @php
+                            $objetivoKey = $objetivo['wire_key'] ?? $objetivo['id'] ?? 'nuevo-'.$oi;
+                            $pendiente = $pendienteObjetivo[$oi];
+                        @endphp
+                        <div wire:key="objetivo-{{ $objetivoKey }}"
+                            x-data="{ abierto: true }"
+                            x-on:validation-failed.window="abierto = true"
+                            x-on:marco-logico-enfocar.window="if ($event.detail.objetivo === {{ $oi }}) { abierto = true; $nextTick(() => { $el.scrollIntoView({ behavior: 'smooth', block: 'center' }); $refs.descripcion?.focus(); }); }"
+                            class="rounded-lg border {{ $pendiente ? 'border-gray-200 dark:border-gray-700' : 'border-green-200 dark:border-green-900' }}">
+                            <div class="flex items-center gap-3 px-4 py-2.5">
+                                <button type="button" x-on:click="abierto = !abierto" class="flex min-w-0 flex-1 items-center gap-2 text-left" :aria-expanded="abierto">
+                                    <span class="text-xs text-gray-400" x-text="abierto ? '▾' : '▸'"></span>
+                                    <span class="shrink-0 whitespace-nowrap rounded bg-blue-600 px-1.5 py-0.5 text-xs font-semibold text-white">OE {{ $oi + 1 }}</span>
+                                    @if($pendiente)
+                                        <span class="shrink-0 whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">⚠ {{ $pendiente }}</span>
+                                    @else
+                                        <span class="shrink-0 whitespace-nowrap rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">✓ Completo</span>
+                                    @endif
+                                    <span x-show="!abierto" class="truncate text-xs text-gray-500 dark:text-gray-400">
+                                        {{ \Illuminate\Support\Str::limit(trim((string) ($objetivo['descripcion'] ?? '')), 90) ?: 'Sin descripción' }}
+                                        · {{ count($objetivo['resultados'] ?? []) }} {{ count($objetivo['resultados'] ?? []) === 1 ? 'resultado' : 'resultados' }}
                                     </span>
-                                    <p class="mt-1 text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                                        {{ $objetivo['descripcion'] ?: 'Sin descripción...' }}
-                                    </p>
-                                    <p class="text-xs text-gray-400 mt-1">{{ count($objetivo['resultados'] ?? []) }} resultado(s)</p>
-                                </div>
+                                </button>
                                 @if(count($objetivosEspecificos) > 1)
-                                <button wire:click.stop="removeObjetivo({{ $oi }})" type="button" class="text-xs text-red-500 hover:text-red-700 shrink-0">✕</button>
+                                    <button type="button"
+                                        x-on:click.prevent="confirmDialog('¿Eliminar el objetivo específico OE {{ $oi + 1 }} y sus resultados?', { type: 'danger' }).then((ok) => ok && $wire.removeObjetivo({{ $oi }}))"
+                                        class="shrink-0 text-xs font-medium text-red-600 hover:text-red-800">
+                                        Eliminar
+                                    </button>
                                 @endif
                             </div>
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
 
-                @php $objActivo = $objetivosEspecificos[$selectedObjetivoIndex] ?? null; @endphp
-                @if($objActivo !== null)
-                @php $objetivoActivoKey = $objActivo['wire_key'] ?? $objActivo['id'] ?? 'nuevo-'.$selectedObjetivoIndex; @endphp
+                            <div x-show="abierto" class="space-y-4 border-t border-gray-100 px-4 pb-4 pt-3 dark:border-gray-800">
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Descripción del objetivo <span class="text-red-500">*</span></label>
+                                    <textarea x-ref="descripcion" wire:key="objetivo-descripcion-{{ $objetivoKey }}" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.descripcion" rows="3"
+                                        placeholder="Ej.: Fortalecer las capacidades de los productores de la comunidad en manejo sostenible de suelos"
+                                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
+                                    @error("objetivosEspecificos.{$oi}.descripcion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
 
-                {{-- Columna 2: Descripción del objetivo activo --}}
-                <div wire:key="objetivo-detalle-{{ $objetivoActivoKey }}" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Objetivo Específico {{ $selectedObjetivoIndex + 1 }}
-                    </h5>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción <span class="text-red-500">*</span></label>
-                    <textarea wire:key="objetivo-descripcion-{{ $objetivoActivoKey }}" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.descripcion" rows="10"
-                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
-                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.descripcion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                {{-- Columna 3: Resultados Esperados del objetivo activo --}}
-                <div wire:key="objetivo-resultados-{{ $objetivoActivoKey }}" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <div class="flex items-center justify-between mb-1">
-                        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ $esVoluntariado ? 'Resultados de corto plazo' : 'Resultados de Corto Plazo del Proyecto' }} <span class="text-red-500">*</span></p>
-                        <button wire:click="addResultado({{ $selectedObjetivoIndex }})" type="button"
-                            class="text-xs text-blue-600 hover:text-blue-800">+ Agregar</button>
-                    </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Debe plantearse un resultado para cada objetivo específico. Son los productos que se lograrán a corto plazo.</p>
-                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados") <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
-                    <div class="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                        @foreach($objActivo['resultados'] ?? [] as $ri => $resultado)
-                        <div wire:key="resultado-{{ $objetivoActivoKey }}-{{ $resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri }}" class="p-2.5 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
-                            <div class="flex items-center justify-between mb-1.5">
-                                <span class="text-xs font-semibold text-gray-500">R{{ $ri + 1 }}</span>
-                                <button wire:click="removeResultado({{ $selectedObjetivoIndex }}, {{ $ri }})" type="button"
-                                    class="text-xs text-red-500 hover:text-red-700">✕</button>
-                            </div>
-                            <div class="grid grid-cols-2 gap-1.5">
-                                <div class="col-span-2">
-                                    <label class="block text-xs text-gray-500 mb-0.5">Resultado <span class="text-red-500">*</span></label>
-                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_resultado"
-                                        class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_resultado") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                                </div>
-                                <div class="col-span-2">
-                                    <label class="block text-xs text-gray-500 mb-0.5">Indicador <span class="text-red-500">*</span></label>
-                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_indicador"
-                                        class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_indicador") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                                </div>
-                                <div class="col-span-2">
-                                    <label class="block text-xs text-gray-500 mb-0.5">Medio de Verificación <span class="text-red-500">*</span></label>
-                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_medio_verificacion"
-                                        class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_medio_verificacion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                                </div>
-                                <div class="col-span-2">
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Corto plazo</span>
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ $esVoluntariado ? 'a) Resultados de corto plazo' : 'a) Resultados de corto plazo del proyecto' }} <span class="font-normal text-gray-500">(productos que se lograrán)</span> <span class="text-red-500">*</span></p>
+                                    @error("objetivosEspecificos.{$oi}.resultados") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                    @if(!empty($objetivo['resultados']))
+                                        <div class="mt-2 hidden gap-3 text-xs font-medium text-gray-500 dark:text-gray-400 md:grid md:grid-cols-[1.5rem_1fr_1fr_1fr_2rem]">
+                                            <span>#</span><span>Resultado <span class="text-red-500">*</span></span><span>Indicador <span class="text-red-500">*</span></span><span>Medio de verificación <span class="text-red-500">*</span></span><span></span>
+                                        </div>
+                                        <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                                            @foreach($objetivo['resultados'] as $ri => $resultado)
+                                                @include('livewire.proyectos.vinculacion.partials.marco-logico-fila-resultado', [
+                                                    'ruta' => "objetivosEspecificos.{$oi}.resultados.{$ri}",
+                                                    'numero' => $ri + 1,
+                                                    'wireKey' => 'resultado-'.$objetivoKey.'-'.($resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri),
+                                                    'quitar' => "removeResultado({$oi}, {$ri})",
+                                                    'ejemplos' => $ejemplosCortoPlazo,
+                                                ])
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <p class="mt-2 text-xs text-gray-500">Sin resultados todavía.</p>
+                                    @endif
+                                    <button wire:click="addResultado({{ $oi }})" type="button" class="mt-2 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">+ Agregar resultado</button>
                                 </div>
                             </div>
                         </div>
-                        @endforeach
-                        @if(empty($objActivo['resultados']))
-                        <p class="text-xs text-gray-500 text-center py-2">Sin resultados. Haz clic en "+ Agregar".</p>
-                        @endif
-                    </div>
+                    @endforeach
                 </div>
-                @endif
-            </div>
 
-            {{-- Resultados de Mediano y Largo Plazo (efectos e impacto del proyecto, no ligados a un objetivo específico) --}}
-            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div class="flex items-center justify-between mb-1">
-                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ $esVoluntariado ? 'Indicadores de mediano plazo e impacto que se desea generar (largo plazo)' : 'Resultados de Mediano y Largo Plazo' }} @if($esVoluntariado)<span class="text-red-500">*</span>@endif</h4>
-                    <button wire:click="openResultadoProyectoModal" type="button"
-                        class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                        + Agregar
-                    </button>
-                </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                    Mediano plazo: son los efectos que se esperan alcanzar del proyecto, es decir, la transformación esperada en la población beneficiada.
-                    Largo plazo (impacto): debe expresar los indicadores de impacto que se desea generar en el proyecto.
-                </p>
+                <button wire:click="addObjetivo" type="button"
+                    class="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-dashed border-blue-300 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/20">
+                    + Agregar objetivo específico
+                </button>
+            </section>
+
+            {{-- 3. Resultados de mediano y largo plazo (efectos e impacto del proyecto, no ligados a un objetivo específico) --}}
+            <section id="marco-mediano-largo" class="scroll-mt-24">
+                <h4 class="text-sm font-semibold text-gray-900 dark:text-white">3. Resultados de mediano y largo plazo @if($esVoluntariado)<span class="text-red-500">*</span>@endif</h4>
+                <p class="mt-0.5 mb-3 text-xs text-gray-500 dark:text-gray-400">Son resultados del {{ $unidad }} en conjunto, no de un objetivo específico. {{ $esVoluntariado ? 'Registre al menos uno de cada plazo.' : 'Registre los que apliquen.' }}</p>
                 @foreach($errors->get('resultadosProyecto') as $mensaje) <p class="text-red-500 text-xs mb-2">{{ $mensaje }}</p> @endforeach
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                        <thead class="bg-gray-50 dark:bg-gray-800">
-                            <tr class="text-xs text-gray-500 text-left">
-                                <th class="py-2 px-3">Resultado</th>
-                                <th class="py-2 px-3">Indicador</th>
-                                <th class="py-2 px-3">Medio de verificación</th>
-                                <th class="py-2 px-3 w-28">Plazo</th>
-                                <th class="py-2 px-3 w-24 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                            @forelse($resultadosProyecto as $ri => $resultadoProyecto)
-                            <tr wire:key="resultado-proyecto-{{ $resultadoProyecto['wire_key'] ?? $resultadoProyecto['id'] ?? 'nuevo-'.$ri }}" class="align-top">
-                                <td class="py-2 px-3">{{ $resultadoProyecto['nombre_resultado'] ?? '' }}</td>
-                                <td class="py-2 px-3">{{ $resultadoProyecto['nombre_indicador'] ?? '' }}</td>
-                                <td class="py-2 px-3">{{ $resultadoProyecto['nombre_medio_verificacion'] ?? '' }}</td>
-                                <td class="py-2 px-3">{{ ($resultadoProyecto['plazo'] ?? '') === 'largo_plazo' ? 'Largo plazo' : 'Mediano plazo' }}</td>
-                                <td class="py-2 px-3 text-right whitespace-nowrap">
-                                    <button wire:click="openResultadoProyectoModal({{ $ri }})" type="button" class="text-xs text-blue-600 hover:text-blue-800">Editar</button>
-                                    <button wire:click="removeResultadoProyecto({{ $ri }})" type="button" class="ml-2 text-xs text-red-500 hover:text-red-700">Borrar</button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="py-3 px-3 text-center text-xs text-gray-500">Sin resultados de mediano/largo plazo. Haz clic en "+ Agregar".</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                <div class="space-y-5">
+                    @foreach($listasPlazo as $plazo => $lista)
+                        @php $filas = $resultadosPorPlazo->get($plazo, collect()); @endphp
+                        <div wire:key="marco-lista-{{ $plazo }}" class="rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-700">
+                            <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ $lista['titulo'] }} @if($esVoluntariado)<span class="text-red-500">*</span>@endif</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ $lista['ayuda'] }}</p>
+                            @if($filas->isNotEmpty())
+                                <div class="mt-2 hidden gap-3 text-xs font-medium text-gray-500 dark:text-gray-400 md:grid md:grid-cols-[1.5rem_1fr_1fr_1fr_2rem]">
+                                    <span>#</span><span>Resultado <span class="text-red-500">*</span></span><span>Indicador <span class="text-red-500">*</span></span><span>Medio de verificación <span class="text-red-500">*</span></span><span></span>
+                                </div>
+                                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    @foreach($filas as $ri => $resultado)
+                                        @include('livewire.proyectos.vinculacion.partials.marco-logico-fila-resultado', [
+                                            'ruta' => "resultadosProyecto.{$ri}",
+                                            'numero' => $loop->iteration,
+                                            'wireKey' => 'resultado-proyecto-'.($resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri),
+                                            'quitar' => "removeResultadoProyecto({$ri})",
+                                            'ejemplos' => $lista['ejemplos'],
+                                        ])
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="mt-2 text-xs text-gray-500">Sin resultados de {{ mb_strtolower($lista['resumen']) }}.</p>
+                            @endif
+                            <button wire:click="addResultadoProyecto('{{ $plazo }}')" type="button" class="mt-2 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">{{ $lista['agregar'] }}</button>
+                        </div>
+                    @endforeach
                 </div>
-            </div>
+            </section>
         </div>
-
-        @if($showResultadoProyectoModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog">
-            <div class="fixed inset-0 bg-black/50" wire:click="closeResultadoProyectoModal"></div>
-            <div class="relative flex min-h-full items-center justify-center p-4">
-                <div class="relative w-full max-w-xl rounded-lg bg-white dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-700">
-                    <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
-                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white">
-                            {{ $editResultadoProyectoIndex !== null ? 'Editar' : 'Nuevo' }} resultado de mediano/largo plazo
-                        </h4>
-                        <button wire:click="closeResultadoProyectoModal" type="button" class="text-gray-500 hover:text-gray-800 text-lg leading-none">✕</button>
-                    </div>
-                    <div class="p-5 space-y-4">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Resultado <span class="text-red-500">*</span></label>
-                            <textarea wire:model="resultadoProyectoModal.nombre_resultado" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
-                            @error('resultadoProyectoModal.nombre_resultado') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Indicador <span class="text-red-500">*</span></label>
-                            <textarea wire:model="resultadoProyectoModal.nombre_indicador" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
-                            @error('resultadoProyectoModal.nombre_indicador') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Medio de verificación <span class="text-red-500">*</span></label>
-                            <textarea wire:model="resultadoProyectoModal.nombre_medio_verificacion" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
-                            @error('resultadoProyectoModal.nombre_medio_verificacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Plazo <span class="text-red-500">*</span></label>
-                            <select wire:model="resultadoProyectoModal.plazo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
-                                <option value="mediano_plazo">Mediano plazo</option>
-                                <option value="largo_plazo">Largo plazo</option>
-                            </select>
-                            @error('resultadoProyectoModal.plazo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-                    <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
-                        <button wire:click="closeResultadoProyectoModal" type="button" class="rounded-md bg-gray-100 dark:bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200">Cancelar</button>
-                        <button wire:click="saveResultadoProyecto" type="button" class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
-                            {{ $editResultadoProyectoIndex !== null ? 'Guardar cambios' : 'Agregar' }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
         @endif
 
         {{-- ══════════════════ PASO 8: Presupuesto ══════════════════ --}}
@@ -2240,7 +2311,7 @@
         <div class="space-y-4">
             <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
                 <span class="font-semibold">Documentos obligatorios:</span>
-                adjunte el documento 1 o el documento 2 (cualquiera de los dos), y el documento 3.
+                adjunte el documento 1 y/o el documento 2 , y el documento 3.
             </div>
             @error('anexos')
                 <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">

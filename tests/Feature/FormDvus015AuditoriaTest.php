@@ -141,6 +141,7 @@ class FormDvus015AuditoriaTest extends TestCase
     public function test_modal_de_contraparte_exige_compromisos_en_el_015(): void
     {
         $component = $this->componenteVoluntariado();
+        $component->modoContraparte = 'nueva';
         $component->nuevaContraparte = [
             'rtn' => '', 'nombre' => 'Alcaldía', 'tipo_entidad' => 'gobierno_municipal',
             'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '',
