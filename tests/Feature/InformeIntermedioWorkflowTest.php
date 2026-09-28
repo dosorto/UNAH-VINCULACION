@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Docente\Proyectos\HistorialProyecto;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 use App\Mail\EtapaFlujoPendiente;
 use App\Mail\ProyectoEstadoCambiado;
@@ -23,6 +24,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -272,6 +274,38 @@ class InformeIntermedioWorkflowTest extends TestCase
         ]);
         $this->expectException(\RuntimeException::class);
         $workflow->resolverEmpleados($contexto['proyecto']->fresh(), Proyecto::FLUJO_INFORME_INTERMEDIO);
+    }
+
+    public function test_desde_el_historial_el_destinatario_se_elige_en_el_modal_de_envio(): void
+    {
+        $contexto = $this->contexto();
+        $etapa = $contexto['etapas'][3];
+        $rol = Role::firstOrCreate(['name' => 'Revisor intermedio '.uniqid(), 'guard_name' => 'web']);
+        $contexto['usuario']->assignRole($rol);
+        $etapa->update(['usuario_responsable_id' => null, 'rol_revisor_id' => $rol->id, 'emisor_define_destinatario' => true]);
+        app(InformeIntermedioProyectoWorkflowService::class)->guardarArchivo($contexto['proyecto'], $this->pdf(), $contexto['usuario']);
+
+        // El selector ya no está en la tarjeta: el botón abre el modal con el buscador de la etapa.
+        $historial = Livewire::actingAs($contexto['usuario'])
+            ->test(HistorialProyecto::class, ['proyecto' => $contexto['proyecto']->fresh()])
+            ->assertSee('Enviar a revisión')
+            ->assertDontSee('Destinatario para')
+            ->call('abrirEnvioIntermedioModal')
+            ->assertSet('showEnvioIntermedioModal', true)
+            ->assertSee('Enviar el Informe Intermedio a revisión')
+            ->assertSee($etapa->nombre);
+
+        // Sin destinatario no se envía y el modal sigue abierto con el aviso.
+        $historial->call('enviarInformeIntermedio')
+            ->assertHasErrors('destinatariosIntermedio')
+            ->assertSet('showEnvioIntermedioModal', true);
+        $this->assertSame(InformeIntermedioProyecto::ESTADO_BORRADOR, $contexto['proyecto']->informeIntermedio()->firstOrFail()->estado);
+
+        $historial->set('destinatariosIntermedio.'.$etapa->id, $contexto['usuario']->id)
+            ->call('enviarInformeIntermedio')
+            ->assertHasNoErrors()
+            ->assertSet('showEnvioIntermedioModal', false);
+        $this->assertSame(InformeIntermedioProyecto::ESTADO_EN_REVISION, $contexto['proyecto']->informeIntermedio()->firstOrFail()->estado);
     }
 
     public function test_informe_con_etapas_compartidas_notifica_a_todos_y_reanuda_sin_perder_el_revisor_que_subsano(): void

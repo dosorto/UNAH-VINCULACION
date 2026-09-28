@@ -1619,6 +1619,59 @@ class InformeFinalINF001Test extends TestCase
         $this->assertSame(1,$project->documentos()->where('tipo_documento','Informe Final')->count());
     }
 
+    public function test_desde_el_historial_el_destinatario_se_elige_en_el_modal_de_envio(): void
+    {
+        Storage::fake('public');
+        [$user,$project]=$this->scenario();
+        $etapa=$project->flujoEtapasActivasOrdenadas(Proyecto::FLUJO_CIERRE_PROYECTO)->firstOrFail();
+        $rol=Role::firstOrCreate(['name'=>'revisor-cierre-prueba','guard_name'=>'web']);
+        $user->assignRole($rol);
+        $etapa->update(['emisor_define_destinatario'=>true,'rol_revisor_id'=>$rol->id]);
+
+        // Informe completo y guardado, pendiente de envío desde el historial del proyecto.
+        $this->componentReadyForCompletion($user,$project)->call('guardarBorrador')->assertHasNoErrors();
+        $project->informeFinalInf001()->firstOrFail()->update(['estado'=>InformeFinalProyecto::ESTADO_COMPLETO]);
+
+        $historial=Livewire::actingAs($user)->test(HistorialProyecto::class,['proyecto'=>$project->fresh()])
+            ->assertSee('Revisar y enviar informe final')
+            ->assertDontSee('Destinatario para')
+            ->assertDontSee('Enviar el informe final al flujo de cierre');
+
+        // El botón abre el modal con el buscador de destinatarios de la etapa.
+        $historial->call('abrirEnvioCierreModal')
+            ->assertSet('showEnvioCierreModal',true)
+            ->assertSee('Enviar el informe final al flujo de cierre')
+            ->assertSee($etapa->nombre);
+
+        // Sin destinatario no se genera nada y el modal sigue abierto con el aviso.
+        $historial->call('enviarInformeFinal')
+            ->assertHasErrors('destinatariosCierre')
+            ->assertSet('showEnvioCierreModal',true);
+        $this->assertSame(0,$project->documentos()->where('tipo_documento','Informe Final')->count());
+
+        $destinatario=app(\App\Services\Proyecto\ProyectoWorkflowService::class)
+            ->destinatariosSeleccionables($project->fresh(),Proyecto::FLUJO_CIERRE_PROYECTO)[$etapa->id]['usuarios']->firstOrFail();
+        $historial->set('destinatariosCierre.'.$etapa->id,$destinatario->id)
+            ->call('enviarInformeFinal')
+            ->assertHasNoErrors()
+            ->assertSet('showEnvioCierreModal',false);
+
+        $this->assertSame(1,$project->documentos()->where('tipo_documento','Informe Final')->count());
+    }
+
+    public function test_sin_destinatario_por_elegir_el_envio_desde_el_historial_solo_pide_confirmacion(): void
+    {
+        [$user,$project]=$this->scenario();
+        $this->initialize($project,$user)->update(['estado'=>'COMPLETO']);
+
+        $html=Livewire::actingAs($user)->test(HistorialProyecto::class,['proyecto'=>$project->fresh()])
+            ->assertSee('Revisar y enviar informe final')
+            ->html();
+
+        $this->assertStringContainsString('¿Enviar el INF-001 al flujo de cierre?',$html);
+        $this->assertStringNotContainsString('abrirEnvioCierreModal',$html);
+    }
+
     public function test_no_se_marca_completo_con_inconsistencias(): void
     {
         [$user,$project]=$this->scenario(); $component=$this->conContraparteCompleta($this->livewireComponent($user,$project))->set('general.fecha_cierre','2026-12-01')->set('general.transformacion_lograda','Transformación')->set('general.mecanismos_sostenibilidad','Comité local')->set('general.confirmacion_veracidad',true);
