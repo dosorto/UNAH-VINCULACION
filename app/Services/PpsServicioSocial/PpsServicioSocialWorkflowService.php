@@ -127,7 +127,9 @@ class PpsServicioSocialWorkflowService
             $this->validarDestinatarioDeFirma($primeraFirma);
             $this->notificarRevisionPendiente($registro, $primeraFirma, $esReenvio ? 'reenvio_subsanacion' : 'envio_revision');
 
-            if (Schema::hasTable('pps_documentos_generados')) {
+            // La solicitud se genera en el paso «Solicitud de práctica»; al enviar solo se crea si falta.
+            if (Schema::hasTable('pps_documentos_generados')
+                && ! $registro->documentosGenerados()->where('tipo', PpsDocumentoGenerator::SOLICITUD)->exists()) {
                 app(PpsDocumentoGenerator::class)->generarSolicitud($registro, (int) $userId);
             }
 
