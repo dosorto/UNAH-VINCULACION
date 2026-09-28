@@ -43,6 +43,42 @@ class CreatePasantia extends Component
 
     public string $busquedaAsignatura = '';
 
+    public bool $mostrarNuevaAsignatura = false;
+
+    public string $nuevaAsignaturaCodigo = '';
+
+    public string $nuevaAsignaturaNombre = '';
+
+    public function crearAsignatura(): void
+    {
+        $this->nuevaAsignaturaCodigo = mb_strtoupper(trim($this->nuevaAsignaturaCodigo));
+        $this->nuevaAsignaturaNombre = trim($this->nuevaAsignaturaNombre);
+        $this->validate([
+            'nuevaAsignaturaCodigo' => ['required', 'string', 'max:50'],
+            'nuevaAsignaturaNombre' => ['required', 'string', 'max:255'],
+        ]);
+
+        $asignatura = Asignatura::query()
+            ->whereRaw('UPPER(TRIM(codigo)) = ?', [$this->nuevaAsignaturaCodigo])
+            ->first();
+        $asignatura ??= Asignatura::query()->firstOrCreate(
+            ['codigo' => $this->nuevaAsignaturaCodigo],
+            ['nombre' => $this->nuevaAsignaturaNombre, 'activa' => true],
+        );
+
+        if (! $asignatura->wasRecentlyCreated) {
+            $this->busquedaAsignatura = $asignatura->codigo;
+            $this->addError('nuevaAsignaturaCodigo', $asignatura->activa
+                ? "Este código ya existe: {$asignatura->nombre}. Seleccione la asignatura en los resultados."
+                : 'Este código pertenece a una asignatura inactiva. Solicite su revisión en el catálogo.');
+            return;
+        }
+
+        $this->agregarAsignatura($asignatura->id);
+        $this->busquedaAsignatura = $asignatura->codigo;
+        $this->reset('mostrarNuevaAsignatura', 'nuevaAsignaturaCodigo', 'nuevaAsignaturaNombre');
+    }
+
     public $cartaFormalizacionArchivo = null;
 
     public $convenioMarcoArchivo = null;
@@ -703,7 +739,7 @@ class CreatePasantia extends Component
             'categoriasDocente' => $categoriasDocente,
             'departamentosAcademicos' => $departamentosAcademicos,
             'jornadasLaborales' => $jornadasLaborales,
-            'catalogoAsignaturas' => $this->pasoActual === 3
+            'catalogoAsignaturas' => $this->pasoActual === 3 && trim($this->busquedaAsignatura) !== ''
                 ? Asignatura::query()->where('activa', true)
                     ->when(trim($this->busquedaAsignatura) !== '', fn ($query) => $query->where(fn ($q) => $q
                         ->where('codigo', 'like', '%'.trim($this->busquedaAsignatura).'%')

@@ -77,6 +77,40 @@ class PasantiaLivewireTest extends TestCase
         $this->assertCount(1, Pasantia::findOrFail($id)->asignaturas);
     }
 
+    public function test_busca_asignaturas_por_codigo_o_nombre_sin_carrera(): void
+    {
+        $asignatura = \App\Models\Asignatura::create(['codigo' => 'TEST-BUSQUEDA-013', 'nombre' => 'Materia global de prueba', 'activa' => true]);
+        Livewire::test(CreatePasantia::class)
+            ->set('pasoActual', 3)
+            ->assertViewHas('catalogoAsignaturas', fn ($items) => $items->isEmpty())
+            ->set('busquedaAsignatura', 'TEST-BUSQUEDA-013')
+            ->assertViewHas('catalogoAsignaturas', fn ($items) => $items->contains('id', $asignatura->id))
+            ->set('busquedaAsignatura', 'Materia global de prueba')
+            ->assertViewHas('catalogoAsignaturas', fn ($items) => $items->contains('id', $asignatura->id))
+            ->set('busquedaAsignatura', 'SIN-COINCIDENCIA-013')
+            ->assertViewHas('catalogoAsignaturas', fn ($items) => $items->isEmpty());
+    }
+
+    public function test_crea_asignatura_global_y_evita_duplicados_por_codigo(): void
+    {
+        $componente = Livewire::test(CreatePasantia::class)
+            ->set('autoguardadoActivo', false)
+            ->set('nuevaAsignaturaCodigo', ' test-alta-013 ')
+            ->set('nuevaAsignaturaNombre', 'Materia nueva')
+            ->call('crearAsignatura')
+            ->assertHasNoErrors()
+            ->assertSet('form.asignaturas.0.codigo', 'TEST-ALTA-013');
+        $this->assertDatabaseHas('asignaturas', ['codigo' => 'TEST-ALTA-013', 'carrera_id' => null]);
+
+        $componente->set('nuevaAsignaturaCodigo', 'test-alta-013')
+            ->set('nuevaAsignaturaNombre', 'Nombre distinto')
+            ->call('crearAsignatura')
+            ->assertHasErrors('nuevaAsignaturaCodigo')
+            ->assertSet('busquedaAsignatura', 'TEST-ALTA-013');
+        $this->assertSame(1, \App\Models\Asignatura::where('codigo', 'TEST-ALTA-013')->count());
+        $this->assertDatabaseHas('asignaturas', ['codigo' => 'TEST-ALTA-013', 'nombre' => 'Materia nueva']);
+    }
+
     public function test_puede_crear_borrador_vacio_y_conservar_nulos(): void
     {
         Livewire::test(CreatePasantia::class)

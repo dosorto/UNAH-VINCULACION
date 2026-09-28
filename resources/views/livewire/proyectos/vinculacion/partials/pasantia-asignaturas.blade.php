@@ -26,7 +26,8 @@
             <div class="p-5">
                 <label for="buscar-asignatura" class="mb-2 block text-sm font-medium">Buscar por código o nombre</label>
                 <input id="buscar-asignatura" type="search" wire:model.live.debounce.300ms="busquedaAsignatura" class="{{ $inputClass }}" placeholder="Escriba el código o nombre de la asignatura">
-                <p class="mt-2 text-xs text-gray-500">Se muestran hasta 50 resultados. Use la búsqueda para encontrar una asignatura.</p>
+                <p class="mt-2 text-xs text-gray-500">Las coincidencias aparecen mientras escribe. Se muestran hasta 50 resultados del catálogo general.</p>
+                <p wire:loading wire:target="busquedaAsignatura" class="mt-2 text-xs text-gray-500" role="status">Buscando asignaturas…</p>
             </div>
             <div class="overflow-y-auto px-5" aria-live="polite">
                 <table class="w-full text-left text-sm">
@@ -44,10 +45,28 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="px-3 py-8 text-center text-gray-500">No se encontraron asignaturas activas con esa búsqueda.</td></tr>
+                            <tr><td colspan="3" class="px-3 py-8 text-center text-gray-500">{{ trim($busquedaAsignatura) === '' ? 'Escriba un código o nombre para buscar una asignatura.' : 'No se encontraron asignaturas activas con esa búsqueda.' }}</td></tr>
                         @endforelse
                     </tbody>
                 </table>
+                <div class="my-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <button type="button" wire:click="$toggle('mostrarNuevaAsignatura')" class="text-sm font-semibold text-blue-600">{{ $mostrarNuevaAsignatura ? 'Cancelar registro' : '¿No encuentra la asignatura? Registrar nueva' }}</button>
+                    @if($mostrarNuevaAsignatura)
+                        <div class="mt-3 grid gap-3" wire:key="nueva-asignatura">
+                            <div>
+                                <label for="nueva-asignatura-codigo" class="mb-1 block text-sm font-medium">Código de asignatura</label>
+                                <input id="nueva-asignatura-codigo" wire:model="nuevaAsignaturaCodigo" maxlength="50" class="{{ $inputClass }}" />
+                                @error('nuevaAsignaturaCodigo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label for="nueva-asignatura-nombre" class="mb-1 block text-sm font-medium">Nombre de asignatura</label>
+                                <input id="nueva-asignatura-nombre" wire:model="nuevaAsignaturaNombre" maxlength="255" class="{{ $inputClass }}" />
+                                @error('nuevaAsignaturaNombre')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                            <button type="button" wire:click="crearAsignatura" wire:loading.attr="disabled" class="justify-self-start rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Crear y agregar</button>
+                        </div>
+                    @endif
+                </div>
             </div>
             <div class="mt-4 flex items-center justify-between border-t border-gray-200 p-5 dark:border-gray-700">
                 <span class="text-sm text-gray-500">{{ count($this->asignaturasSeleccionadas()) }} seleccionadas</span>
