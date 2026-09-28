@@ -217,7 +217,7 @@
                 @if ($totalPendientes > 0)
                     {{-- La cifra sale de la bandeja personal, así que lleva a ella y no a la revisión solicitada. --}}
                     <div class="shrink-0 border-t border-slate-200 px-4 py-3 dark:border-slate-800">
-                        @can('docente.proyectos')
+                        @can('docente.trazabilidad')
                             <a href="{{ route('SolicitudProyectosDocente') }}" wire:navigate
                                 class="flex items-center gap-2 text-xs font-semibold text-primary-600 hover:underline dark:text-primary-300">
                                 @svg('heroicon-o-inbox-arrow-down', ['class' => 'h-4 w-4'])

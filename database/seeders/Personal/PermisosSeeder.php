@@ -32,6 +32,8 @@ class PermisosSeeder extends Seeder
             ['name' => 'proyectos.firma-director', 'display_name' => 'Firma Director DVUS'],
             ['name' => 'proyectos.informes',       'display_name' => 'Revisar Informes de Proyectos'],
             ['name' => 'proyectos.revision-final', 'display_name' => 'Revision Final y Firma DVUS'],
+            ['name' => 'proyectos.contrapartes',   'display_name' => 'Administrar Entidades Contraparte'],
+            ['name' => 'pps.instituciones',        'display_name' => 'Administrar Instituciones PPS / SS'],
             // Configuracion
             ['name' => 'configuracion.logs',       'display_name' => 'Ver Logs del Sistema'],
             ['name' => 'configuracion.perfil',     'display_name' => 'Editar Mi Perfil'],
@@ -55,6 +57,7 @@ class PermisosSeeder extends Seeder
             // Docente
             ['name' => 'docente.proyectos',        'display_name' => 'Gestion de Proyectos Docente'],
             ['name' => 'docente.crear-proyecto',   'display_name' => 'Crear Proyecto de Vinculacion'],
+            ['name' => 'docente.trazabilidad',     'display_name' => 'Ver Trazabilidad de Registros'],
             // Director/Enlace
             ['name' => 'director.proyectos',       'display_name' => 'Historial Vinculacion Director'],
             // Perfil
@@ -103,6 +106,7 @@ class PermisosSeeder extends Seeder
             'empleados.empleados',
             'proyectos.historial', 'proyectos.solicitados', 'proyectos.aprobados',
             'proyectos.firma-director', 'proyectos.informes', 'proyectos.revision-final',
+            'proyectos.contrapartes', 'pps.instituciones',
             'configuracion.logs', 'configuracion.perfil', 'configuracion.contactanos', 'configuracion.flujos',
             'configuracion.integraciones-api', 'configuracion.jornada-laboral', 'configuracion.nivel-academico',
             'inicio.admin', 'dashboard.admin',
@@ -138,39 +142,39 @@ class PermisosSeeder extends Seeder
 
         $roleCoordinadorProyecto->syncPermissions([
             'inicio.admin', 'dashboard.director',
-            'docente.proyectos', 'docente.crear-proyecto',
+            'docente.proyectos', 'docente.crear-proyecto', 'docente.trazabilidad',
             'unidad-academica.asignatura',
             'configuracion.perfil', 'global.set-role',
             'tickets.ver',
         ]);
 
         $roleEnlaceVinculacion->syncPermissions([
-            'director.proyectos', 'docente.proyectos', 'inicio.admin',
+            'director.proyectos', 'docente.proyectos', 'docente.trazabilidad', 'inicio.admin',
             'dashboard.director', 'global.set-role',
             'configuracion.perfil', 'tickets.ver',
         ]);
 
         $roleJefeDepartamento->syncPermissions([
-            'director.proyectos', 'docente.proyectos', 'inicio.admin',
+            'director.proyectos', 'docente.proyectos', 'docente.trazabilidad', 'inicio.admin',
             'dashboard.director', 'global.set-role',
             'configuracion.perfil', 'tickets.ver',
         ]);
 
         $roleDirectorCentro->syncPermissions([
-            'director.proyectos', 'docente.proyectos', 'inicio.admin',
+            'director.proyectos', 'docente.proyectos', 'docente.trazabilidad', 'inicio.admin',
             'dashboard.director', 'global.set-role',
             'configuracion.perfil', 'tickets.ver',
         ]);
 
         $roleRevisorVinculacion->syncPermissions([
-            'proyectos.historial', 'proyectos.solicitados', 'proyectos.informes', 'docente.proyectos',
+            'proyectos.historial', 'proyectos.solicitados', 'proyectos.informes', 'docente.proyectos', 'docente.trazabilidad',
             'inicio.admin', 'dashboard.director',
             'global.set-role', 'configuracion.perfil', 'tickets.ver',
         ]);
 
         $roleDirectorVinculacion->syncPermissions([
             'proyectos.historial', 'proyectos.aprobados', 'proyectos.firma-director',
-            'proyectos.revision-final', 'proyectos.informes', 'docente.proyectos',
+            'proyectos.revision-final', 'proyectos.informes', 'docente.proyectos', 'docente.trazabilidad',
             'inicio.admin', 'dashboard.director',
             'global.set-role', 'configuracion.perfil', 'tickets.ver',
         ]);
