@@ -1,0 +1,180 @@
+{
+ "pais": "URY",
+ "fuente": "Municipios de Uruguay 2025 (OPP), vía Anexo:Municipios de Uruguay - departamentos y municipios",
+ "departamentos": [
+  {"codigo": 1, "nombre": "Montevideo", "municipios": [
+   {"codigo": null, "nombre": "Municipio A"},
+   {"codigo": null, "nombre": "Municipio B"},
+   {"codigo": null, "nombre": "Municipio C"},
+   {"codigo": null, "nombre": "Municipio CH"},
+   {"codigo": null, "nombre": "Municipio D"},
+   {"codigo": null, "nombre": "Municipio E"},
+   {"codigo": null, "nombre": "Municipio F"},
+   {"codigo": null, "nombre": "Municipio G"}
+  ]},
+  {"codigo": 2, "nombre": "Artigas", "municipios": [
+   {"codigo": null, "nombre": "Baltasar Brum"},
+   {"codigo": null, "nombre": "Bella Unión"},
+   {"codigo": null, "nombre": "Tomás Gomensoro"}
+  ]},
+  {"codigo": 3, "nombre": "Canelones", "municipios": [
+   {"codigo": null, "nombre": "18 de Mayo"},
+   {"codigo": null, "nombre": "Aguas Corrientes"},
+   {"codigo": null, "nombre": "Atlántida"},
+   {"codigo": null, "nombre": "Barros Blancos"},
+   {"codigo": null, "nombre": "Canelones"},
+   {"codigo": null, "nombre": "Ciudad de la Costa"},
+   {"codigo": null, "nombre": "Colonia Nicolich"},
+   {"codigo": null, "nombre": "Del Andaluz"},
+   {"codigo": null, "nombre": "Empalme Olmos"},
+   {"codigo": null, "nombre": "Juanicó"},
+   {"codigo": null, "nombre": "La Floresta"},
+   {"codigo": null, "nombre": "La Paz"},
+   {"codigo": null, "nombre": "Las Piedras"},
+   {"codigo": null, "nombre": "Los Cerrillos"},
+   {"codigo": null, "nombre": "Migues"},
+   {"codigo": null, "nombre": "Montes"},
+   {"codigo": null, "nombre": "Pando"},
+   {"codigo": null, "nombre": "Parque del Plata"},
+   {"codigo": null, "nombre": "Paso Carrasco"},
+   {"codigo": null, "nombre": "Progreso"},
+   {"codigo": null, "nombre": "Salinas"},
+   {"codigo": null, "nombre": "San Antonio"},
+   {"codigo": null, "nombre": "San Bautista"},
+   {"codigo": null, "nombre": "San Jacinto"},
+   {"codigo": null, "nombre": "San Ramón"},
+   {"codigo": null, "nombre": "Santa Lucía"},
+   {"codigo": null, "nombre": "Santa Rosa"},
+   {"codigo": null, "nombre": "Sauce"},
+   {"codigo": null, "nombre": "Soca"},
+   {"codigo": null, "nombre": "Suárez"},
+   {"codigo": null, "nombre": "Tala"},
+   {"codigo": null, "nombre": "Toledo"}
+  ]},
+  {"codigo": 4, "nombre": "Cerro Largo", "municipios": [
+   {"codigo": null, "nombre": "Aceguá"},
+   {"codigo": null, "nombre": "Arbolito"},
+   {"codigo": null, "nombre": "Arévalo"},
+   {"codigo": null, "nombre": "Bañado de Medina"},
+   {"codigo": null, "nombre": "Centurión"},
+   {"codigo": null, "nombre": "Cerro de las Cuentas"},
+   {"codigo": null, "nombre": "Fraile Muerto"},
+   {"codigo": null, "nombre": "Isidoro Noblía"},
+   {"codigo": null, "nombre": "Laguna Merín"},
+   {"codigo": null, "nombre": "Las Cañas"},
+   {"codigo": null, "nombre": "Plácido Rosas"},
+   {"codigo": null, "nombre": "Quebracho"},
+   {"codigo": null, "nombre": "Ramón Trigo"},
+   {"codigo": null, "nombre": "Río Branco"},
+   {"codigo": null, "nombre": "Tres Islas"},
+   {"codigo": null, "nombre": "Tupambaé"}
+  ]},
+  {"codigo": 5, "nombre": "Colonia", "municipios": [
+   {"codigo": null, "nombre": "Carmelo"},
+   {"codigo": null, "nombre": "Colonia Miguelete"},
+   {"codigo": null, "nombre": "Colonia Valdense"},
+   {"codigo": null, "nombre": "Conchillas"},
+   {"codigo": null, "nombre": "Cufré"},
+   {"codigo": null, "nombre": "Florencio Sánchez"},
+   {"codigo": null, "nombre": "Juan L. Lacaze"},
+   {"codigo": null, "nombre": "La Paz"},
+   {"codigo": null, "nombre": "Nueva Helvecia"},
+   {"codigo": null, "nombre": "Nueva Palmira"},
+   {"codigo": null, "nombre": "Ombúes de Lavalle"},
+   {"codigo": null, "nombre": "Rosario"},
+   {"codigo": null, "nombre": "Tarariras"}
+  ]},
+  {"codigo": 6, "nombre": "Durazno", "municipios": [
+   {"codigo": null, "nombre": "Sarandí del Yí"},
+   {"codigo": null, "nombre": "Villa del Carmen"}
+  ]},
+  {"codigo": 7, "nombre": "Flores", "municipios": [
+   {"codigo": null, "nombre": "Ismael Cortinas"}
+  ]},
+  {"codigo": 8, "nombre": "Florida", "municipios": [
+   {"codigo": null, "nombre": "Casupá"},
+   {"codigo": null, "nombre": "Fray Marcos"},
+   {"codigo": null, "nombre": "Sarandí Grande"}
+  ]},
+  {"codigo": 9, "nombre": "Lavalleja", "municipios": [
+   {"codigo": null, "nombre": "José Batlle y Ordóñez"},
+   {"codigo": null, "nombre": "José Pedro Varela"},
+   {"codigo": null, "nombre": "Mariscala"},
+   {"codigo": null, "nombre": "Pirarajá"},
+   {"codigo": null, "nombre": "Solís de Mataojo"},
+   {"codigo": null, "nombre": "Zapicán"}
+  ]},
+  {"codigo": 10, "nombre": "Maldonado", "municipios": [
+   {"codigo": null, "nombre": "Aiguá"},
+   {"codigo": null, "nombre": "Garzón"},
+   {"codigo": null, "nombre": "Maldonado"},
+   {"codigo": null, "nombre": "Pan de Azúcar"},
+   {"codigo": null, "nombre": "Piriápolis"},
+   {"codigo": null, "nombre": "Punta del Este"},
+   {"codigo": null, "nombre": "San Carlos"},
+   {"codigo": null, "nombre": "Solís Grande"}
+  ]},
+  {"codigo": 11, "nombre": "Paysandú", "municipios": [
+   {"codigo": null, "nombre": "Cerro Chato"},
+   {"codigo": null, "nombre": "Chapicuy"},
+   {"codigo": null, "nombre": "El Eucalipto"},
+   {"codigo": null, "nombre": "Guichón"},
+   {"codigo": null, "nombre": "Lorenzo Geyres"},
+   {"codigo": null, "nombre": "Piedras Coloradas"},
+   {"codigo": null, "nombre": "Porvenir"},
+   {"codigo": null, "nombre": "Quebracho"},
+   {"codigo": null, "nombre": "Tambores"}
+  ]},
+  {"codigo": 12, "nombre": "Río Negro", "municipios": [
+   {"codigo": null, "nombre": "Nuevo Berlín"},
+   {"codigo": null, "nombre": "San Javier"},
+   {"codigo": null, "nombre": "Young"}
+  ]},
+  {"codigo": 13, "nombre": "Rivera", "municipios": [
+   {"codigo": null, "nombre": "Minas de Corrales"},
+   {"codigo": null, "nombre": "Tranqueras"},
+   {"codigo": null, "nombre": "Vichadero"}
+  ]},
+  {"codigo": 14, "nombre": "Rocha", "municipios": [
+   {"codigo": null, "nombre": "Castillos"},
+   {"codigo": null, "nombre": "Chuy"},
+   {"codigo": null, "nombre": "La Paloma"},
+   {"codigo": null, "nombre": "Lascano"}
+  ]},
+  {"codigo": 15, "nombre": "Salto", "municipios": [
+   {"codigo": null, "nombre": "Belén"},
+   {"codigo": null, "nombre": "Colonia Lavalleja"},
+   {"codigo": null, "nombre": "Mataojo"},
+   {"codigo": null, "nombre": "Rincón de Valentín"},
+   {"codigo": null, "nombre": "San Antonio"},
+   {"codigo": null, "nombre": "Villa Constitución"}
+  ]},
+  {"codigo": 16, "nombre": "San José", "municipios": [
+   {"codigo": null, "nombre": "Ciudad del Plata"},
+   {"codigo": null, "nombre": "Ecilda Paullier"},
+   {"codigo": null, "nombre": "Libertad"},
+   {"codigo": null, "nombre": "Rodríguez"}
+  ]},
+  {"codigo": 17, "nombre": "Soriano", "municipios": [
+   {"codigo": null, "nombre": "Cardona"},
+   {"codigo": null, "nombre": "Dolores"},
+   {"codigo": null, "nombre": "José Enrique Rodó"},
+   {"codigo": null, "nombre": "Palmitas"},
+   {"codigo": null, "nombre": "Villa Soriano"}
+  ]},
+  {"codigo": 18, "nombre": "Tacuarembó", "municipios": [
+   {"codigo": null, "nombre": "Ansina"},
+   {"codigo": null, "nombre": "Paso de los Toros"},
+   {"codigo": null, "nombre": "San Gregorio de Polanco"},
+   {"codigo": null, "nombre": "Villa Caraguatá"}
+  ]},
+  {"codigo": 19, "nombre": "Treinta y Tres", "municipios": [
+   {"codigo": null, "nombre": "Cerro Chato"},
+   {"codigo": null, "nombre": "La Charqueada"},
+   {"codigo": null, "nombre": "Rincón"},
+   {"codigo": null, "nombre": "Santa Clara de Olimar"},
+   {"codigo": null, "nombre": "Vergara"},
+   {"codigo": null, "nombre": "Villa Sara"}
+  ]}
+ ]
+}

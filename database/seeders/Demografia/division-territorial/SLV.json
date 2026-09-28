@@ -1,0 +1,78 @@
+{
+ "pais": "SLV",
+ "fuente": "OCHA/HDX COD-AB (reordenamiento municipal 2024) - departamentos y municipios",
+ "departamentos": [
+  {"codigo": 1, "nombre": "Ahuachapán", "municipios": [
+   {"codigo": null, "nombre": "Ahuachapán Centro"},
+   {"codigo": null, "nombre": "Ahuachapán Norte"},
+   {"codigo": null, "nombre": "Ahuachapán Sur"}
+  ]},
+  {"codigo": 2, "nombre": "Santa Ana", "municipios": [
+   {"codigo": null, "nombre": "Santa Ana Centro"},
+   {"codigo": null, "nombre": "Santa Ana Este"},
+   {"codigo": null, "nombre": "Santa Ana Norte"},
+   {"codigo": null, "nombre": "Santa Ana Oeste"}
+  ]},
+  {"codigo": 3, "nombre": "Sonsonate", "municipios": [
+   {"codigo": null, "nombre": "Sonsonate Centro"},
+   {"codigo": null, "nombre": "Sonsonate Este"},
+   {"codigo": null, "nombre": "Sonsonate Norte"},
+   {"codigo": null, "nombre": "Sonsonate Oeste"}
+  ]},
+  {"codigo": 4, "nombre": "Chalatenango", "municipios": [
+   {"codigo": null, "nombre": "Chalatenango Centro"},
+   {"codigo": null, "nombre": "Chalatenango Norte"},
+   {"codigo": null, "nombre": "Chalatenango Sur"}
+  ]},
+  {"codigo": 5, "nombre": "La Libertad", "municipios": [
+   {"codigo": null, "nombre": "La Libertad Centro"},
+   {"codigo": null, "nombre": "La Libertad Costa"},
+   {"codigo": null, "nombre": "La Libertad Este"},
+   {"codigo": null, "nombre": "La Libertad Norte"},
+   {"codigo": null, "nombre": "La Libertad Oeste"},
+   {"codigo": null, "nombre": "La Libertad Sur"}
+  ]},
+  {"codigo": 6, "nombre": "San Salvador", "municipios": [
+   {"codigo": null, "nombre": "San Salvador Centro"},
+   {"codigo": null, "nombre": "San Salvador Este"},
+   {"codigo": null, "nombre": "San Salvador Norte"},
+   {"codigo": null, "nombre": "San Salvador Oeste"},
+   {"codigo": null, "nombre": "San Salvador Sur"}
+  ]},
+  {"codigo": 7, "nombre": "Cuscatlán", "municipios": [
+   {"codigo": null, "nombre": "Cuscatlán Norte"},
+   {"codigo": null, "nombre": "Cuscatlán Sur"}
+  ]},
+  {"codigo": 8, "nombre": "La Paz", "municipios": [
+   {"codigo": null, "nombre": "La Paz Centro"},
+   {"codigo": null, "nombre": "La Paz Este"},
+   {"codigo": null, "nombre": "La Paz Oeste"}
+  ]},
+  {"codigo": 9, "nombre": "Cabañas", "municipios": [
+   {"codigo": null, "nombre": "Cabañas Este"},
+   {"codigo": null, "nombre": "Cabañas Oeste"}
+  ]},
+  {"codigo": 10, "nombre": "San Vicente", "municipios": [
+   {"codigo": null, "nombre": "San Vicente Norte"},
+   {"codigo": null, "nombre": "San Vicente Sur"}
+  ]},
+  {"codigo": 11, "nombre": "Usulután", "municipios": [
+   {"codigo": null, "nombre": "Usulután Este"},
+   {"codigo": null, "nombre": "Usulután Norte"},
+   {"codigo": null, "nombre": "Usulután Oeste"}
+  ]},
+  {"codigo": 12, "nombre": "San Miguel", "municipios": [
+   {"codigo": null, "nombre": "San Miguel Centro"},
+   {"codigo": null, "nombre": "San Miguel Norte"},
+   {"codigo": null, "nombre": "San Miguel Oeste"}
+  ]},
+  {"codigo": 13, "nombre": "Morazán", "municipios": [
+   {"codigo": null, "nombre": "Morazán Norte"},
+   {"codigo": null, "nombre": "Morazán Sur"}
+  ]},
+  {"codigo": 14, "nombre": "La Unión", "municipios": [
+   {"codigo": null, "nombre": "La Unión Norte"},
+   {"codigo": null, "nombre": "La Unión Sur"}
+  ]}
+ ]
+}

@@ -1,0 +1,252 @@
+{
+ "pais": "PER",
+ "fuente": "UBIGEO INEI / IGN Perú - departamentos y provincias (municipalidades provinciales)",
+ "departamentos": [
+  {"codigo": 1, "nombre": "Amazonas", "municipios": [
+   {"codigo": 101, "nombre": "Chachapoyas"},
+   {"codigo": 102, "nombre": "Bagua"},
+   {"codigo": 103, "nombre": "Bongará"},
+   {"codigo": 104, "nombre": "Condorcanqui"},
+   {"codigo": 105, "nombre": "Luya"},
+   {"codigo": 106, "nombre": "Rodríguez de Mendoza"},
+   {"codigo": 107, "nombre": "Utcubamba"}
+  ]},
+  {"codigo": 2, "nombre": "Áncash", "municipios": [
+   {"codigo": 201, "nombre": "Huaraz"},
+   {"codigo": 202, "nombre": "Aija"},
+   {"codigo": 203, "nombre": "Antonio Raymondi"},
+   {"codigo": 204, "nombre": "Asunción"},
+   {"codigo": 205, "nombre": "Bolognesi"},
+   {"codigo": 206, "nombre": "Carhuaz"},
+   {"codigo": 207, "nombre": "Carlos Fermín Fitzcarrald"},
+   {"codigo": 208, "nombre": "Casma"},
+   {"codigo": 209, "nombre": "Corongo"},
+   {"codigo": 210, "nombre": "Huari"},
+   {"codigo": 211, "nombre": "Huarmey"},
+   {"codigo": 212, "nombre": "Huaylas"},
+   {"codigo": 213, "nombre": "Mariscal Luzuriaga"},
+   {"codigo": 214, "nombre": "Ocros"},
+   {"codigo": 215, "nombre": "Pallasca"},
+   {"codigo": 216, "nombre": "Pomabamba"},
+   {"codigo": 217, "nombre": "Recuay"},
+   {"codigo": 218, "nombre": "Santa"},
+   {"codigo": 219, "nombre": "Sihuas"},
+   {"codigo": 220, "nombre": "Yungay"}
+  ]},
+  {"codigo": 3, "nombre": "Apurímac", "municipios": [
+   {"codigo": 301, "nombre": "Abancay"},
+   {"codigo": 302, "nombre": "Andahuaylas"},
+   {"codigo": 303, "nombre": "Antabamba"},
+   {"codigo": 304, "nombre": "Aymaraes"},
+   {"codigo": 305, "nombre": "Cotabambas"},
+   {"codigo": 306, "nombre": "Chincheros"},
+   {"codigo": 307, "nombre": "Grau"}
+  ]},
+  {"codigo": 4, "nombre": "Arequipa", "municipios": [
+   {"codigo": 401, "nombre": "Arequipa"},
+   {"codigo": 402, "nombre": "Camaná"},
+   {"codigo": 403, "nombre": "Caravelí"},
+   {"codigo": 404, "nombre": "Castilla"},
+   {"codigo": 405, "nombre": "Caylloma"},
+   {"codigo": 406, "nombre": "Condesuyos"},
+   {"codigo": 407, "nombre": "Islay"},
+   {"codigo": 408, "nombre": "La Unión"}
+  ]},
+  {"codigo": 5, "nombre": "Ayacucho", "municipios": [
+   {"codigo": 501, "nombre": "Huamanga"},
+   {"codigo": 502, "nombre": "Cangallo"},
+   {"codigo": 503, "nombre": "Huanca Sancos"},
+   {"codigo": 504, "nombre": "Huanta"},
+   {"codigo": 505, "nombre": "La Mar"},
+   {"codigo": 506, "nombre": "Lucanas"},
+   {"codigo": 507, "nombre": "Parinacochas"},
+   {"codigo": 508, "nombre": "Páucar del Sara Sara"},
+   {"codigo": 509, "nombre": "Sucre"},
+   {"codigo": 510, "nombre": "Víctor Fajardo"},
+   {"codigo": 511, "nombre": "Vilcas Huamán"}
+  ]},
+  {"codigo": 6, "nombre": "Cajamarca", "municipios": [
+   {"codigo": 601, "nombre": "Cajamarca"},
+   {"codigo": 602, "nombre": "Cajabamba"},
+   {"codigo": 603, "nombre": "Celendín"},
+   {"codigo": 604, "nombre": "Chota"},
+   {"codigo": 605, "nombre": "Contumazá"},
+   {"codigo": 606, "nombre": "Cutervo"},
+   {"codigo": 607, "nombre": "Hualgayoc"},
+   {"codigo": 608, "nombre": "Jaén"},
+   {"codigo": 609, "nombre": "San Ignacio"},
+   {"codigo": 610, "nombre": "San Marcos"},
+   {"codigo": 611, "nombre": "San Miguel"},
+   {"codigo": 612, "nombre": "San Pablo"},
+   {"codigo": 613, "nombre": "Santa Cruz"}
+  ]},
+  {"codigo": 7, "nombre": "Callao", "municipios": [
+   {"codigo": 701, "nombre": "Callao"}
+  ]},
+  {"codigo": 8, "nombre": "Cusco", "municipios": [
+   {"codigo": 801, "nombre": "Cusco"},
+   {"codigo": 802, "nombre": "Acomayo"},
+   {"codigo": 803, "nombre": "Anta"},
+   {"codigo": 804, "nombre": "Calca"},
+   {"codigo": 805, "nombre": "Canas"},
+   {"codigo": 806, "nombre": "Canchis"},
+   {"codigo": 807, "nombre": "Chumbivilcas"},
+   {"codigo": 808, "nombre": "Espinar"},
+   {"codigo": 809, "nombre": "La Convención"},
+   {"codigo": 810, "nombre": "Paruro"},
+   {"codigo": 811, "nombre": "Paucartambo"},
+   {"codigo": 812, "nombre": "Quispicanchi"},
+   {"codigo": 813, "nombre": "Urubamba"}
+  ]},
+  {"codigo": 9, "nombre": "Huancavelica", "municipios": [
+   {"codigo": 901, "nombre": "Huancavelica"},
+   {"codigo": 902, "nombre": "Acobamba"},
+   {"codigo": 903, "nombre": "Angaraes"},
+   {"codigo": 904, "nombre": "Castrovirreyna"},
+   {"codigo": 905, "nombre": "Churcampa"},
+   {"codigo": 906, "nombre": "Huaytará"},
+   {"codigo": 907, "nombre": "Tayacaja"}
+  ]},
+  {"codigo": 10, "nombre": "Huánuco", "municipios": [
+   {"codigo": 1001, "nombre": "Huánuco"},
+   {"codigo": 1002, "nombre": "Ambo"},
+   {"codigo": 1003, "nombre": "Dos de Mayo"},
+   {"codigo": 1004, "nombre": "Huacaybamba"},
+   {"codigo": 1005, "nombre": "Huamalíes"},
+   {"codigo": 1006, "nombre": "Leoncio Prado"},
+   {"codigo": 1007, "nombre": "Marañón"},
+   {"codigo": 1008, "nombre": "Pachitea"},
+   {"codigo": 1009, "nombre": "Puerto Inca"},
+   {"codigo": 1010, "nombre": "Lauricocha"},
+   {"codigo": 1011, "nombre": "Yarowilca"}
+  ]},
+  {"codigo": 11, "nombre": "Ica", "municipios": [
+   {"codigo": 1101, "nombre": "Ica"},
+   {"codigo": 1102, "nombre": "Chincha"},
+   {"codigo": 1103, "nombre": "Nasca"},
+   {"codigo": 1104, "nombre": "Palpa"},
+   {"codigo": 1105, "nombre": "Pisco"}
+  ]},
+  {"codigo": 12, "nombre": "Junín", "municipios": [
+   {"codigo": 1201, "nombre": "Huancayo"},
+   {"codigo": 1202, "nombre": "Concepción"},
+   {"codigo": 1203, "nombre": "Chanchamayo"},
+   {"codigo": 1204, "nombre": "Jauja"},
+   {"codigo": 1205, "nombre": "Junín"},
+   {"codigo": 1206, "nombre": "Satipo"},
+   {"codigo": 1207, "nombre": "Tarma"},
+   {"codigo": 1208, "nombre": "Yauli"},
+   {"codigo": 1209, "nombre": "Chupaca"}
+  ]},
+  {"codigo": 13, "nombre": "La Libertad", "municipios": [
+   {"codigo": 1301, "nombre": "Trujillo"},
+   {"codigo": 1302, "nombre": "Ascope"},
+   {"codigo": 1303, "nombre": "Bolívar"},
+   {"codigo": 1304, "nombre": "Chepén"},
+   {"codigo": 1305, "nombre": "Julcán"},
+   {"codigo": 1306, "nombre": "Otuzco"},
+   {"codigo": 1307, "nombre": "Pacasmayo"},
+   {"codigo": 1308, "nombre": "Pataz"},
+   {"codigo": 1309, "nombre": "Sánchez Carrión"},
+   {"codigo": 1310, "nombre": "Santiago de Chuco"},
+   {"codigo": 1311, "nombre": "Gran Chimú"},
+   {"codigo": 1312, "nombre": "Virú"}
+  ]},
+  {"codigo": 14, "nombre": "Lambayeque", "municipios": [
+   {"codigo": 1401, "nombre": "Chiclayo"},
+   {"codigo": 1402, "nombre": "Ferreñafe"},
+   {"codigo": 1403, "nombre": "Lambayeque"}
+  ]},
+  {"codigo": 15, "nombre": "Lima", "municipios": [
+   {"codigo": 1501, "nombre": "Lima"},
+   {"codigo": 1502, "nombre": "Barranca"},
+   {"codigo": 1503, "nombre": "Cajatambo"},
+   {"codigo": 1504, "nombre": "Canta"},
+   {"codigo": 1505, "nombre": "Cañete"},
+   {"codigo": 1506, "nombre": "Huaral"},
+   {"codigo": 1507, "nombre": "Huarochirí"},
+   {"codigo": 1508, "nombre": "Huaura"},
+   {"codigo": 1509, "nombre": "Oyón"},
+   {"codigo": 1510, "nombre": "Yauyos"}
+  ]},
+  {"codigo": 16, "nombre": "Loreto", "municipios": [
+   {"codigo": 1601, "nombre": "Maynas"},
+   {"codigo": 1602, "nombre": "Alto Amazonas"},
+   {"codigo": 1603, "nombre": "Loreto"},
+   {"codigo": 1604, "nombre": "Mariscal Ramón Castilla"},
+   {"codigo": 1605, "nombre": "Requena"},
+   {"codigo": 1606, "nombre": "Ucayali"},
+   {"codigo": 1607, "nombre": "Datem del Marañón"},
+   {"codigo": 1608, "nombre": "Putumayo"}
+  ]},
+  {"codigo": 17, "nombre": "Madre de Dios", "municipios": [
+   {"codigo": 1701, "nombre": "Tambopata"},
+   {"codigo": 1702, "nombre": "Manu"},
+   {"codigo": 1703, "nombre": "Tahuamanu"}
+  ]},
+  {"codigo": 18, "nombre": "Moquegua", "municipios": [
+   {"codigo": 1801, "nombre": "Mariscal Nieto"},
+   {"codigo": 1802, "nombre": "General Sánchez Cerro"},
+   {"codigo": 1803, "nombre": "Ilo"}
+  ]},
+  {"codigo": 19, "nombre": "Pasco", "municipios": [
+   {"codigo": 1901, "nombre": "Pasco"},
+   {"codigo": 1902, "nombre": "Daniel Alcides Carrión"},
+   {"codigo": 1903, "nombre": "Oxapampa"}
+  ]},
+  {"codigo": 20, "nombre": "Piura", "municipios": [
+   {"codigo": 2001, "nombre": "Piura"},
+   {"codigo": 2002, "nombre": "Ayabaca"},
+   {"codigo": 2003, "nombre": "Huancabamba"},
+   {"codigo": 2004, "nombre": "Morropón"},
+   {"codigo": 2005, "nombre": "Paita"},
+   {"codigo": 2006, "nombre": "Sullana"},
+   {"codigo": 2007, "nombre": "Talara"},
+   {"codigo": 2008, "nombre": "Sechura"}
+  ]},
+  {"codigo": 21, "nombre": "Puno", "municipios": [
+   {"codigo": 2101, "nombre": "Puno"},
+   {"codigo": 2102, "nombre": "Azángaro"},
+   {"codigo": 2103, "nombre": "Carabaya"},
+   {"codigo": 2104, "nombre": "Chucuito"},
+   {"codigo": 2105, "nombre": "El Collao"},
+   {"codigo": 2106, "nombre": "Huancané"},
+   {"codigo": 2107, "nombre": "Lampa"},
+   {"codigo": 2108, "nombre": "Melgar"},
+   {"codigo": 2109, "nombre": "Moho"},
+   {"codigo": 2110, "nombre": "San Antonio de Putina"},
+   {"codigo": 2111, "nombre": "San Román"},
+   {"codigo": 2112, "nombre": "Sandia"},
+   {"codigo": 2113, "nombre": "Yunguyo"}
+  ]},
+  {"codigo": 22, "nombre": "San Martín", "municipios": [
+   {"codigo": 2201, "nombre": "Moyobamba"},
+   {"codigo": 2202, "nombre": "Bellavista"},
+   {"codigo": 2203, "nombre": "El Dorado"},
+   {"codigo": 2204, "nombre": "Huallaga"},
+   {"codigo": 2205, "nombre": "Lamas"},
+   {"codigo": 2206, "nombre": "Mariscal Cáceres"},
+   {"codigo": 2207, "nombre": "Picota"},
+   {"codigo": 2208, "nombre": "Rioja"},
+   {"codigo": 2209, "nombre": "San Martín"},
+   {"codigo": 2210, "nombre": "Tocache"}
+  ]},
+  {"codigo": 23, "nombre": "Tacna", "municipios": [
+   {"codigo": 2301, "nombre": "Tacna"},
+   {"codigo": 2302, "nombre": "Candarave"},
+   {"codigo": 2303, "nombre": "Jorge Basadre"},
+   {"codigo": 2304, "nombre": "Tarata"}
+  ]},
+  {"codigo": 24, "nombre": "Tumbes", "municipios": [
+   {"codigo": 2401, "nombre": "Tumbes"},
+   {"codigo": 2402, "nombre": "Contralmirante Villar"},
+   {"codigo": 2403, "nombre": "Zarumilla"}
+  ]},
+  {"codigo": 25, "nombre": "Ucayali", "municipios": [
+   {"codigo": 2501, "nombre": "Coronel Portillo"},
+   {"codigo": 2502, "nombre": "Atalaya"},
+   {"codigo": 2503, "nombre": "Padre Abad"},
+   {"codigo": 2504, "nombre": "Purús"}
+  ]}
+ ]
+}

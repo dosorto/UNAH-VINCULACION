@@ -5054,7 +5054,7 @@ class CreateProyectoVinculacion extends Component
             'asignaturasOpciones' => $this->asignaturasDisponibles,
             'carrerasSeleccionadas' => $this->carrerasSeleccionadasOptions(),
             'periodosAcademicos' => $this->periodosAcademicosDisponibles,
-            'departamentosGeo' => \App\Models\Demografia\Departamento::orderBy('nombre')->pluck('nombre', 'id'),
+            'departamentosGeo' => \App\Models\Demografia\Departamento::deHonduras()->orderBy('nombre')->pluck('nombre', 'id'),
             'municipiosGeo' => empty($this->departamento_geo)
                 ? collect()
                 : Municipio::whereIn('departamento_id', $this->ids($this->departamento_geo))->orderBy('nombre')->pluck('nombre', 'id'),

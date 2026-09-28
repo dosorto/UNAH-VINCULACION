@@ -395,6 +395,40 @@ class InformeFinalINF001Test extends TestCase
         $this->assertDatabaseHas('informe_final_actividades',['informe_final_proyecto_id'=>$component->get('informe')->id,'actividad_planificada'=>'Actividad emergente autoguardada']);
     }
 
+    public function test_sitio_de_ejecucion_ofrece_los_departamentos_del_pais_elegido_y_depura_al_quitarlo(): void
+    {
+        [$user,$project]=$this->scenario();
+        $honduras=\App\Models\Demografia\Pais::firstOrCreate(['codigo_iso'=>'HND'],['nombre'=>'Honduras','codigo_area'=>504,'codigo_iso_numerico'=>340,'codigo_iso_alpha_2'=>'HN','gentilicio'=>'Hondureño/a']);
+        $otroPais=\App\Models\Demografia\Pais::create(['codigo_iso'=>'ZZT','nombre'=>'País Territorio de Prueba','codigo_area'=>999,'codigo_iso_numerico'=>999,'codigo_iso_alpha_2'=>'ZZ','gentilicio'=>'De prueba']);
+        $departamentoHn=\App\Models\Demografia\Departamento::create(['pais_id'=>$honduras->id,'nombre'=>'Departamento Hondureño de Prueba','codigo_departamento'=>9951]);
+        $municipioHn=\App\Models\Demografia\Municipio::create(['departamento_id'=>$departamentoHn->id,'nombre'=>'Municipio Hondureño de Prueba']);
+        $departamentoOtro=\App\Models\Demografia\Departamento::create(['pais_id'=>$otroPais->id,'nombre'=>'Provincia de Prueba','codigo_departamento'=>9952]);
+        $municipioOtro=\App\Models\Demografia\Municipio::create(['departamento_id'=>$departamentoOtro->id,'nombre'=>'Cantón de Prueba']);
+        $opciones=fn ($component)=>collect($component->instance()->departamentosTerritorio)->pluck('label','id');
+
+        $component=$this->livewireComponent($user,$project)->set('paisesTerritorioSel',[]);
+        $this->assertTrue($opciones($component)->has((string) $departamentoHn->id));
+        $this->assertFalse($opciones($component)->has((string) $departamentoOtro->id));
+
+        // Con varios países, cada departamento indica el suyo.
+        $component->set('paisesTerritorioSel',['Honduras','País Territorio de Prueba']);
+        $this->assertSame('Departamento Hondureño de Prueba (Honduras)',$opciones($component)->get((string) $departamentoHn->id));
+        $this->assertSame('Provincia de Prueba (País Territorio de Prueba)',$opciones($component)->get((string) $departamentoOtro->id));
+
+        $component->set('departamentosTerritorioSel',[(string) $departamentoHn->id,(string) $departamentoOtro->id])
+            ->set('municipiosTerritorioSel',[(string) $municipioHn->id,(string) $municipioOtro->id]);
+
+        // Al quitar Honduras se descartan su departamento y su municipio, también en lo guardado.
+        $component->set('paisesTerritorioSel',['País Territorio de Prueba'])
+            ->assertSet('departamentosTerritorioSel',[(string) $departamentoOtro->id])
+            ->assertSet('municipiosTerritorioSel',[(string) $municipioOtro->id]);
+        $this->assertSame(['Provincia de Prueba'],$opciones($component)->values()->all());
+        $informeId=$component->get('informe')->id;
+        $this->assertDatabaseHas('inf_final_departamento',['informe_final_proyecto_id'=>$informeId,'departamento_id'=>$departamentoOtro->id]);
+        $this->assertDatabaseMissing('inf_final_departamento',['informe_final_proyecto_id'=>$informeId,'departamento_id'=>$departamentoHn->id]);
+        $this->assertDatabaseMissing('inf_final_municipio',['informe_final_proyecto_id'=>$informeId,'municipio_id'=>$municipioHn->id]);
+    }
+
     public function test_actividad_emergente_admite_tipos_distintos_evitar_duplicados_y_conserva_ediciones(): void
     {
         [$user,$project]=$this->scenario();
@@ -2170,7 +2204,7 @@ class InformeFinalINF001Test extends TestCase
         return $component->set('contrapartes.0.tipo_instrumento','carta_intenciones');
     }
 
-    /** Sitio de ejecución (ítem 10) completo con un país sin división departamental. */
+    /** Sitio de ejecución (ítem 10) completo fuera de Honduras, donde departamento y municipio son opcionales. */
     private function conSitioDeEjecucion($component)
     {
         return $component
