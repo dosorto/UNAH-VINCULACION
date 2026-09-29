@@ -1,0 +1,193 @@
+{
+ "pais": "NIC",
+ "fuente": "OCHA/HDX COD-AB (INIDE) - departamentos, regiones autónomas y municipios",
+ "departamentos": [
+  {"codigo": 5, "nombre": "Nueva Segovia", "municipios": [
+   {"codigo": 505, "nombre": "Jalapa"},
+   {"codigo": 510, "nombre": "Murra"},
+   {"codigo": 515, "nombre": "Jícaro"},
+   {"codigo": 520, "nombre": "San Fernando"},
+   {"codigo": 525, "nombre": "Mozonte"},
+   {"codigo": 530, "nombre": "Dipilto"},
+   {"codigo": 535, "nombre": "Macuelizo"},
+   {"codigo": 540, "nombre": "Santa María"},
+   {"codigo": 545, "nombre": "Ocotal"},
+   {"codigo": 550, "nombre": "Ciudad Antigua"},
+   {"codigo": 555, "nombre": "Quilalí"},
+   {"codigo": 560, "nombre": "Wiwilí de Nueva Segovia"}
+  ]},
+  {"codigo": 10, "nombre": "Jinotega", "municipios": [
+   {"codigo": 1005, "nombre": "Wiwilí de Jinotega"},
+   {"codigo": 1010, "nombre": "El Cuá"},
+   {"codigo": 1012, "nombre": "San José de Bocay"},
+   {"codigo": 1015, "nombre": "Santa María de Pantasma"},
+   {"codigo": 1020, "nombre": "San Rafael del Norte"},
+   {"codigo": 1025, "nombre": "San Sebastián de Yalí"},
+   {"codigo": 1030, "nombre": "La Concordia"},
+   {"codigo": 1035, "nombre": "Jinotega"}
+  ]},
+  {"codigo": 20, "nombre": "Madriz", "municipios": [
+   {"codigo": 2005, "nombre": "Somoto"},
+   {"codigo": 2010, "nombre": "Totogalpa"},
+   {"codigo": 2015, "nombre": "Telpaneca"},
+   {"codigo": 2020, "nombre": "San Juan del Río Coco"},
+   {"codigo": 2025, "nombre": "Palacagüina"},
+   {"codigo": 2030, "nombre": "Yalagüina"},
+   {"codigo": 2035, "nombre": "San Lucas"},
+   {"codigo": 2040, "nombre": "Las Sabanas"},
+   {"codigo": 2045, "nombre": "San José de Cusmapa"}
+  ]},
+  {"codigo": 25, "nombre": "Estelí", "municipios": [
+   {"codigo": 2505, "nombre": "Pueblo Nuevo"},
+   {"codigo": 2510, "nombre": "Condega"},
+   {"codigo": 2515, "nombre": "Estelí"},
+   {"codigo": 2520, "nombre": "San Juan de Limay"},
+   {"codigo": 2525, "nombre": "La Trinidad"},
+   {"codigo": 2530, "nombre": "San Nicolás"}
+  ]},
+  {"codigo": 30, "nombre": "Chinandega", "municipios": [
+   {"codigo": 3000, "nombre": "San Francisco del Norte"},
+   {"codigo": 3005, "nombre": "San Pedro del Norte"},
+   {"codigo": 3015, "nombre": "Cinco Pinos"},
+   {"codigo": 3020, "nombre": "Santo Tomás del Norte"},
+   {"codigo": 3025, "nombre": "El Viejo"},
+   {"codigo": 3030, "nombre": "Puerto Morazán"},
+   {"codigo": 3035, "nombre": "Somotillo"},
+   {"codigo": 3040, "nombre": "Villanueva"},
+   {"codigo": 3045, "nombre": "Chinandega"},
+   {"codigo": 3050, "nombre": "El Realejo"},
+   {"codigo": 3055, "nombre": "Corinto"},
+   {"codigo": 3060, "nombre": "Chichigalpa"},
+   {"codigo": 3065, "nombre": "Posoltega"}
+  ]},
+  {"codigo": 35, "nombre": "León", "municipios": [
+   {"codigo": 3505, "nombre": "Achuapa"},
+   {"codigo": 3510, "nombre": "El Sauce"},
+   {"codigo": 3515, "nombre": "Santa Rosa del Peñón"},
+   {"codigo": 3520, "nombre": "El Jicaral"},
+   {"codigo": 3525, "nombre": "Larreynaga"},
+   {"codigo": 3530, "nombre": "Telica"},
+   {"codigo": 3535, "nombre": "Quezalguaque"},
+   {"codigo": 3540, "nombre": "León"},
+   {"codigo": 3545, "nombre": "La Paz Centro"},
+   {"codigo": 3550, "nombre": "Nagarote"}
+  ]},
+  {"codigo": 40, "nombre": "Matagalpa", "municipios": [
+   {"codigo": 4005, "nombre": "Rancho Grande"},
+   {"codigo": 4010, "nombre": "Río Blanco"},
+   {"codigo": 4015, "nombre": "El Tuma - La Dalia"},
+   {"codigo": 4020, "nombre": "San Isidro"},
+   {"codigo": 4025, "nombre": "Sébaco"},
+   {"codigo": 4030, "nombre": "Matagalpa"},
+   {"codigo": 4035, "nombre": "San Ramón"},
+   {"codigo": 4040, "nombre": "Matiguás"},
+   {"codigo": 4045, "nombre": "Muy Muy"},
+   {"codigo": 4050, "nombre": "Esquipulas"},
+   {"codigo": 4055, "nombre": "San Dionisio"},
+   {"codigo": 4060, "nombre": "Terrabona"},
+   {"codigo": 4065, "nombre": "Ciudad Darío"}
+  ]},
+  {"codigo": 50, "nombre": "Boaco", "municipios": [
+   {"codigo": 5005, "nombre": "San José de Los Remates"},
+   {"codigo": 5010, "nombre": "Boaco"},
+   {"codigo": 5015, "nombre": "Camoapa"},
+   {"codigo": 5020, "nombre": "Santa Lucía"},
+   {"codigo": 5025, "nombre": "Teustepe"},
+   {"codigo": 5030, "nombre": "San Lorenzo"}
+  ]},
+  {"codigo": 55, "nombre": "Managua", "municipios": [
+   {"codigo": 5500, "nombre": "Mateare"},
+   {"codigo": 5505, "nombre": "San Francisco Libre"},
+   {"codigo": 5510, "nombre": "Tipitapa"},
+   {"codigo": 5520, "nombre": "Villa El Carmen"},
+   {"codigo": 5525, "nombre": "Managua"},
+   {"codigo": 5530, "nombre": "Ticuantepe"},
+   {"codigo": 5535, "nombre": "San Rafael del Sur"},
+   {"codigo": 5540, "nombre": "Ciudad Sandino"},
+   {"codigo": 5545, "nombre": "El Crucero"}
+  ]},
+  {"codigo": 60, "nombre": "Masaya", "municipios": [
+   {"codigo": 6005, "nombre": "Nindirí"},
+   {"codigo": 6010, "nombre": "Masaya"},
+   {"codigo": 6015, "nombre": "Tisma"},
+   {"codigo": 6020, "nombre": "La Concepción"},
+   {"codigo": 6025, "nombre": "Masatepe"},
+   {"codigo": 6030, "nombre": "Nandasmo"},
+   {"codigo": 6035, "nombre": "Catarina"},
+   {"codigo": 6040, "nombre": "San Juan de Oriente"},
+   {"codigo": 6045, "nombre": "Niquinohomo"}
+  ]},
+  {"codigo": 65, "nombre": "Chontales", "municipios": [
+   {"codigo": 6505, "nombre": "Comalapa"},
+   {"codigo": 6510, "nombre": "Juigalpa"},
+   {"codigo": 6515, "nombre": "La Libertad"},
+   {"codigo": 6520, "nombre": "Santo Domingo"},
+   {"codigo": 6525, "nombre": "Santo Tomás"},
+   {"codigo": 6530, "nombre": "San Pedro de Lóvago"},
+   {"codigo": 6535, "nombre": "Acoyapa"},
+   {"codigo": 6540, "nombre": "Villa Sandino"},
+   {"codigo": 6545, "nombre": "San Francisco de Cuapa"},
+   {"codigo": 6550, "nombre": "El Coral"}
+  ]},
+  {"codigo": 70, "nombre": "Granada", "municipios": [
+   {"codigo": 7005, "nombre": "Diriá"},
+   {"codigo": 7010, "nombre": "Diriomo"},
+   {"codigo": 7015, "nombre": "Granada"},
+   {"codigo": 7020, "nombre": "Nandaime"}
+  ]},
+  {"codigo": 75, "nombre": "Carazo", "municipios": [
+   {"codigo": 7505, "nombre": "San Marcos"},
+   {"codigo": 7510, "nombre": "Jinotepe"},
+   {"codigo": 7515, "nombre": "Dolores"},
+   {"codigo": 7520, "nombre": "Diriamba"},
+   {"codigo": 7525, "nombre": "El Rosario"},
+   {"codigo": 7530, "nombre": "La Paz de Carazo"},
+   {"codigo": 7535, "nombre": "Santa Teresa"},
+   {"codigo": 7540, "nombre": "La Conquista"}
+  ]},
+  {"codigo": 80, "nombre": "Rivas", "municipios": [
+   {"codigo": 8005, "nombre": "Tola"},
+   {"codigo": 8010, "nombre": "Belén"},
+   {"codigo": 8015, "nombre": "Potosí"},
+   {"codigo": 8020, "nombre": "Buenos Aires"},
+   {"codigo": 8025, "nombre": "Moyogalpa"},
+   {"codigo": 8030, "nombre": "Altagracia"},
+   {"codigo": 8035, "nombre": "San Jorge"},
+   {"codigo": 8040, "nombre": "Rivas"},
+   {"codigo": 8045, "nombre": "San Juan del Sur"},
+   {"codigo": 8050, "nombre": "Cárdenas"}
+  ]},
+  {"codigo": 85, "nombre": "Río San Juan", "municipios": [
+   {"codigo": 8505, "nombre": "Morrito"},
+   {"codigo": 8510, "nombre": "El Almendro"},
+   {"codigo": 8515, "nombre": "San Miguelito"},
+   {"codigo": 8520, "nombre": "San Carlos"},
+   {"codigo": 8525, "nombre": "El Castillo"},
+   {"codigo": 8530, "nombre": "San Juan de Nicaragua"}
+  ]},
+  {"codigo": 91, "nombre": "Región Autónoma de la Costa Caribe Norte", "municipios": [
+   {"codigo": 9105, "nombre": "Mulukukú"},
+   {"codigo": 9106, "nombre": "Siuna"},
+   {"codigo": 9107, "nombre": "Waspam"},
+   {"codigo": 9110, "nombre": "Puerto Cabezas"},
+   {"codigo": 9115, "nombre": "Rosita"},
+   {"codigo": 9120, "nombre": "Bonanza"},
+   {"codigo": 9125, "nombre": "Waslala"},
+   {"codigo": 9135, "nombre": "Prinzapolka"}
+  ]},
+  {"codigo": 93, "nombre": "Región Autónoma de la Costa Caribe Sur", "municipios": [
+   {"codigo": 9305, "nombre": "Paiwas"},
+   {"codigo": 9310, "nombre": "La Cruz de Río Grande"},
+   {"codigo": 9312, "nombre": "Desembocadura de Río Grande"},
+   {"codigo": 9315, "nombre": "Laguna de Perlas"},
+   {"codigo": 9316, "nombre": "El Tortuguero"},
+   {"codigo": 9320, "nombre": "El Rama"},
+   {"codigo": 9325, "nombre": "Muelle de Los Bueyes"},
+   {"codigo": 9330, "nombre": "Kukrahill"},
+   {"codigo": 9335, "nombre": "Corn Island"},
+   {"codigo": 9340, "nombre": "Bluefields"},
+   {"codigo": 9345, "nombre": "Nueva Guinea"},
+   {"codigo": 9350, "nombre": "El Ayote"}
+  ]}
+ ]
+}

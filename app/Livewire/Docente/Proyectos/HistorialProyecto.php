@@ -10,6 +10,7 @@ use App\Mail\ProyectoEstadoCambiado;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Estado\TipoEstado;
 use App\Models\InformeFinal\InformeFinalDocumentoRevision;
+use App\Models\InformeIntermedio\InformeIntermedioProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\EmpleadoProyecto;
 use App\Models\Proyecto\FichaActualizacion;
@@ -48,7 +49,13 @@ class HistorialProyecto extends Component
 
     public array $destinatariosIntermedio = [];
 
+    /** Modal de «Enviar a revisión» del Informe Intermedio cuando el flujo pide elegir destinatario. */
+    public bool $showEnvioIntermedioModal = false;
+
     public array $destinatariosCierre = [];
+
+    /** Modal de «Revisar y enviar informe final» cuando el flujo de cierre pide elegir destinatario. */
+    public bool $showEnvioCierreModal = false;
 
     public bool $subsanarModal = false;
 
@@ -153,12 +160,42 @@ class HistorialProyecto extends Component
         Notification::make()->title('PDF guardado')->body('El Informe Intermedio quedó guardado como borrador.')->success()->send();
     }
 
-    public function enviarInformeIntermedio(InformeIntermedioProyectoWorkflowService $workflow): void
+    public function abrirEnvioIntermedioModal(): void
+    {
+        $this->resetErrorBag('destinatariosIntermedio');
+        $this->showEnvioIntermedioModal = true;
+    }
+
+    public function cerrarEnvioIntermedioModal(): void
+    {
+        $this->showEnvioIntermedioModal = false;
+        $this->resetErrorBag('destinatariosIntermedio');
+    }
+
+    public function enviarInformeIntermedio(InformeIntermedioProyectoWorkflowService $workflow, ProyectoWorkflowService $proyectoWorkflow): void
     {
         $informe = $this->proyecto->informeIntermedio()->firstOrFail();
+        $this->resetErrorBag('destinatariosIntermedio');
+
+        // En el primer envío, las etapas que piden destinatario se eligen en el modal. En el
+        // reenvío de una subsanación es opcional: solo reemplaza a quien ya no puede revisar.
+        if ($informe->estado === InformeIntermedioProyecto::ESTADO_BORRADOR) {
+            $faltantes = $proyectoWorkflow
+                ->destinatariosSeleccionables($this->proyecto, Proyecto::FLUJO_INFORME_INTERMEDIO)
+                ->filter(fn (array $opcion, $etapaId) => blank($this->destinatariosIntermedio[$etapaId] ?? null))
+                ->map(fn (array $opcion) => $opcion['etapa']->nombre);
+
+            if ($faltantes->isNotEmpty()) {
+                $this->showEnvioIntermedioModal = true;
+                $this->addError('destinatariosIntermedio', 'Seleccione a quién se envía el informe en: '.$faltantes->implode(', ').'.');
+
+                return;
+            }
+        }
 
         try {
             $workflow->enviar($informe, auth()->user(), $this->destinatariosIntermedio);
+            $this->showEnvioIntermedioModal = false;
             $this->proyecto = $this->proyecto->fresh();
             Notification::make()->title('Informe enviado')->body('El Informe Intermedio inició su flujo de revisión.')->success()->send();
         } catch (\Throwable $e) {
@@ -186,13 +223,43 @@ class HistorialProyecto extends Component
         return $this->redirectRoute('proyectos.informe-final', ['proyecto' => $informe->proyecto_id]);
     }
 
-    public function enviarInformeFinal(InformeFinalProyectoWorkflowService $workflow): void
+    public function abrirEnvioCierreModal(): void
+    {
+        $this->resetErrorBag('destinatariosCierre');
+        $this->showEnvioCierreModal = true;
+    }
+
+    public function cerrarEnvioCierreModal(): void
+    {
+        $this->showEnvioCierreModal = false;
+        $this->resetErrorBag('destinatariosCierre');
+    }
+
+    public function enviarInformeFinal(InformeFinalProyectoWorkflowService $workflow, ProyectoWorkflowService $proyectoWorkflow): void
     {
         $informe = $this->proyecto->informeFinalInf001()->firstOrFail();
         abort_unless($workflow->puedeEnviarInformeFinal($informe, auth()->user()), 403);
+        $this->resetErrorBag('destinatariosCierre');
+
+        // En el primer envío, las etapas que piden destinatario se eligen en el modal antes de
+        // generar el PDF; el reenvío de una subsanación vuelve a la etapa que la pidió.
+        if (($workflow->resumenCierre($this->proyecto, auth()->user())['accion'] ?? null) === 'enviar') {
+            $faltantes = $proyectoWorkflow
+                ->destinatariosSeleccionables($this->proyecto, Proyecto::FLUJO_CIERRE_PROYECTO)
+                ->filter(fn (array $opcion, $etapaId) => blank($this->destinatariosCierre[$etapaId] ?? null))
+                ->map(fn (array $opcion) => $opcion['etapa']->nombre);
+
+            if ($faltantes->isNotEmpty()) {
+                $this->showEnvioCierreModal = true;
+                $this->addError('destinatariosCierre', 'Seleccione a quién se envía el informe en: '.$faltantes->implode(', ').'.');
+
+                return;
+            }
+        }
 
         try {
             $workflow->enviarInformeFinal($informe, auth()->user(), $this->destinatariosCierre);
+            $this->showEnvioCierreModal = false;
             $this->proyecto = $this->proyecto->fresh();
             Notification::make()
                 ->title('Informe final enviado')
@@ -528,6 +595,16 @@ class HistorialProyecto extends Component
             ->destinatariosSeleccionables($proyecto, Proyecto::FLUJO_INFORME_INTERMEDIO);
         $opcionesDestinatariosCierre = $proyectoWorkflow
             ->destinatariosSeleccionables($proyecto, Proyecto::FLUJO_CIERRE_PROYECTO);
+        // Candidatos de los buscadores de los modales de envío (mismo formato que el paso 8 del INF-001).
+        $candidatosPorEtapa = fn ($opciones) => $opciones
+            ->map(fn (array $opcion) => $opcion['usuarios']->map(fn ($usuario) => [
+                'id' => $usuario->id,
+                'nombre' => $usuario->empleado?->nombre_completo ?? $usuario->name,
+                'email' => (string) $usuario->email,
+            ])->values()->all())
+            ->all();
+        $candidatosDestinatariosIntermedio = $candidatosPorEtapa($opcionesDestinatariosIntermedio);
+        $candidatosDestinatariosCierre = $candidatosPorEtapa($opcionesDestinatariosCierre);
         [$historialRouteName, $historialRouteParameters, $historialRouteLabel] = $this->historialRoute();
         $esRevisionSolicitada = $this->esRevisionSolicitada();
         $esRevisionFinal = $this->esRevisionFinal();
@@ -554,7 +631,9 @@ class HistorialProyecto extends Component
             'fichaActualizacionPendiente',
             'informeIntermedio',
             'opcionesDestinatariosIntermedio',
+            'candidatosDestinatariosIntermedio',
             'opcionesDestinatariosCierre',
+            'candidatosDestinatariosCierre',
             'historialRouteName',
             'historialRouteParameters',
             'historialRouteLabel',
@@ -578,7 +657,7 @@ class HistorialProyecto extends Component
             return ['listarProyectoRevisionFinal', [], 'Volver a revisión final'];
         }
 
-        if ($this->origen === 'por-firmar' && $permissionContext?->hasPermissionTo('docente.proyectos')) {
+        if ($this->origen === 'por-firmar' && $permissionContext?->hasPermissionTo('docente.trazabilidad')) {
             return ['SolicitudProyectosDocente', [], 'Volver a proyectos por firmar'];
         }
 

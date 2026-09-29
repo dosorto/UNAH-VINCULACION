@@ -1280,6 +1280,11 @@ class EditInformeFinalProyecto extends Component
             $this->limitarValoracion($propertyName);
         }
 
+        // Antes del autoguardado, para que se guarde el territorio ya depurado.
+        if (str_starts_with($propertyName, 'paisesTerritorioSel')) {
+            $this->depurarTerritorioPorPais();
+        }
+
         if (! $this->debeAutoguardar($propertyName)) {
             return;
         }
@@ -2065,7 +2070,52 @@ class EditInformeFinalProyecto extends Component
 
     public function getDepartamentosTerritorioProperty()
     {
-        return Departamento::orderBy('nombre')->get(['id', 'nombre']);
+        $seleccionados = array_filter(array_map('intval', $this->departamentosTerritorioSel));
+
+        // Los de los países elegidos, más los ya guardados para que no desaparezcan sin aviso.
+        $departamentos = Departamento::with('pais:id,nombre')
+            ->where(fn ($query) => $this->filtrarPorPaisesTerritorio($query)->orWhereIn('id', $seleccionados))
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'pais_id']);
+
+        $variosPaises = $departamentos->pluck('pais_id')->unique()->count() > 1;
+
+        return $departamentos->map(fn ($departamento) => [
+            'id' => (string) $departamento->id,
+            'label' => $variosPaises ? "{$departamento->nombre} ({$departamento->pais?->nombre})" : $departamento->nombre,
+        ]);
+    }
+
+    /** Sin país elegido se ofrecen los departamentos de Honduras. */
+    private function filtrarPorPaisesTerritorio($query)
+    {
+        $paises = array_values(array_filter(array_map(fn ($pais) => trim((string) $pais), $this->paisesTerritorioSel)));
+
+        return $paises === []
+            ? $query->deHonduras()
+            : $query->whereHas('pais', fn ($pais) => $pais->whereIn('nombre', $paises));
+    }
+
+    /** Al quitar un país se descartan sus departamentos y los municipios de estos. */
+    private function depurarTerritorioPorPais(): void
+    {
+        $departamentosValidos = $this->filtrarPorPaisesTerritorio(Departamento::query())
+            ->whereIn('id', array_map('intval', $this->departamentosTerritorioSel))
+            ->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $this->departamentosTerritorioSel = array_values(array_intersect(
+            array_map('strval', $this->departamentosTerritorioSel),
+            $departamentosValidos
+        ));
+
+        $municipiosValidos = Municipio::whereIn('departamento_id', $departamentosValidos)
+            ->whereIn('id', array_map('intval', $this->municipiosTerritorioSel))
+            ->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $this->municipiosTerritorioSel = array_values(array_intersect(
+            array_map('strval', $this->municipiosTerritorioSel),
+            $municipiosValidos
+        ));
+
+        unset($this->departamentosTerritorio, $this->municipiosTerritorio);
     }
 
     public function getMunicipiosTerritorioProperty()

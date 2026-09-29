@@ -4,18 +4,19 @@ namespace App\Livewire\Proyectos\Vinculacion;
 
 use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Municipio;
+use App\Models\Demografia\Pais;
+use App\Models\Personal\Empleado;
 use App\Models\PpsServicioSocial;
 use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Str;
 
 class EditPpsServicioSocial extends CreatePpsServicioSocial
 {
     public PpsServicioSocial $registro;
     public string $comentarioRevisor = '';
-    public ?string $archivo_carta_formalizacion_actual = null;
-    public ?string $archivo_convenio_marco_actual = null;
 
     public function mount(int $id): void
     {
@@ -121,9 +122,11 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         abort_unless($this->canEditRecord($this->registro), 403);
 
         $this->resetErrorBag();
-        $this->validate($this->rules(), $this->messages(), $this->validationAttributes());
-
         $esRevisor = $this->esEdicionRevisor($this->registro);
+
+        // El creador puede guardar el borrador incompleto; el revisor deja el registro completo.
+        $this->validate($esRevisor ? $this->rules() : $this->rulesArchivos(), $this->messages(), $this->validationAttributes());
+
         if ($esRevisor) {
             $this->validate([
                 'comentarioRevisor' => 'required|string|min:5|max:5000',
@@ -136,30 +139,7 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
         try {
             $this->registro = PpsServicioSocial::findOrFail($this->registroId);
-            $payload = $this->payloadParcial();
-
-            $payload['archivo_carta_formalizacion'] = $this->archivo_carta_formalizacion_actual;
-            if ($this->carta_formalizacion_archivo) {
-                $payload['archivo_carta_formalizacion'] = $this->carta_formalizacion_archivo->store('pps-servicio-social/documentos', 'public');
-                $this->carta_formalizacion_aplica = 'Si';
-            } elseif ($this->carta_formalizacion_aplica === 'No') {
-                $payload['archivo_carta_formalizacion'] = null;
-            }
-
-            $payload['archivo_convenio_marco'] = $this->archivo_convenio_marco_actual;
-            if ($this->convenio_marco_archivo) {
-                $payload['archivo_convenio_marco'] = $this->convenio_marco_archivo->store('pps-servicio-social/documentos', 'public');
-                $this->convenio_marco_aplica = 'Si';
-            } elseif ($this->convenio_marco_aplica === 'No') {
-                $payload['archivo_convenio_marco'] = null;
-            }
-
-            $payload['adjunta_carta_formalizacion'] = $this->carta_formalizacion_aplica === 'Si'
-                || filled($payload['archivo_carta_formalizacion']);
-            $payload['adjunta_convenio_marco'] = $this->convenio_marco_aplica === 'Si'
-                || filled($payload['archivo_convenio_marco']);
-
-            $this->registro->update($payload);
+            $this->registro->update($this->payloadParcial() + $this->payloadArchivos($this->registro));
 
             if ($esRevisor) {
                 $empleado = auth()->user()?->empleado;
@@ -196,6 +176,14 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
             ->send();
 
         $this->redirectRoute('pps-servicio-social.show', ['id' => $this->registro->id]);
+    }
+
+    /** El revisor guarda sus cambios (y archivos) de forma explícita, con comentario. */
+    protected function puedeGuardarDocumentosAlMomento(): bool
+    {
+        return parent::puedeGuardarDocumentosAlMomento()
+            && ! $this->esEdicionRevisor($this->registro)
+            && $this->estadoPermiteEdicion($this->registro->refresh());
     }
 
     protected function ensureRegistroBorrador(): PpsServicioSocial
@@ -251,21 +239,52 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->tipo_instrumento = $this->valorParaFormulario($this->optionKeyFromStoredValue($this->instrumentoOpciones, $registro->tipo_instrumento));
         $this->territorio_ejecucion = $registro->territorio_ejecucion ?: 'Nacional';
         $this->modalidad_ejecucion = $this->valorParaFormulario($registro->modalidad_ejecucion);
+        $this->modalidad_ejecucion = $this->modalidadClave();
         $this->region = $registro->region ?? '';
         $this->pais = $registro->pais ?? '';
         $this->departamento_provincia = $registro->departamento_provincia ?? '';
 
-        $this->departamento_id = $this->findIdByName(Departamento::class, $registro->departamento);
-        $this->municipio_id = $this->findIdByName(Municipio::class, $registro->municipio, [
-            'departamento_id' => $this->departamento_id,
-        ]);
-        $this->municipio_texto = $this->territorio_ejecucion === 'Internacional' ? ($registro->municipio ?? '') : '';
+        if ($this->territorio_ejecucion === 'Internacional') {
+            // País del catálogo; departamento y municipio del catálogo si ese país los tiene.
+            $this->pais_id = $this->findIdByName(Pais::class, $registro->pais);
+
+            if ($this->usaCatalogoDepartamentos()) {
+                $this->departamento_id = $this->findIdByName(Departamento::class, $registro->departamento_provincia, [
+                    'pais_id' => $this->pais_id,
+                ]);
+                $this->municipio_id = $this->findIdByName(Municipio::class, $registro->municipio, [
+                    'departamento_id' => $this->departamento_id,
+                ]);
+            } else {
+                $this->municipio_texto = $registro->municipio ?? '';
+            }
+        } else {
+            $this->departamento_id = $this->findIdByName(Departamento::class, $registro->departamento, [
+                'pais_id' => $this->honduras(),
+            ]);
+            $this->municipio_id = $this->findIdByName(Municipio::class, $registro->municipio, [
+                'departamento_id' => $this->departamento_id,
+            ]);
+        }
         $this->fillAldeaCiudad($registro->aldea_ciudad);
         $this->caserio = $registro->caserio ?? '';
         $this->pais_sede_principal = $registro->pais_sede_principal ?? '';
         $this->departamento_provincia_sede_principal = $registro->departamento_provincia_sede_principal ?? '';
         $this->municipio_sede_principal = $registro->municipio_sede_principal ?? '';
         $this->aldea_ciudad_sede_principal = $registro->aldea_ciudad_sede_principal ?? '';
+        $this->pais_sede_id = $this->territorio_ejecucion === 'Internacional'
+            ? $this->findIdByName(Pais::class, $registro->pais_sede_principal)
+            : $this->honduras();
+
+        if ($this->usaCatalogoDepartamentosSede()) {
+            // Los registros anteriores guardaban texto libre: si no coincide con el catálogo, se vuelve a elegir.
+            $this->departamento_sede_id = $this->findIdByName(Departamento::class, $registro->departamento_provincia_sede_principal, [
+                'pais_id' => $this->pais_sede_id,
+            ]);
+            $this->municipio_sede_id = $this->findIdByName(Municipio::class, $registro->municipio_sede_principal, [
+                'departamento_id' => $this->departamento_sede_id,
+            ]);
+        }
         $this->horas_presenciales = $registro->horas_presenciales === null ? '' : (string) $registro->horas_presenciales;
         $this->horas_teletrabajo = $registro->horas_teletrabajo === null ? '' : (string) $registro->horas_teletrabajo;
 
@@ -285,6 +304,21 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->institucion_correo_rrhh = $registro->correo_rrhh ?? '';
         $this->institucion_tipo = $this->optionKeyFromStoredValue($this->tipoInstitucionOpciones, $registro->tipo_institucion);
         $this->institucion_sector = $this->optionKeyFromStoredValue($this->sectorOpciones, $registro->sector_institucion);
+        $this->destinatario_tratamiento = $registro->destinatario_tratamiento ?? '';
+        $this->destinatario_nombre = $registro->destinatario_nombre ?? '';
+        $this->destinatario_cargo = $registro->destinatario_cargo ?? '';
+        $this->solicitud_lugar = $registro->solicitud_lugar ?? '';
+        $this->solicitud_firmante_cargo = $registro->solicitud_firmante_cargo ?? '';
+        if ($this->institucion_nacionalidad === 'Nacional') {
+            $this->institucion_pais = '';
+        }
+
+        if ($registro->institucion) {
+            $this->aplicarInstitucion($registro->institucion);
+        } else {
+            // Registros anteriores al catálogo: sus datos quedan listos para crear la institución.
+            $this->modoInstitucion = filled($this->institucion_nombre) ? 'nueva' : null;
+        }
 
         $this->jefe_directo_nombre = $this->valorParaFormulario($registro->nombre_jefe_directo);
         $this->jefe_directo_celular = $registro->celular_jefe_directo ?? '';
@@ -300,6 +334,12 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->docente_departamento = $registro->departamento_docente ?? '';
         $this->docente_jornada = $registro->jornada_laboral_docente ?? '';
         $this->docente_cubiculo = $registro->ubicacion_cubiculo_docente ?? '';
+        $this->docente_supervisor_id = filled($this->docente_numero_empleado)
+            ? Empleado::docentes()->where('numero_empleado', $this->docente_numero_empleado)->value('id')
+            : null;
+        if ($this->docente_supervisor_id) {
+            $this->marcarCamposDocenteDelSistema();
+        }
 
         $this->archivo_carta_formalizacion_actual = $registro->archivo_carta_formalizacion;
         $this->archivo_convenio_marco_actual = $registro->archivo_convenio_marco;
@@ -331,9 +371,15 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
             return $storedValue;
         }
 
-        $key = array_search($storedValue, $options, true);
+        $normalizar = fn (string $texto) => Str::of($texto)->ascii()->lower()->squish()->value();
 
-        return $key === false ? $storedValue : (string) $key;
+        foreach ($options as $key => $label) {
+            if ($normalizar($label) === $normalizar($storedValue)) {
+                return (string) $key;
+            }
+        }
+
+        return $storedValue;
     }
 
     protected function findIdByName(string $modelClass, ?string $name, array $wheres = []): ?int
@@ -345,9 +391,12 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $query = $modelClass::query()->where('nombre', $name);
 
         foreach ($wheres as $column => $value) {
-            if ($value !== null) {
-                $query->where($column, $value);
+            // Sin el padre (país o departamento) el nombre es ambiguo: hay homónimos en otros países.
+            if ($value === null) {
+                return null;
             }
+
+            $query->where($column, $value);
         }
 
         $id = $query->value('id');

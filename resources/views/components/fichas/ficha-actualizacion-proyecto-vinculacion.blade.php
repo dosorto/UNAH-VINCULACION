@@ -795,7 +795,7 @@
                     
                     <div style="margin-top: 15px;">
                         <p><strong>Nota:</strong></p>
-                        <p>- El documento 1 / documento 2 (cualquiera de los dos) es obligatorio</p>
+                        <p>- El documento 1 / documento 2  es obligatorio</p>
                         <p>- El documento 3 es obligatorio</p>
                     </div>
                 </div> -->

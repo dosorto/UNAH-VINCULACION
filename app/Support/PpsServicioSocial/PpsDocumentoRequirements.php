@@ -35,8 +35,9 @@ final class PpsDocumentoRequirements
                 'nombre_institucion' => 'nombre de la empresa o institución',
                 'modalidad_ejecucion' => 'modalidad',
                 'total_horas' => 'total de horas de PPS',
-                'nombre_jefe_directo' => 'nombre del destinatario de la empresa',
-                'cargo_jefe_directo' => 'cargo del destinatario de la empresa',
+                'destinatario_tratamiento' => 'tratamiento del destinatario de la solicitud',
+                'destinatario_nombre' => 'nombre del destinatario de la solicitud',
+                'destinatario_cargo' => 'cargo del destinatario de la solicitud',
             ],
             self::AUTORIZACION => [
                 'fecha_inicio' => 'fecha de inicio',
@@ -60,12 +61,13 @@ final class PpsDocumentoRequirements
             }
         }
 
-        if ($requireCoordinator && ($tipo === self::SOLICITUD || $tipo === self::AUTORIZACION)) {
+        // La solicitud la firma quien llena el formulario; la autorización, el coordinador del flujo.
+        if ($requireCoordinator && $tipo === self::AUTORIZACION) {
             $coordinador = FormDvus014Data::coordinadorFirma($registro);
 
             if (! $coordinador || self::isBlank($coordinador->empleado?->nombre_completo)) {
                 $missing['coordinador_responsable'] = 'coordinador responsable con nombre disponible';
-            } elseif ($tipo === self::AUTORIZACION && ! FormDvus014Data::firmaDisponible($coordinador->empleado)) {
+            } elseif (! FormDvus014Data::firmaDisponible($coordinador->empleado)) {
                 $missing['coordinador_firma'] = 'firma disponible del coordinador responsable';
             }
         }

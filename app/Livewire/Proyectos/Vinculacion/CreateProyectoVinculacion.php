@@ -37,6 +37,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Mail\EtapaFlujoPendiente;
@@ -125,6 +126,13 @@ class CreateProyectoVinculacion extends Component
     public bool $showContraparteModal = false;
     public ?int $editContraparteIndex = null;
     public $contraparteSeleccionadoId = null;
+    // null: aún no elige; 'existente': datos del catálogo, solo lectura; 'nueva': se crea completa.
+    // Solo lo cambian «Usar seleccionada», «Crear contraparte» y «Editar».
+    #[Locked]
+    public ?string $modoContraparte = null;
+    // Contraparte del catálogo sin RTN: el docente lo escribe y se completa en el catálogo.
+    #[Locked]
+    public bool $contraparteSinRtn = false;
     public array $nuevaContraparte = [
         'rtn' => '', 'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '',
         'cargo_contacto' => '', 'telefono' => '', 'correo' => '',
@@ -172,16 +180,9 @@ class CreateProyectoVinculacion extends Component
     // Step 7 (was 6) – marco lógico
     public string $objetivo_general = '';
     public array $objetivosEspecificos = [];
-    public int $selectedObjetivoIndex = 0;
     // Resultados de mediano/largo plazo: pertenecen al proyecto, no a un objetivo específico.
-    // Se editan en una tabla con modal (agregar/editar/borrar).
+    // Se editan en la misma pantalla, cada uno en la lista de su plazo.
     public array $resultadosProyecto = [];
-    public bool $showResultadoProyectoModal = false;
-    public ?int $editResultadoProyectoIndex = null;
-    public array $resultadoProyectoModal = [
-        'id' => null, 'wire_key' => null, 'nombre_resultado' => '',
-        'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => 'mediano_plazo',
-    ];
 
     // Step 8 (was 7) – presupuesto
     public array $aporte_institucional = [];
@@ -385,7 +386,8 @@ class CreateProyectoVinculacion extends Component
     protected array $tipoParticipacionEstudianteOpciones = [
         'Servicio Social o PPS' => 'PPS / Servicio Social',
         'Practica Asignatura' => 'Práctica de asignatura/posgrado',
-        'Voluntariado' => 'Voluntariado',
+        // Estudiantes voluntarios (ítem 12); el personal y los internacionales van en 13 y 14.
+        'Voluntariado' => 'Voluntariado (estudiantes)',
     ];
 
     protected array $tipoParticipacionEstudiantePermitidos = [
@@ -707,7 +709,6 @@ class CreateProyectoVinculacion extends Component
 
         if ($this->currentStep < 9) {
             $this->currentStep++;
-            $this->selectedObjetivoIndex = 0;
         }
     }
 
@@ -715,7 +716,6 @@ class CreateProyectoVinculacion extends Component
     {
         if ($this->currentStep > 1) {
             $this->currentStep--;
-            $this->selectedObjetivoIndex = 0;
         }
     }
 
@@ -734,7 +734,6 @@ class CreateProyectoVinculacion extends Component
         }
 
         $this->currentStep = $step;
-        $this->selectedObjetivoIndex = 0;
     }
 
     /**
@@ -765,7 +764,6 @@ class CreateProyectoVinculacion extends Component
     private function irAPasoConErrores(int $paso): void
     {
         $this->currentStep = $paso;
-        $this->selectedObjetivoIndex = 0;
         $this->dispatch('validation-failed');
     }
 
@@ -790,9 +788,11 @@ class CreateProyectoVinculacion extends Component
     private function atributosVoluntariadoParticipacion(): array
     {
         $atributos = [];
+        // Ítems 13 y 14 en el FORM-DVUS-001; 15 y 16 en el FORM-DVUS-015.
+        [$itemPersonal, $itemInternacional] = $this->esVoluntariado ? [15, 16] : [13, 14];
         $grupos = [
-            '15. Voluntariado personal de la UNAH' => Proyecto::VOLUNTARIADO_PERSONAL_UNAH,
-            '16. Voluntariado internacional' => Proyecto::VOLUNTARIADO_INTERNACIONAL,
+            "{$itemPersonal}. Voluntariado personal de la UNAH" => Proyecto::VOLUNTARIADO_PERSONAL_UNAH,
+            "{$itemInternacional}. Voluntariado internacional" => Proyecto::VOLUNTARIADO_INTERNACIONAL,
         ];
 
         foreach ($grupos as $item => $columnas) {
@@ -811,9 +811,19 @@ class CreateProyectoVinculacion extends Component
 
         if ($this->esVoluntariado) {
             $rules = array_merge($rules, $this->rulesVoluntariadoPaso($step));
+        } elseif ($step === 2) {
+            // Ítems 13 y 14 del FORM-DVUS-001: opcionales, vacío cuenta como 0.
+            $rules = array_merge($rules, $this->rulesVoluntariadoParticipacion('nullable'));
         }
 
         return $rules;
+    }
+
+    private function rulesVoluntariadoParticipacion(string $presencia): array
+    {
+        return collect(Proyecto::columnasVoluntariadoParticipacion())
+            ->mapWithKeys(fn(string $columna) => ["voluntariado_participacion.{$columna}" => "{$presencia}|integer|min:0"])
+            ->all();
     }
 
     private function rulesVoluntariadoPaso(int $step): array
@@ -823,9 +833,7 @@ class CreateProyectoVinculacion extends Component
                 'tematica_principal' => 'required|string|in:' . implode(',', array_keys($this->tematicaPrincipalOpciones)),
                 'tematica_principal_otro' => 'nullable|required_if:tematica_principal,otros|string|max:180',
             ],
-            2 => collect(Proyecto::columnasVoluntariadoParticipacion())
-                ->mapWithKeys(fn(string $columna) => ["voluntariado_participacion.{$columna}" => 'required|integer|min:0'])
-                ->all(),
+            2 => $this->rulesVoluntariadoParticipacion('required'),
             5 => [
                 'experiencia_conocimientos_teoricos' => 'required|string',
                 'experiencia_habilidades_tecnicas' => 'required|string',
@@ -1548,13 +1556,11 @@ class CreateProyectoVinculacion extends Component
             'showContraparteModal',
             'editContraparteIndex',
             'contraparteSeleccionadoId',
+            'modoContraparte',
             'nuevaContraparte',
             'showActividadModal',
             'editActividadIndex',
             'nuevaActividad',
-            'showResultadoProyectoModal',
-            'editResultadoProyectoIndex',
-            'resultadoProyectoModal',
             'newAnexos',
             'showAnexoModal',
             'nuevoAnexoTipoId',
@@ -1708,15 +1714,17 @@ class CreateProyectoVinculacion extends Component
 
     private function voluntariadoParticipacionParaGuardar(): array
     {
-        if (!$this->esVoluntariado) {
-            return [];
-        }
-
         return collect(Proyecto::columnasVoluntariadoParticipacion())
             ->mapWithKeys(function (string $columna) {
                 $valor = $this->nullableInt($this->voluntariado_participacion[$columna] ?? null);
 
-                return [$columna => $valor === null ? null : max(0, $valor)];
+                // En el 015 vacío queda pendiente (el paso lo exige); en el 001 es opcional y
+                // se guarda como 0, lo que además indica a la ficha que el dato fue capturado.
+                if ($valor === null) {
+                    return [$columna => $this->esVoluntariado ? null : 0];
+                }
+
+                return [$columna => max(0, $valor)];
             })
             ->all();
     }
@@ -3436,16 +3444,26 @@ class CreateProyectoVinculacion extends Component
 
     // ─── Contraparte Modal (Step 3) ───────────────────────────────────────────
 
+    private const CAMPOS_CATALOGO_CONTRAPARTE = [
+        'entidad_contraparte_id', 'rtn', 'nombre', 'tipo_entidad',
+        'nombre_contacto', 'cargo_contacto', 'telefono', 'correo',
+    ];
+
     public function openContraparteModal(?int $index = null): void
     {
         $this->resetErrorBag();
         $this->contraparteSeleccionadoId = null;
         if ($index !== null && isset($this->entidad_contraparte[$index])) {
+            // Al editar solo cambian compromisos e instrumentos: los datos de la entidad son del catálogo.
             $this->nuevaContraparte = $this->entidad_contraparte[$index];
             $this->editContraparteIndex = $index;
+            $this->modoContraparte = 'existente';
+            $this->contraparteSinRtn = blank($this->nuevaContraparte['rtn'] ?? null);
         } else {
-            $this->nuevaContraparte = ['rtn' => '', 'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []];
+            $this->nuevaContraparte = $this->contraparteVacia();
             $this->editContraparteIndex = null;
+            $this->modoContraparte = null;
+            $this->contraparteSinRtn = false;
         }
         $this->showContraparteModal = true;
     }
@@ -3455,6 +3473,49 @@ class CreateProyectoVinculacion extends Component
         $this->showContraparteModal = false;
         $this->editContraparteIndex = null;
         $this->contraparteSeleccionadoId = null;
+        $this->modoContraparte = null;
+        $this->contraparteSinRtn = false;
+    }
+
+    private function contraparteVacia(): array
+    {
+        return ['rtn' => '', 'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []];
+    }
+
+    /** Instrumentos ya capturados en el modal, o una fila vacía para empezar. */
+    private function instrumentosDelModal(): array
+    {
+        $instrumentos = $this->nuevaContraparte['instrumento_formalizacion'] ?? [];
+
+        return $instrumentos ?: [['id' => null, 'tipo_documento' => '', 'documento_url' => null, 'nombre_archivo' => null, 'documento_file' => null]];
+    }
+
+    public function crearContraparteNueva(): void
+    {
+        $this->resetErrorBag();
+        $this->contraparteSeleccionadoId = null;
+
+        // Compromisos e instrumentos son de la relación con el proyecto: se conservan si ya se escribieron.
+        $this->nuevaContraparte = array_replace($this->contraparteVacia(), [
+            'descripcion_acuerdos' => $this->nuevaContraparte['descripcion_acuerdos'] ?? '',
+            'instrumento_formalizacion' => $this->instrumentosDelModal(),
+        ]);
+        $this->modoContraparte = 'nueva';
+        $this->contraparteSinRtn = false;
+    }
+
+    private function datosContraparteDesdeCatalogo(EntidadContraparte $catalogo): array
+    {
+        return [
+            'entidad_contraparte_id' => $catalogo->id,
+            'rtn' => $catalogo->rtn ?? '',
+            'nombre' => $catalogo->nombre ?? '',
+            'tipo_entidad' => $catalogo->tipo_entidad ?? '',
+            'nombre_contacto' => $catalogo->nombre_contacto ?? '',
+            'cargo_contacto' => $catalogo->cargo_contacto ?? '',
+            'telefono' => $catalogo->telefono ?? '',
+            'correo' => $catalogo->correo ?? '',
+        ];
     }
 
     public function agregarContraparteExistente(): void
@@ -3473,32 +3534,19 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
-        $this->contraparteSeleccionadoId = null;
-
         if ($this->contraparteYaAgregada((int)$catalogo->id)) {
             Notification::make()->title('Contraparte ya agregada')->info()->send();
             return;
         }
 
         // Una contraparte existente también requiere su instrumento de formalización para
-        // este proyecto: se cargan sus datos en el formulario y se agrega con «Guardar».
-        $instrumentos = $this->nuevaContraparte['instrumento_formalizacion'] ?? [];
-        if (empty($instrumentos)) {
-            $instrumentos[] = ['id' => null, 'tipo_documento' => '', 'documento_url' => null, 'nombre_archivo' => null, 'documento_file' => null];
-        }
-
-        $this->nuevaContraparte = [
-            'entidad_contraparte_id' => $catalogo->id,
-            'rtn' => $catalogo->rtn ?? '',
-            'nombre' => $catalogo->nombre ?? '',
-            'tipo_entidad' => $catalogo->tipo_entidad ?? '',
-            'nombre_contacto' => $catalogo->nombre_contacto ?? '',
-            'cargo_contacto' => $catalogo->cargo_contacto ?? '',
-            'telefono' => $catalogo->telefono ?? '',
-            'correo' => $catalogo->correo ?? '',
+        // este proyecto: se cargan sus datos (solo lectura) y se agrega con «Guardar».
+        $this->nuevaContraparte = $this->datosContraparteDesdeCatalogo($catalogo) + [
             'descripcion_acuerdos' => $this->nuevaContraparte['descripcion_acuerdos'] ?? '',
-            'instrumento_formalizacion' => $instrumentos,
+            'instrumento_formalizacion' => $this->instrumentosDelModal(),
         ];
+        $this->modoContraparte = 'existente';
+        $this->contraparteSinRtn = blank($catalogo->rtn);
     }
 
     private function contraparteYaAgregada(int $catalogoId): bool
@@ -3512,90 +3560,43 @@ class CreateProyectoVinculacion extends Component
     public function saveContraparte(): void
     {
         $this->resetErrorBag();
+
+        if (!in_array($this->modoContraparte, ['existente', 'nueva'], true)) {
+            $this->addError('contraparteSeleccionadoId', 'Seleccione una contraparte existente o presione «Crear contraparte».');
+            return;
+        }
+
         $this->normalizarInstrumentosContraparteModal();
 
-        $this->validate([
-            'nuevaContraparte.rtn' => $this->reglasRtn(
-                null,
-                $this->nuevaContraparte['tipo_entidad'] ?? null
-            ),
-            'nuevaContraparte.nombre' => 'required|string|max:255',
-            'nuevaContraparte.tipo_entidad' => 'required|string',
-            'nuevaContraparte.nombre_contacto' => 'nullable|string|max:255',
-            'nuevaContraparte.cargo_contacto' => 'nullable|string|max:255',
-            'nuevaContraparte.telefono' => 'nullable|string|max:255',
-            'nuevaContraparte.correo' => 'nullable|email|max:255',
-            'nuevaContraparte.descripcion_acuerdos' => $this->esVoluntariado ? 'required|string' : 'nullable|string',
+        $this->validate(array_merge([
+            'nuevaContraparte.descripcion_acuerdos' => 'required|string',
             'nuevaContraparte.instrumento_formalizacion.*.tipo_documento' => 'nullable|in:' . implode(',', $this->instrumentoTipos),
             'nuevaContraparte.instrumento_formalizacion.*.documento_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
-        ]);
+        ], match (true) {
+            $this->modoContraparte === 'nueva' => $this->rulesContraparteNueva(),
+            $this->contraparteSinRtn => ['nuevaContraparte.rtn' => EntidadContraparte::reglasRtn(!$this->esVoluntariado)],
+            default => [],
+        }));
 
         if (!$this->validarInstrumentosContraparteModal()) {
             return;
         }
 
-        $data = [
-            'rtn' => !empty($this->nuevaContraparte['rtn']) ? trim($this->nuevaContraparte['rtn']) : null,
-            'nombre' => trim($this->nuevaContraparte['nombre']),
-            'tipo_entidad' => $this->nuevaContraparte['tipo_entidad'],
-            'nombre_contacto' => $this->nuevaContraparte['nombre_contacto'] ?? '',
-            'cargo_contacto' => $this->nuevaContraparte['cargo_contacto'] ?? '',
-            'telefono' => $this->nuevaContraparte['telefono'] ?? '',
-            'correo' => $this->nuevaContraparte['correo'] ?? '',
-            'descripcion_acuerdos' => $this->nuevaContraparte['descripcion_acuerdos'] ?? '',
-            'instrumento_formalizacion' => $this->nuevaContraparte['instrumento_formalizacion'] ?? [],
-        ];
+        $item = $this->modoContraparte === 'nueva'
+            ? $this->crearContraparteEnCatalogo()
+            : $this->datosContraparteExistente();
 
-        // Reúso: la contraparte elegida del catálogo (si no se cambió el nombre) o
-        // buscar por rtn (si se ingresa), nombre+correo
-        $catalogo = null;
-        if (!empty($this->nuevaContraparte['entidad_contraparte_id'])) {
-            $catalogo = EntidadContraparte::where('id', $this->nuevaContraparte['entidad_contraparte_id'])
-                ->where('nombre', $data['nombre'])
-                ->first();
-        }
-
-        if (!$catalogo) {
-            $query = EntidadContraparte::where('nombre', $data['nombre']);
-            if (!empty($data['rtn'])) {
-                $query->orWhere('rtn', $data['rtn']);
-            }
-            if (!empty($data['correo'])) {
-                $query->orWhere('correo', $data['correo']);
-            }
-            $catalogo = $query->first();
-        }
-
-        if ($catalogo && $this->contraparteYaAgregada((int)$catalogo->id)) {
-            $this->addError('nuevaContraparte.nombre', 'Esta entidad contraparte ya fue agregada al proyecto.');
+        if ($item === null) {
             return;
         }
 
-        if (!$catalogo) {
-            $catalogo = EntidadContraparte::create([
-                'rtn' => $data['rtn'],
-                'nombre' => $data['nombre'],
-                'tipo_entidad' => $data['tipo_entidad'],
-                'nombre_contacto' => $data['nombre_contacto'],
-                'cargo_contacto' => $data['cargo_contacto'],
-                'telefono' => $data['telefono'],
-                'correo' => $data['correo'],
-            ]);
+        if ($this->modoContraparte === 'existente' && $this->contraparteSinRtn && !$this->completarRtnEnCatalogo($item)) {
+            return;
         }
 
-        // Tipo y datos de contacto son del proyecto (se guardan en la tabla pivote):
-        // se respeta lo ingresado en el formulario y el catálogo solo completa vacíos.
-        $item = [
-            'entidad_contraparte_id' => $catalogo->id,
-            'rtn' => $data['rtn'] ?? $catalogo->rtn,
-            'nombre' => $catalogo->nombre,
-            'tipo_entidad' => $data['tipo_entidad'] ?: $catalogo->tipo_entidad,
-            'nombre_contacto' => $data['nombre_contacto'] ?: $catalogo->nombre_contacto,
-            'cargo_contacto' => $data['cargo_contacto'] ?: $catalogo->cargo_contacto,
-            'telefono' => $data['telefono'] ?: $catalogo->telefono,
-            'correo' => $data['correo'] ?: $catalogo->correo,
-            'descripcion_acuerdos' => $data['descripcion_acuerdos'],
-            'instrumento_formalizacion' => $data['instrumento_formalizacion'],
+        $item += [
+            'descripcion_acuerdos' => trim((string) $this->nuevaContraparte['descripcion_acuerdos']),
+            'instrumento_formalizacion' => $this->nuevaContraparte['instrumento_formalizacion'] ?? [],
         ];
 
         if ($this->editContraparteIndex !== null) {
@@ -3605,8 +3606,105 @@ class CreateProyectoVinculacion extends Component
         }
 
         $this->autoGuardarBorrador();
-        $this->showContraparteModal = false;
-        $this->editContraparteIndex = null;
+        $this->closeContraparteModal();
+    }
+
+    /** Al crear, todos los datos de la entidad son obligatorios (el FORM-DVUS-015 no incluye RTN). */
+    private function rulesContraparteNueva(): array
+    {
+        return [
+            'nuevaContraparte.rtn' => EntidadContraparte::reglasRtn(!$this->esVoluntariado),
+            'nuevaContraparte.nombre' => 'required|string|max:255',
+            'nuevaContraparte.tipo_entidad' => 'required|string',
+            'nuevaContraparte.nombre_contacto' => 'required|string|max:255',
+            'nuevaContraparte.cargo_contacto' => 'required|string|max:255',
+            'nuevaContraparte.telefono' => 'required|string|max:255',
+            'nuevaContraparte.correo' => 'required|email|max:255',
+        ];
+    }
+
+    /**
+     * Datos de una contraparte existente: se toman del catálogo (o del proyecto al editar),
+     * nunca del formulario, porque desde el proyecto no se editan.
+     */
+    private function datosContraparteExistente(): ?array
+    {
+        if ($this->editContraparteIndex !== null && isset($this->entidad_contraparte[$this->editContraparteIndex])) {
+            return array_intersect_key(
+                $this->entidad_contraparte[$this->editContraparteIndex],
+                array_flip(self::CAMPOS_CATALOGO_CONTRAPARTE)
+            );
+        }
+
+        $catalogo = EntidadContraparte::find($this->nuevaContraparte['entidad_contraparte_id'] ?? null);
+
+        if (!$catalogo) {
+            $this->addError('contraparteSeleccionadoId', 'Seleccione una contraparte existente y presione «Usar seleccionada».');
+            return null;
+        }
+
+        if ($this->contraparteYaAgregada((int) $catalogo->id)) {
+            $this->addError('contraparteSeleccionadoId', 'Esta entidad contraparte ya fue agregada al proyecto.');
+            return null;
+        }
+
+        return $this->datosContraparteDesdeCatalogo($catalogo);
+    }
+
+    /** Guarda en el catálogo el RTN que escribió el docente para una contraparte que no lo tenía. */
+    private function completarRtnEnCatalogo(array &$item): bool
+    {
+        $rtn = trim((string) ($this->nuevaContraparte['rtn'] ?? ''));
+
+        if ($rtn === '') {
+            return true;
+        }
+
+        $otra = EntidadContraparte::where('rtn', $rtn)->whereKeyNot($item['entidad_contraparte_id'])->first();
+
+        if ($otra) {
+            $this->addError('nuevaContraparte.rtn', "El RTN {$rtn} ya pertenece a la contraparte «{$otra->nombre}».");
+            return false;
+        }
+
+        $catalogo = EntidadContraparte::find($item['entidad_contraparte_id']);
+
+        if ($catalogo && blank($catalogo->rtn)) {
+            $catalogo->update(['rtn' => $rtn]);
+        }
+
+        $item['rtn'] = $catalogo?->rtn ?: $rtn;
+
+        return true;
+    }
+
+    /** Crea la contraparte en el catálogo; si ya existe (mismo nombre o RTN) se debe seleccionar. */
+    private function crearContraparteEnCatalogo(): ?array
+    {
+        $texto = fn(string $campo) => trim((string) ($this->nuevaContraparte[$campo] ?? ''));
+        $datos = [
+            'rtn' => $texto('rtn') !== '' ? $texto('rtn') : null,
+            'nombre' => $texto('nombre'),
+            'tipo_entidad' => $texto('tipo_entidad'),
+            'nombre_contacto' => $texto('nombre_contacto'),
+            'cargo_contacto' => $texto('cargo_contacto'),
+            'telefono' => $texto('telefono'),
+            'correo' => $texto('correo'),
+        ];
+
+        $existente = EntidadContraparte::where('nombre', $datos['nombre'])
+            ->when($datos['rtn'], fn($query) => $query->orWhere('rtn', $datos['rtn']))
+            ->first();
+
+        if ($existente) {
+            $campo = $datos['rtn'] && $existente->rtn === $datos['rtn'] ? 'nuevaContraparte.rtn' : 'nuevaContraparte.nombre';
+            $this->addError($campo, "Ya existe la contraparte «{$existente->nombre}». Búsquela en «Seleccionar contraparte existente» y presione «Usar seleccionada».");
+            return null;
+        }
+
+        $catalogo = EntidadContraparte::create($datos);
+
+        return $this->datosContraparteDesdeCatalogo($catalogo);
     }
 
     public function removeContraparte(int $i): void
@@ -3882,18 +3980,6 @@ class CreateProyectoVinculacion extends Component
         $this->autoGuardarBorrador();
     }
 
-    // ─── Marco Lógico (Step 7) ────────────────────────────────────────────────
-
-    public function selectObjetivo(int $index): void
-    {
-        if (!array_key_exists($index, $this->objetivosEspecificos)) {
-            $this->normalizarObjetivoSeleccionado();
-            return;
-        }
-
-        $this->selectedObjetivoIndex = $index;
-    }
-
     // ─── Empleado Helpers (Step 2) ────────────────────────────────────────────
 
     public function addEmpleado(): void
@@ -3912,18 +3998,17 @@ class CreateProyectoVinculacion extends Component
     public function addObjetivo(): void
     {
         $this->objetivosEspecificos[] = $this->nuevoObjetivoEspecifico();
-        $this->selectedObjetivoIndex = count($this->objetivosEspecificos) - 1;
+        // La vista lleva el cursor a la descripción del objetivo recién agregado.
+        $this->dispatch('marco-logico-enfocar', objetivo: count($this->objetivosEspecificos) - 1);
     }
 
     public function removeObjetivo(int $i): void
     {
         if (!array_key_exists($i, $this->objetivosEspecificos)) {
-            $this->normalizarObjetivoSeleccionado();
             return;
         }
 
         $objetivoId = $this->nullableInt($this->objetivosEspecificos[$i]['id'] ?? null);
-        $selectedBeforeRemoval = $this->selectedObjetivoIndex;
 
         if ($objetivoId && $this->recordId) {
             DB::transaction(function () use ($objetivoId) {
@@ -3943,20 +4028,12 @@ class CreateProyectoVinculacion extends Component
             $this->objetivosEspecificos[] = $this->nuevoObjetivoEspecifico();
         }
 
-        if ($selectedBeforeRemoval === $i) {
-            $this->selectedObjetivoIndex = min($i, count($this->objetivosEspecificos) - 1);
-        } elseif ($selectedBeforeRemoval > $i) {
-            $this->selectedObjetivoIndex = $selectedBeforeRemoval - 1;
-        }
-
-        $this->normalizarObjetivoSeleccionado();
         $this->autoGuardarBorrador();
     }
 
     public function addResultado(int $oi): void
     {
         if (!array_key_exists($oi, $this->objetivosEspecificos)) {
-            $this->normalizarObjetivoSeleccionado();
             return;
         }
 
@@ -3967,7 +4044,6 @@ class CreateProyectoVinculacion extends Component
     {
         if (!array_key_exists($oi, $this->objetivosEspecificos)
             || !array_key_exists($ri, $this->objetivosEspecificos[$oi]['resultados'] ?? [])) {
-            $this->normalizarObjetivoSeleccionado();
             return;
         }
 
@@ -3989,59 +4065,16 @@ class CreateProyectoVinculacion extends Component
         $this->autoGuardarBorrador();
     }
 
-    public function openResultadoProyectoModal(?int $index = null): void
+    /** Agrega una fila vacía a la lista de mediano o largo plazo; se completa en la misma pantalla. */
+    public function addResultadoProyecto(string $plazo): void
     {
-        $this->resetErrorBag();
+        $plazo = $this->normalizePlazo($plazo);
 
-        if ($index !== null && isset($this->resultadosProyecto[$index])) {
-            $this->resultadoProyectoModal = array_merge($this->nuevoResultadoProyecto(), $this->resultadosProyecto[$index]);
-            $this->editResultadoProyectoIndex = $index;
-        } else {
-            $this->resultadoProyectoModal = $this->nuevoResultadoProyecto();
-            $this->editResultadoProyectoIndex = null;
+        if (!in_array($plazo, $this->plazoOpcionesProyecto, true)) {
+            return;
         }
 
-        $this->showResultadoProyectoModal = true;
-    }
-
-    public function closeResultadoProyectoModal(): void
-    {
-        $this->showResultadoProyectoModal = false;
-        $this->editResultadoProyectoIndex = null;
-        $this->resultadoProyectoModal = $this->nuevoResultadoProyecto();
-        $this->resetErrorBag();
-    }
-
-    public function saveResultadoProyecto(): void
-    {
-        foreach (['nombre_resultado', 'nombre_indicador', 'nombre_medio_verificacion'] as $campo) {
-            $this->resultadoProyectoModal[$campo] = trim((string) ($this->resultadoProyectoModal[$campo] ?? ''));
-        }
-        $this->resultadoProyectoModal['plazo'] = $this->normalizePlazo($this->resultadoProyectoModal['plazo'] ?? '') ?: 'mediano_plazo';
-
-        $this->validate([
-            'resultadoProyectoModal.nombre_resultado' => 'required|string',
-            'resultadoProyectoModal.nombre_indicador' => 'required|string',
-            'resultadoProyectoModal.nombre_medio_verificacion' => 'required|string',
-            'resultadoProyectoModal.plazo' => 'required|in:' . implode(',', $this->plazoOpcionesProyecto),
-        ], [], [
-            'resultadoProyectoModal.nombre_resultado' => 'nombre del resultado',
-            'resultadoProyectoModal.nombre_indicador' => 'indicador',
-            'resultadoProyectoModal.nombre_medio_verificacion' => 'medio de verificación',
-            'resultadoProyectoModal.plazo' => 'plazo',
-        ]);
-
-        $fila = $this->resultadoProyectoModal;
-        $fila['wire_key'] = $fila['wire_key'] ?: (string) Str::uuid();
-
-        if ($this->editResultadoProyectoIndex !== null && isset($this->resultadosProyecto[$this->editResultadoProyectoIndex])) {
-            $this->resultadosProyecto[$this->editResultadoProyectoIndex] = $fila;
-        } else {
-            $this->resultadosProyecto[] = $fila;
-        }
-
-        $this->autoGuardarBorrador();
-        $this->closeResultadoProyectoModal();
+        $this->resultadosProyecto[] = ['plazo' => $plazo] + $this->nuevoResultadoProyecto();
     }
 
     public function removeResultadoProyecto(int $ri): void
@@ -4093,19 +4126,6 @@ class CreateProyectoVinculacion extends Component
             'nombre_medio_verificacion' => '',
             'plazo' => 'corto_plazo',
         ];
-    }
-
-    private function normalizarObjetivoSeleccionado(): void
-    {
-        if (empty($this->objetivosEspecificos)) {
-            $this->selectedObjetivoIndex = 0;
-            return;
-        }
-
-        $this->selectedObjetivoIndex = max(0, min(
-            $this->selectedObjetivoIndex,
-            count($this->objetivosEspecificos) - 1,
-        ));
     }
 
     public function updateAporteTotal(int $i): void
@@ -4251,7 +4271,7 @@ class CreateProyectoVinculacion extends Component
 
         if (! in_array(TipoAnexo::CODIGO_CARTA_SOLICITUD, $this->codigosTiposAnexoAdjuntos, true)
             && ! in_array(TipoAnexo::CODIGO_CONVENIO_CARTA, $this->codigosTiposAnexoAdjuntos, true)) {
-            $mensajes[] = 'Adjunte el documento 1 o el documento 2 (cualquiera de los dos).';
+            $mensajes[] = 'Adjunte el documento 1 y/o el documento 2.';
         }
 
         if (! in_array(TipoAnexo::CODIGO_OFICIO_REMISION, $this->codigosTiposAnexoAdjuntos, true)) {
@@ -5041,7 +5061,12 @@ class CreateProyectoVinculacion extends Component
             'empleadosModal' => $empleadosModal,
             'responsablesOptions' => $this->responsableOptions($record),
             'internacionales' => IntegranteInternacional::orderBy('nombre_completo')->get()->mapWithKeys(fn($i) => [$i->id => "{$i->nombre_completo} ({$i->pais})"]),
-            'contrapartesExistentes' => EntidadContraparte::orderBy('nombre')->get()->mapWithKeys(fn($c) => [$c->id => "{$c->nombre} ({$c->tipo_entidad})"]),
+            // Catálogo para el buscador del modal de contraparte (paso 3).
+            'contrapartesExistentes' => $this->showContraparteModal && $this->editContraparteIndex === null
+                ? EntidadContraparte::orderBy('nombre')->get(['id', 'nombre', 'tipo_entidad'])
+                    ->map(fn($c) => ['id' => (string) $c->id, 'nombre' => (string) $c->nombre, 'tipo' => (string) $c->tipo_entidad])
+                    ->values()
+                : collect(),
             'paises' => Pais::orderBy('nombre')->pluck('nombre', 'id'),
             'nivelesAcademicos' => NivelAcademico::where('activo', true)->orderBy('orden')->orderBy('nombre')->pluck('nombre', 'id'),
             'tiposParticipacionEstudiante' => $this->esVoluntariado
@@ -5049,12 +5074,13 @@ class CreateProyectoVinculacion extends Component
                 ? array_replace($this->tipoParticipacionEstudianteOpciones, [
                     'Servicio Social o PPS' => 'Servicio social o PPS',
                     'Practica Asignatura' => 'Práctica de asignatura / posgrado',
+                    'Voluntariado' => 'Voluntariado',
                 ])
                 : $this->tipoParticipacionEstudianteOpciones,
             'asignaturasOpciones' => $this->asignaturasDisponibles,
             'carrerasSeleccionadas' => $this->carrerasSeleccionadasOptions(),
             'periodosAcademicos' => $this->periodosAcademicosDisponibles,
-            'departamentosGeo' => \App\Models\Demografia\Departamento::orderBy('nombre')->pluck('nombre', 'id'),
+            'departamentosGeo' => \App\Models\Demografia\Departamento::deHonduras()->orderBy('nombre')->pluck('nombre', 'id'),
             'municipiosGeo' => empty($this->departamento_geo)
                 ? collect()
                 : Municipio::whereIn('departamento_id', $this->ids($this->departamento_geo))->orderBy('nombre')->pluck('nombre', 'id'),

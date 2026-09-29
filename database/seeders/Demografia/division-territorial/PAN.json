@@ -1,0 +1,117 @@
+{
+ "pais": "PAN",
+ "fuente": "INEC Panamá, vía Anexo:Distritos de Panamá - provincias, comarcas y distritos",
+ "departamentos": [
+  {"codigo": 1, "nombre": "Bocas del Toro", "municipios": [
+   {"codigo": null, "nombre": "Almirante"},
+   {"codigo": null, "nombre": "Bocas del Toro"},
+   {"codigo": null, "nombre": "Changuinola"},
+   {"codigo": null, "nombre": "Chiriquí Grande"}
+  ]},
+  {"codigo": 2, "nombre": "Coclé", "municipios": [
+   {"codigo": null, "nombre": "Aguadulce"},
+   {"codigo": null, "nombre": "Antón"},
+   {"codigo": null, "nombre": "La Pintada"},
+   {"codigo": null, "nombre": "Natá"},
+   {"codigo": null, "nombre": "Olá"},
+   {"codigo": null, "nombre": "Penonomé"}
+  ]},
+  {"codigo": 3, "nombre": "Colón", "municipios": [
+   {"codigo": null, "nombre": "Chagres"},
+   {"codigo": null, "nombre": "Colón"},
+   {"codigo": null, "nombre": "Donoso"},
+   {"codigo": null, "nombre": "Omar Torrijos Herrera"},
+   {"codigo": null, "nombre": "Portobelo"},
+   {"codigo": null, "nombre": "Santa Isabel"}
+  ]},
+  {"codigo": 4, "nombre": "Chiriquí", "municipios": [
+   {"codigo": null, "nombre": "Alanje"},
+   {"codigo": null, "nombre": "Barú"},
+   {"codigo": null, "nombre": "Boquerón"},
+   {"codigo": null, "nombre": "Boquete"},
+   {"codigo": null, "nombre": "Bugaba"},
+   {"codigo": null, "nombre": "David"},
+   {"codigo": null, "nombre": "Dolega"},
+   {"codigo": null, "nombre": "Gualaca"},
+   {"codigo": null, "nombre": "Remedios"},
+   {"codigo": null, "nombre": "Renacimiento"},
+   {"codigo": null, "nombre": "San Félix"},
+   {"codigo": null, "nombre": "San Lorenzo"},
+   {"codigo": null, "nombre": "Tierras Altas"},
+   {"codigo": null, "nombre": "Tolé"}
+  ]},
+  {"codigo": 5, "nombre": "Darién", "municipios": [
+   {"codigo": null, "nombre": "Chepigana"},
+   {"codigo": null, "nombre": "Pinogana"},
+   {"codigo": null, "nombre": "Santa Fe"}
+  ]},
+  {"codigo": 6, "nombre": "Herrera", "municipios": [
+   {"codigo": null, "nombre": "Chitré"},
+   {"codigo": null, "nombre": "Las Minas"},
+   {"codigo": null, "nombre": "Los Pozos"},
+   {"codigo": null, "nombre": "Ocú"},
+   {"codigo": null, "nombre": "Parita"},
+   {"codigo": null, "nombre": "Pesé"},
+   {"codigo": null, "nombre": "Santa María"}
+  ]},
+  {"codigo": 7, "nombre": "Los Santos", "municipios": [
+   {"codigo": null, "nombre": "Guararé"},
+   {"codigo": null, "nombre": "Las Tablas"},
+   {"codigo": null, "nombre": "Los Santos"},
+   {"codigo": null, "nombre": "Macaracas"},
+   {"codigo": null, "nombre": "Pedasí"},
+   {"codigo": null, "nombre": "Pocrí"},
+   {"codigo": null, "nombre": "Tonosí"}
+  ]},
+  {"codigo": 8, "nombre": "Panamá", "municipios": [
+   {"codigo": null, "nombre": "Balboa"},
+   {"codigo": null, "nombre": "Chepo"},
+   {"codigo": null, "nombre": "Chimán"},
+   {"codigo": null, "nombre": "Panamá"},
+   {"codigo": null, "nombre": "San Miguelito"},
+   {"codigo": null, "nombre": "Taboga"}
+  ]},
+  {"codigo": 9, "nombre": "Veraguas", "municipios": [
+   {"codigo": null, "nombre": "Atalaya"},
+   {"codigo": null, "nombre": "Calobre"},
+   {"codigo": null, "nombre": "Cañazas"},
+   {"codigo": null, "nombre": "La Mesa"},
+   {"codigo": null, "nombre": "Las Palmas"},
+   {"codigo": null, "nombre": "Mariato"},
+   {"codigo": null, "nombre": "Montijo"},
+   {"codigo": null, "nombre": "Río de Jesús"},
+   {"codigo": null, "nombre": "San Francisco"},
+   {"codigo": null, "nombre": "Santa Fe"},
+   {"codigo": null, "nombre": "Santiago"},
+   {"codigo": null, "nombre": "Soná"}
+  ]},
+  {"codigo": 10, "nombre": "Comarca Guna Yala", "municipios": [
+   {"codigo": null, "nombre": "Guna Yala"}
+  ]},
+  {"codigo": 11, "nombre": "Comarca Emberá-Wounaan", "municipios": [
+   {"codigo": null, "nombre": "Cémaco"},
+   {"codigo": null, "nombre": "Sambú"}
+  ]},
+  {"codigo": 12, "nombre": "Comarca Ngäbe-Buglé", "municipios": [
+   {"codigo": null, "nombre": "Besikó"},
+   {"codigo": null, "nombre": "Jirondai"},
+   {"codigo": null, "nombre": "Kankintú"},
+   {"codigo": null, "nombre": "Kusapín"},
+   {"codigo": null, "nombre": "Mironó"},
+   {"codigo": null, "nombre": "Müna"},
+   {"codigo": null, "nombre": "Nole Duima"},
+   {"codigo": null, "nombre": "Santa Catalina o Calovébora"},
+   {"codigo": null, "nombre": "Ñürüm"}
+  ]},
+  {"codigo": 13, "nombre": "Panamá Oeste", "municipios": [
+   {"codigo": null, "nombre": "Arraiján"},
+   {"codigo": null, "nombre": "Capira"},
+   {"codigo": null, "nombre": "Chame"},
+   {"codigo": null, "nombre": "La Chorrera"},
+   {"codigo": null, "nombre": "San Carlos"}
+  ]},
+  {"codigo": 14, "nombre": "Comarca Naso Tjër Di", "municipios": [
+   {"codigo": null, "nombre": "Naso Tjër Di"}
+  ]}
+ ]
+}

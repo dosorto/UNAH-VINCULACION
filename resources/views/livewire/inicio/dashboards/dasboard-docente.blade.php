@@ -76,7 +76,7 @@
                                 Esperan tu revisión
                             </p>
                             <x-dashboard.lista-pendientes :items="$pendientesFirma"
-                                :verTodosHref="auth()->user()?->can('docente.proyectos') ? route('SolicitudProyectosDocente') : null"
+                                :verTodosHref="auth()->user()?->can('docente.trazabilidad') ? route('SolicitudProyectosDocente') : null"
                                 verTodosTexto="Ver toda la bandeja" />
                         </div>
                     @endif

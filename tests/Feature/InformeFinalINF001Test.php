@@ -395,6 +395,40 @@ class InformeFinalINF001Test extends TestCase
         $this->assertDatabaseHas('informe_final_actividades',['informe_final_proyecto_id'=>$component->get('informe')->id,'actividad_planificada'=>'Actividad emergente autoguardada']);
     }
 
+    public function test_sitio_de_ejecucion_ofrece_los_departamentos_del_pais_elegido_y_depura_al_quitarlo(): void
+    {
+        [$user,$project]=$this->scenario();
+        $honduras=\App\Models\Demografia\Pais::firstOrCreate(['codigo_iso'=>'HND'],['nombre'=>'Honduras','codigo_area'=>504,'codigo_iso_numerico'=>340,'codigo_iso_alpha_2'=>'HN','gentilicio'=>'Hondureño/a']);
+        $otroPais=\App\Models\Demografia\Pais::create(['codigo_iso'=>'ZZT','nombre'=>'País Territorio de Prueba','codigo_area'=>999,'codigo_iso_numerico'=>999,'codigo_iso_alpha_2'=>'ZZ','gentilicio'=>'De prueba']);
+        $departamentoHn=\App\Models\Demografia\Departamento::create(['pais_id'=>$honduras->id,'nombre'=>'Departamento Hondureño de Prueba','codigo_departamento'=>9951]);
+        $municipioHn=\App\Models\Demografia\Municipio::create(['departamento_id'=>$departamentoHn->id,'nombre'=>'Municipio Hondureño de Prueba']);
+        $departamentoOtro=\App\Models\Demografia\Departamento::create(['pais_id'=>$otroPais->id,'nombre'=>'Provincia de Prueba','codigo_departamento'=>9952]);
+        $municipioOtro=\App\Models\Demografia\Municipio::create(['departamento_id'=>$departamentoOtro->id,'nombre'=>'Cantón de Prueba']);
+        $opciones=fn ($component)=>collect($component->instance()->departamentosTerritorio)->pluck('label','id');
+
+        $component=$this->livewireComponent($user,$project)->set('paisesTerritorioSel',[]);
+        $this->assertTrue($opciones($component)->has((string) $departamentoHn->id));
+        $this->assertFalse($opciones($component)->has((string) $departamentoOtro->id));
+
+        // Con varios países, cada departamento indica el suyo.
+        $component->set('paisesTerritorioSel',['Honduras','País Territorio de Prueba']);
+        $this->assertSame('Departamento Hondureño de Prueba (Honduras)',$opciones($component)->get((string) $departamentoHn->id));
+        $this->assertSame('Provincia de Prueba (País Territorio de Prueba)',$opciones($component)->get((string) $departamentoOtro->id));
+
+        $component->set('departamentosTerritorioSel',[(string) $departamentoHn->id,(string) $departamentoOtro->id])
+            ->set('municipiosTerritorioSel',[(string) $municipioHn->id,(string) $municipioOtro->id]);
+
+        // Al quitar Honduras se descartan su departamento y su municipio, también en lo guardado.
+        $component->set('paisesTerritorioSel',['País Territorio de Prueba'])
+            ->assertSet('departamentosTerritorioSel',[(string) $departamentoOtro->id])
+            ->assertSet('municipiosTerritorioSel',[(string) $municipioOtro->id]);
+        $this->assertSame(['Provincia de Prueba'],$opciones($component)->values()->all());
+        $informeId=$component->get('informe')->id;
+        $this->assertDatabaseHas('inf_final_departamento',['informe_final_proyecto_id'=>$informeId,'departamento_id'=>$departamentoOtro->id]);
+        $this->assertDatabaseMissing('inf_final_departamento',['informe_final_proyecto_id'=>$informeId,'departamento_id'=>$departamentoHn->id]);
+        $this->assertDatabaseMissing('inf_final_municipio',['informe_final_proyecto_id'=>$informeId,'municipio_id'=>$municipioHn->id]);
+    }
+
     public function test_actividad_emergente_admite_tipos_distintos_evitar_duplicados_y_conserva_ediciones(): void
     {
         [$user,$project]=$this->scenario();
@@ -1585,6 +1619,59 @@ class InformeFinalINF001Test extends TestCase
         $this->assertSame(1,$project->documentos()->where('tipo_documento','Informe Final')->count());
     }
 
+    public function test_desde_el_historial_el_destinatario_se_elige_en_el_modal_de_envio(): void
+    {
+        Storage::fake('public');
+        [$user,$project]=$this->scenario();
+        $etapa=$project->flujoEtapasActivasOrdenadas(Proyecto::FLUJO_CIERRE_PROYECTO)->firstOrFail();
+        $rol=Role::firstOrCreate(['name'=>'revisor-cierre-prueba','guard_name'=>'web']);
+        $user->assignRole($rol);
+        $etapa->update(['emisor_define_destinatario'=>true,'rol_revisor_id'=>$rol->id]);
+
+        // Informe completo y guardado, pendiente de envío desde el historial del proyecto.
+        $this->componentReadyForCompletion($user,$project)->call('guardarBorrador')->assertHasNoErrors();
+        $project->informeFinalInf001()->firstOrFail()->update(['estado'=>InformeFinalProyecto::ESTADO_COMPLETO]);
+
+        $historial=Livewire::actingAs($user)->test(HistorialProyecto::class,['proyecto'=>$project->fresh()])
+            ->assertSee('Revisar y enviar informe final')
+            ->assertDontSee('Destinatario para')
+            ->assertDontSee('Enviar el informe final al flujo de cierre');
+
+        // El botón abre el modal con el buscador de destinatarios de la etapa.
+        $historial->call('abrirEnvioCierreModal')
+            ->assertSet('showEnvioCierreModal',true)
+            ->assertSee('Enviar el informe final al flujo de cierre')
+            ->assertSee($etapa->nombre);
+
+        // Sin destinatario no se genera nada y el modal sigue abierto con el aviso.
+        $historial->call('enviarInformeFinal')
+            ->assertHasErrors('destinatariosCierre')
+            ->assertSet('showEnvioCierreModal',true);
+        $this->assertSame(0,$project->documentos()->where('tipo_documento','Informe Final')->count());
+
+        $destinatario=app(\App\Services\Proyecto\ProyectoWorkflowService::class)
+            ->destinatariosSeleccionables($project->fresh(),Proyecto::FLUJO_CIERRE_PROYECTO)[$etapa->id]['usuarios']->firstOrFail();
+        $historial->set('destinatariosCierre.'.$etapa->id,$destinatario->id)
+            ->call('enviarInformeFinal')
+            ->assertHasNoErrors()
+            ->assertSet('showEnvioCierreModal',false);
+
+        $this->assertSame(1,$project->documentos()->where('tipo_documento','Informe Final')->count());
+    }
+
+    public function test_sin_destinatario_por_elegir_el_envio_desde_el_historial_solo_pide_confirmacion(): void
+    {
+        [$user,$project]=$this->scenario();
+        $this->initialize($project,$user)->update(['estado'=>'COMPLETO']);
+
+        $html=Livewire::actingAs($user)->test(HistorialProyecto::class,['proyecto'=>$project->fresh()])
+            ->assertSee('Revisar y enviar informe final')
+            ->html();
+
+        $this->assertStringContainsString('¿Enviar el INF-001 al flujo de cierre?',$html);
+        $this->assertStringNotContainsString('abrirEnvioCierreModal',$html);
+    }
+
     public function test_no_se_marca_completo_con_inconsistencias(): void
     {
         [$user,$project]=$this->scenario(); $component=$this->conContraparteCompleta($this->livewireComponent($user,$project))->set('general.fecha_cierre','2026-12-01')->set('general.transformacion_lograda','Transformación')->set('general.mecanismos_sostenibilidad','Comité local')->set('general.confirmacion_veracidad',true);
@@ -2170,7 +2257,7 @@ class InformeFinalINF001Test extends TestCase
         return $component->set('contrapartes.0.tipo_instrumento','carta_intenciones');
     }
 
-    /** Sitio de ejecución (ítem 10) completo con un país sin división departamental. */
+    /** Sitio de ejecución (ítem 10) completo fuera de Honduras, donde departamento y municipio son opcionales. */
     private function conSitioDeEjecucion($component)
     {
         return $component

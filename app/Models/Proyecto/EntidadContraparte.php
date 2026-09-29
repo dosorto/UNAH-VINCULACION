@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -16,6 +17,22 @@ class EntidadContraparte extends Model
     use LogsActivity;
 
     protected $table = 'entidad_contraparte';
+
+    /** Tipos de contraparte del formato, con su etiqueta. */
+    public const TIPOS = [
+        'gobierno_nacional' => 'Gobierno Nacional',
+        'gobierno_municipal' => 'Gobierno Municipal',
+        'ong' => 'ONG',
+        'sociedad_civil' => 'Sociedad Civil Organizada',
+        'sector_privado' => 'Sector Privado',
+        'internacional' => 'Internacional',
+    ];
+
+    /** RTN o identificador fiscal en texto libre; el único límite es el tamaño de la columna. */
+    public static function reglasRtn(bool $requerido = false): array
+    {
+        return [$requerido ? 'required' : 'nullable', 'string', 'max:50'];
+    }
 
     protected $fillable = [
         'rtn',
@@ -47,6 +64,12 @@ class EntidadContraparte extends Model
         )->using(EntidadContraparteProyecto::class)
          ->withPivot(['rtn', 'descripcion_acuerdos'])
          ->withTimestamps();
+    }
+
+    /** Registros de la contraparte en proyectos (sin los eliminados). */
+    public function vinculacionesProyecto(): HasMany
+    {
+        return $this->hasMany(EntidadContraparteProyecto::class, 'entidad_contraparte_id');
     }
 
     public function getNombreConRtnAttribute(): string
