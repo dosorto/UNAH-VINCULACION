@@ -130,9 +130,15 @@ class PpsServicioSocialWorkflowService
             $this->notificarRevisionPendiente($registro, $primeraFirma, $esReenvio ? 'reenvio_subsanacion' : 'envio_revision');
 
             // La solicitud se genera en el paso «Solicitud de práctica»; al enviar solo se crea si falta.
-            if (Schema::hasTable('pps_documentos_generados')
-                && ! $registro->documentosGenerados()->where('tipo', PpsDocumentoGenerator::SOLICITUD)->exists()) {
-                app(PpsDocumentoGenerator::class)->generarSolicitud($registro, (int) $userId);
+            // La autorización se genera en cada envío a firmar, con los datos que se envían.
+            if (Schema::hasTable('pps_documentos_generados')) {
+                $documentos = app(PpsDocumentoGenerator::class);
+
+                if (! $registro->documentosGenerados()->where('tipo', PpsDocumentoGenerator::SOLICITUD)->exists()) {
+                    $documentos->generarSolicitud($registro, (int) $userId);
+                }
+
+                $documentos->generarAutorizacion($registro, (int) $userId);
             }
 
             Log::info('Ciclo PPS/SS preparado', [
@@ -214,10 +220,6 @@ class PpsServicioSocialWorkflowService
                 'motivo_rechazo' => null,
                 'updated_by' => $userId,
             ])->saveQuietly();
-
-            if (Schema::hasTable('pps_documentos_generados')) {
-                app(PpsDocumentoGenerator::class)->generarAutorizacion($registro, (int) $userId);
-            }
 
             return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
         });

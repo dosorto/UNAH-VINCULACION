@@ -126,6 +126,9 @@ class DocxTemplateEditor
         $scale = min(120 / $size[0], 40 / $size[1]);
         $shape->setAttribute('id', $id);
         $shape->setAttribute('type', '#_x0000_t75');
+        // Sin contorno ni relleno: LibreOffice dibuja un recuadro alrededor de la firma si no se indica.
+        $shape->setAttribute('stroked', 'f');
+        $shape->setAttribute('filled', 'f');
         $shape->setAttribute('style', 'width:'.round($size[0] * $scale, 2).'pt;height:'.round($size[1] * $scale, 2).'pt');
         $image = $this->document->createElementNS('urn:schemas-microsoft-com:vml', 'v:imagedata');
         $image->setAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'r:id', $id);

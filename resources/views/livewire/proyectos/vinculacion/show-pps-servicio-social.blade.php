@@ -1,10 +1,9 @@
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ documentoActivo: 'ficha' }">
     @php
-        use Carbon\Carbon;
-
         $registro = $this->registro;
-        $estadoTexto = ($registro->estado === 'enviado' && $registro->etapaActual)
-            ? $registro->etapaActual->nombre
+        // La etapa en curso se ve en el progreso del flujo.
+        $estadoTexto = in_array($registro->estado, ['enviado', 'en_revision'], true)
+            ? 'En revisión'
             : ucfirst(str_replace('_', ' ', $registro->estado ?: 'sin estado'));
         $estadoBadge = match($registro->estado) {
             'borrador' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
@@ -26,42 +25,75 @@
         $puedeAprobar = $puedeRevisarEtapa && $registro->puedeAprobarse(auth()->id(), auth()->user());
         $puedeRechazar = $puedeRevisarEtapa && $registro->puedeRechazarse(auth()->id(), auth()->user());
         $puedeSubsanar = $registro->puedeSubsanarse(auth()->id());
-        $puedeDescargarPdf = $registro->puedeDescargarPdf(auth()->id(), auth()->user());
         $puedeCrearRegistro = (bool) auth()->user()?->can('docente.crear-proyecto');
     @endphp
 
-    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-                <a href="{{ route($historialRouteName) }}" wire:navigate
-                   class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
-                    Volver al historial
-                </a>
-                <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
-                    FORM-DVUS-014
-                </p>
-                <h1 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
-                    {{ $registro->codigo_registro ?: 'Registro PPS/SS #'.$registro->id }}
-                </h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    {{ $registro->nombre_estudiante ?: 'Estudiante no registrado' }}
-                    @if($registro->numero_cuenta)
-                        · {{ $registro->numero_cuenta }}
-                    @endif
-                </p>
-                <div class="mt-3 flex flex-wrap items-center gap-2">
-                    <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $estadoBadge }}">
-                        {{ $estadoTexto }}
-                    </span>
-                    @if($registro->etapaActual && $registro->estado !== 'enviado')
-                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                            Etapa: {{ $registro->etapaActual->nombre }}
-                        </span>
-                    @endif
-                </div>
-            </div>
+    <header class="grid gap-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900 xl:grid-cols-[minmax(14rem,1fr)_minmax(0,2fr)_auto] xl:items-center">
+        <div class="min-w-0">
+            <a href="{{ route($historialRouteName) }}" wire:navigate
+               class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                Volver al historial
+            </a>
+            <p class="mt-3 text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                FORM-DVUS-014
+            </p>
+            <h1 class="mt-1 break-words text-xl font-bold text-gray-900 dark:text-white">
+                {{ $registro->codigo_registro ?: 'Registro PPS/SS #'.$registro->id }}
+            </h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ $registro->nombre_estudiante ?: 'Estudiante no registrado' }}
+                @if($registro->numero_cuenta)
+                    · {{ $registro->numero_cuenta }}
+                @endif
+            </p>
+            <p class="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                Estado:
+                <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $estadoBadge }}">
+                    {{ $estadoTexto }}
+                </span>
+            </p>
+        </div>
 
-            <div class="flex flex-wrap gap-2">
+        <section class="min-w-0 rounded-lg bg-gray-50 px-5 py-4 dark:bg-gray-800" aria-label="Progreso del flujo">
+            <h2 class="text-xs font-bold uppercase tracking-wide text-gray-600 dark:text-gray-300">Progreso del flujo</h2>
+            @if($registro->estado === 'borrador' && ! $registro->fecha_envio)
+                <p class="mt-4 text-sm text-gray-400">Sin enviar a firmar.</p>
+            @elseif($etapasVisuales === [])
+                <p class="mt-4 text-sm text-gray-400">Sin flujo de firmas configurado.</p>
+            @else
+                <ol class="mt-4 flex items-start gap-2 overflow-x-auto pb-1">
+                    @foreach($etapasVisuales as $etapa)
+                        @php
+                            $circulo = match (true) {
+                                $etapa['estado'] === 'Aprobado' => 'bg-green-600 text-white',
+                                $etapa['estado'] === 'Rechazado' => 'bg-red-600 text-white',
+                                $etapa['actual'] => 'bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-900/60',
+                                default => 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+                            };
+                        @endphp
+                        <li class="flex min-w-28 flex-1 items-start gap-2" @if($etapa['actual']) aria-current="step" @endif>
+                            <div class="flex flex-1 flex-col items-center gap-1.5 text-center">
+                                <span class="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold {{ $circulo }}">
+                                    {{ $etapa['estado'] === 'Aprobado' ? '✓' : ($etapa['estado'] === 'Rechazado' ? '✕' : $loop->iteration) }}
+                                </span>
+                                <span class="text-xs font-medium text-gray-800 dark:text-gray-200">{{ $etapa['nombre'] }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ $etapa['actual'] ? 'En revisión' : $etapa['estado'] }}</span>
+                            </div>
+                            @unless($loop->last)
+                                <span aria-hidden="true" class="mt-4 h-px w-6 shrink-0 bg-gray-300 dark:bg-gray-600"></span>
+                            @endunless
+                        </li>
+                    @endforeach
+                </ol>
+            @endif
+        </section>
+
+            <div class="flex flex-wrap gap-2 xl:max-w-xs xl:justify-end">
+                <a href="{{ route('pps-servicio-social.pdf', $registro->id) }}"
+                   class="inline-flex items-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-sky-700">
+                    Descargar PDF
+                </a>
+
                 @if($puedeEditar)
                     <a href="{{ route('pps-servicio-social.edit', $registro->id) }}" wire:navigate
                        class="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 shadow-sm transition hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:bg-amber-900/50">
@@ -120,13 +152,6 @@
                     </button>
                 @endif
 
-                @if($puedeDescargarPdf)
-                    <a href="{{ route('pps-servicio-social.pdf', $registro->id) }}"
-                       class="inline-flex items-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-sky-700">
-                        Descargar PDF
-                    </a>
-                @endif
-
                 @if($puedeCrearRegistro)
                     <a href="{{ route('crearPpsServicioSocial') }}" wire:navigate
                        class="inline-flex items-center rounded-lg bg-blue-700 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-800">
@@ -134,8 +159,7 @@
                     </a>
                 @endif
             </div>
-        </div>
-    </div>
+    </header>
 
     @if($camposFaltantesEnvio !== [])
         <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
@@ -155,20 +179,70 @@
         </div>
     @endif
 
-    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <section class="min-w-0 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
-            <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
-                <div>
-                    <h2 class="text-base font-bold text-gray-900 dark:text-white">Ficha FORM-DVUS-014</h2>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Datos registrados para revisión.</p>
-                </div>
-            </div>
+    <nav class="flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+         aria-label="Documentos del registro">
+        @foreach($documentos as $documento)
+            <button type="button"
+                    x-on:click="documentoActivo = @js($documento['clave'])"
+                    :aria-pressed="documentoActivo === @js($documento['clave'])"
+                    :class="documentoActivo === @js($documento['clave']) ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'"
+                    class="whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-semibold transition">
+                {{ $loop->first ? 'Ficha' : 'Adjunto '.($loop->index).' · '.$documento['titulo'] }}
+            </button>
+        @endforeach
+    </nav>
 
-            @include('components.pps-servicio-social.form-014', [
-                'registro' => $registro,
-                'formData' => $formData ?? null,
-                'isPdf' => false,
-            ])
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <section class="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            @foreach($documentos as $documento)
+                {{-- x-if: el visor solo carga el documento de la pestaña abierta. --}}
+                <template x-if="documentoActivo === @js($documento['clave'])">
+                    <div>
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-5 py-3 dark:border-gray-700">
+                            <div class="min-w-0">
+                                <h2 class="text-sm font-bold text-gray-900 dark:text-white">{{ $documento['titulo'] }}</h2>
+                                @if($documento['detalle'])
+                                    <p class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">{{ $documento['detalle'] }}</p>
+                                @endif
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                @foreach($documento['versiones'] as $anterior)
+                                    <a href="{{ $anterior['url'] }}"
+                                       class="rounded-md border border-gray-200 px-2 py-1 font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                                       title="Descargar la versión {{ $anterior['version'] }}">
+                                        v{{ $anterior['version'] }}
+                                    </a>
+                                @endforeach
+                                @if($documento['ver_url'])
+                                    <a href="{{ $documento['ver_url'] }}" target="_blank" rel="noopener"
+                                       class="rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-200">
+                                        Abrir en otra pestaña
+                                    </a>
+                                @endif
+                                @if($documento['descargar_url'])
+                                    <a href="{{ $documento['descargar_url'] }}"
+                                       class="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                                        Descargar
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+
+                        @if($documento['ver_url'])
+                            <div class="relative bg-gray-100 dark:bg-gray-800">
+                                <p class="absolute inset-x-0 top-12 text-center text-sm text-gray-500 dark:text-gray-400">Preparando el documento…</p>
+                                <iframe src="{{ $documento['ver_url'] }}"
+                                        title="{{ $documento['titulo'] }}"
+                                        class="relative block min-h-[85vh] w-full border-0"></iframe>
+                            </div>
+                        @else
+                            <p class="p-6 text-sm text-amber-700 dark:text-amber-300">
+                                Este adjunto está marcado en el formulario, pero no tiene un archivo disponible.
+                            </p>
+                        @endif
+                    </div>
+                </template>
+            @endforeach
         </section>
 
         <aside class="space-y-6">
@@ -212,60 +286,6 @@
                     </ol>
                 @else
                     <p class="text-sm text-gray-500 dark:text-gray-400">No hay movimientos registrados.</p>
-                @endif
-            </section>
-
-            @if($registro->documentosGenerados->isNotEmpty())
-                <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                    <h2 class="mb-3 text-lg font-bold text-gray-900 dark:text-white">Documentos generados</h2>
-                    <div class="space-y-2">
-                        @foreach($registro->documentosGenerados->sortByDesc('generado_en') as $documento)
-                            <a class="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm text-blue-700 hover:bg-blue-50 dark:border-gray-700 dark:text-blue-300" href="{{ route('pps-servicio-social.documento-generado', $documento) }}">
-                                <span>{{ $documento->tipo === 'solicitud_practica' ? 'Solicitud de práctica' : 'Autorización de PPS' }} · v{{ $documento->version }}</span>
-                                <span>Descargar</span>
-                            </a>
-                        @endforeach
-                    </div>
-                </section>
-            @endif
-
-            <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h2 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">
-                    Anexos
-                </h2>
-
-                @if(count($anexos) > 0)
-                    <div class="space-y-3">
-                        @foreach($anexos as $anexo)
-                            <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $anexo['titulo'] }}</p>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $anexo['archivo'] ?: ($anexo['marcado'] ? 'Marcado como adjunto, sin archivo registrado' : 'Sin archivo') }}
-                                </p>
-
-                                @if($anexo['exists'])
-                                    <div class="mt-3 flex flex-wrap gap-2">
-                                        <a href="{{ $anexo['view_url'] }}" target="_blank" rel="noopener"
-                                           class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-200 dark:hover:bg-blue-900/50">
-                                            Ver anexo
-                                        </a>
-                                        <a href="{{ $anexo['download_url'] }}"
-                                           class="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
-                                            Descargar anexo
-                                        </a>
-                                    </div>
-                                @else
-                                    <p class="mt-2 text-xs text-amber-600 dark:text-amber-300">
-                                        No hay archivo disponible para abrir o descargar.
-                                    </p>
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        No hay anexos registrados.
-                    </p>
                 @endif
             </section>
         </aside>

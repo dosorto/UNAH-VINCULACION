@@ -7,9 +7,7 @@ use App\Models\PpsServicioSocial;
 use App\Models\Personal\Empleado;
 use App\Models\User;
 use App\Support\Fichas\FirmaImagen;
-use App\Support\PpsServicioSocial\FormDvus014Data;
 use App\Support\PpsServicioSocial\PpsDocumentoRequirements;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -18,7 +16,10 @@ class PpsDocumentoGenerator
     public const SOLICITUD = 'solicitud_practica';
     public const AUTORIZACION = 'autorizacion_pps';
 
-    public function __construct(private readonly PpsSolicitudPracticaDocumento $solicitud) {}
+    public function __construct(
+        private readonly PpsSolicitudPracticaDocumento $solicitud,
+        private readonly PpsAutorizacionDocumento $autorizacion,
+    ) {}
 
     public function generarSolicitud(PpsServicioSocial $pps, int $usuarioId): PpsDocumentoGenerado
     {
@@ -32,26 +33,14 @@ class PpsDocumentoGenerator
 
     private function generar(PpsServicioSocial $pps, string $tipo, int $usuarioId): PpsDocumentoGenerado
     {
-        $pps->loadMissing([
-            'firmasDeEtapa.empleado.firma',
-            'firmasDeEtapa.flujoEtapa',
-            'firmasDeEtapa.cargo_firma.tipoCargoFirma',
-        ]);
         PpsDocumentoRequirements::validate($pps, $tipo);
 
         $version = ((int) $pps->documentosGenerados()->where('tipo', $tipo)->max('version')) + 1;
         $nombre = $tipo.'-'.$pps->codigo_registro.'-v'.$version.'.pdf';
         $ruta = 'pps-servicio-social/generados/'.$pps->id.'/'.$nombre;
-        // La solicitud sale de su plantilla de Word (LibreOffice); la autorización, de su vista.
-        $contenido = $tipo === PpsDocumentoRequirements::SOLICITUD
-            ? $this->solicitud->pdf($pps, $this->firmanteSolicitud($usuarioId))
-            : Pdf::loadView('pdf.pps-servicio-social.generado', ['pps' => $pps, 'tipo' => $tipo, 'formData' => FormDvus014Data::from($pps)])
-                ->setPaper('letter')
-                ->setOption('isRemoteEnabled', false)
-                ->setOption('isHtml5ParserEnabled', true)
-                ->setOption('defaultFont', 'Arial')
-                ->setOption('chroot', realpath(base_path()))
-                ->output();
+        // Ambas cartas salen de su plantilla de Word (LibreOffice) y las firma quien llena el formulario.
+        $carta = $tipo === PpsDocumentoRequirements::SOLICITUD ? $this->solicitud : $this->autorizacion;
+        $contenido = $carta->pdf($pps, $this->firmante($usuarioId, $tipo));
         Storage::disk('local')->put($ruta, $contenido);
 
         return $pps->documentosGenerados()->create([
@@ -64,18 +53,21 @@ class PpsDocumentoGenerator
         ]);
     }
 
-    /** La solicitud la firma el coordinador que llena el formulario, con su firma registrada. */
-    private function firmanteSolicitud(int $usuarioId): array
+    /** Las cartas las firma el coordinador que llena el formulario, con su firma registrada. */
+    private function firmante(int $usuarioId, string $tipo): array
     {
         $empleado = User::with('empleado.firma')->find($usuarioId)?->empleado;
 
         if (! $empleado || blank($empleado->nombre_completo)) {
-            throw new RuntimeException('No se puede generar la SOLICITUD DE PRÁCTICA: su usuario no tiene un empleado con nombre registrado.');
+            $documento = $tipo === PpsDocumentoRequirements::AUTORIZACION ? 'la AUTORIZACIÓN DE PPS' : 'la SOLICITUD DE PRÁCTICA';
+
+            throw new RuntimeException("No se puede generar {$documento}: su usuario no tiene un empleado con nombre registrado.");
         }
 
         return [
             'nombre' => $empleado->nombre_completo,
             'cargo' => self::cargoFirmante($empleado->sexo),
+            'sexo' => $empleado->sexo,
             'firma' => self::imagenFirma($empleado),
         ];
     }

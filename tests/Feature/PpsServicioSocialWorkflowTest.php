@@ -340,14 +340,154 @@ class PpsServicioSocialWorkflowTest extends TestCase
         app(PpsDocumentoGenerator::class)->generarSolicitud($ctx['registro']->fresh(), $ctx['usuario']->id);
     }
 
-    public function test_generacion_valida_de_autorizacion_exige_firma_del_coordinador(): void
+    public function test_al_enviar_a_firmar_se_genera_la_autorizacion_y_cada_reenvio_crea_otra_version(): void
     {
         $ctx = $this->contexto();
-        $ctx['registro'] = app(PpsServicioSocialWorkflowService::class)->enviarARevision($ctx['registro'], $ctx['usuario']->id);
-        $documento = app(PpsDocumentoGenerator::class)->generarAutorizacion($ctx['registro'], $ctx['usuario']->id);
+        $service = app(PpsServicioSocialWorkflowService::class);
+        $autorizaciones = fn () => $ctx['registro']->documentosGenerados()->where('tipo', PpsDocumentoGenerator::AUTORIZACION)->orderBy('version')->get();
 
-        $this->assertSame(PpsDocumentoGenerator::AUTORIZACION, $documento->tipo);
+        $this->assertCount(0, $autorizaciones());
+        $registro = $service->enviarARevision($ctx['registro'], $ctx['usuario']->id);
+
+        $this->assertCount(1, $autorizaciones());
+        $documento = $autorizaciones()->first();
+        $this->assertSame(1, $documento->version);
+        $this->assertSame($ctx['usuario']->id, (int) $documento->generado_por);
         Storage::disk('local')->assertExists($documento->archivo);
+        $this->assertStringStartsWith('%PDF-', Storage::disk('local')->get($documento->archivo));
+
+        // Tras una subsanación, el reenvío genera la autorización con los datos corregidos.
+        $registro = $service->rechazar($registro, 'Corrija las fechas.', $ctx['usuario']->id);
+        $registro = $service->iniciarSubsanacion($registro, $ctx['usuario']->id);
+        $registro = $service->enviarARevision($registro, $ctx['usuario']->id);
+        $this->assertSame([1, 2], $autorizaciones()->pluck('version')->all());
+
+        // La aprobación final ya no genera otra.
+        $registro = $service->aprobarEtapa($registro, $ctx['usuario']->id);
+        $registro = $service->aprobarEtapa($registro, $ctx['usuario']->id);
+        $this->assertSame('aprobado', $registro->estado);
+        $this->assertCount(2, $autorizaciones());
+    }
+
+    public function test_la_autorizacion_tiene_el_formato_del_ejemplo_y_la_firma_quien_llena_el_formulario(): void
+    {
+        $ctx = $this->contexto();
+        $this->travelTo(now()->setDate(2026, 2, 24));
+        $ctx['registro']->update(['fecha_inicio' => '2026-02-27', 'fecha_finalizacion' => '2026-07-25']);
+        $docx = sys_get_temp_dir().'/autorizacion-'.uniqid().'.docx';
+        copy(config('documents.autorizacion_pps_template'), $docx);
+        app(\App\Services\PpsServicioSocial\PpsAutorizacionDocumento::class)->llenar($docx, $ctx['registro']->fresh(), [
+            'nombre' => $ctx['empleado']->nombre_completo,
+            'cargo' => PpsDocumentoGenerator::cargoFirmante('Femenino'),
+            'sexo' => 'Femenino',
+            'firma' => PpsDocumentoGenerator::imagenFirma($ctx['empleado']->fresh('firma')),
+        ]);
+        $zip = new \ZipArchive;
+        $zip->open($docx);
+        $cuerpo = (string) $zip->getFromName('word/document.xml');
+        $texto = html_entity_decode(strip_tags(str_replace('</w:p>', "\n", $cuerpo)));
+        $pie = html_entity_decode(strip_tags(str_replace('</w:p>', "\n", (string) $zip->getFromName('word/footer1.xml'))));
+        $zip->close();
+        unlink($docx);
+
+        $this->assertStringNotContainsString('{{', $texto.$pie);
+        $this->assertStringContainsString('<w:drawing>', $cuerpo);
+        $this->assertStringContainsString('“La Educación es la Primera Necesidad de La República”', $pie);
+        foreach ([
+            '“Año Académico 2026 María Elena Bottazzi”',
+            'Choluteca, 24 de febrero de 2026',
+            'AUTORIZACIÓN DE PRÁCTICA PROFESIONAL',
+            'La suscrita Coordinadora de la Carrera de Test Carrera de la Universidad Nacional Autónoma de Honduras en Facultad de Test; por este medio AUTORIZA al estudiante ESTUDIANTE TEST con número de cuenta '.$ctx['registro']->numero_cuenta,
+            'para que realice la Práctica Profesional Supervisada de 120 horas (máximo 40 horas semanales), en la empresa Empresa Test S.A.,',
+            'la cual será válida solo en modalidad presencial, iniciando el 27 de febrero del año 2026 y con fecha de finalización el 25 de julio del año 2026.',
+            'Y para los fines que el interesado convenga, firmo la presente en Choluteca, a los 24 días del mes de febrero del año 2026.',
+            'Se adjunta oficio de Supervisión de Práctica',
+            $ctx['empleado']->nombre_completo."\nCoordinadora Académica\nTest Carrera, Facultad de Test",
+        ] as $esperado) {
+            $this->assertStringContainsString($esperado, $texto);
+        }
+    }
+
+    public function test_al_enviar_se_piden_tambien_los_datos_de_la_autorizacion(): void
+    {
+        $ctx = $this->contexto();
+        $ctx['registro']->update(['fecha_inicio' => PpsDocumentoRequirements::BORRADOR_FECHA]);
+
+        $this->assertContains('fecha de inicio', $ctx['registro']->fresh()->camposFaltantesParaEnvio());
+    }
+
+    public function test_la_pantalla_muestra_la_ficha_y_sus_adjuntos_en_el_visor(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('pps-servicio-social/anexos/carta.docx', 'carta');
+        $ctx = $this->contexto();
+        $ctx['registro']->update([
+            'adjunta_carta_formalizacion' => true,
+            'archivo_carta_formalizacion' => 'pps-servicio-social/anexos/carta.docx',
+        ]);
+        $registro = app(PpsServicioSocialWorkflowService::class)->enviarARevision($ctx['registro'], $ctx['usuario']->id);
+        $autorizacion = $registro->documentosGenerados()->where('tipo', PpsDocumentoGenerator::AUTORIZACION)->firstOrFail();
+
+        Livewire::actingAs($ctx['usuario'])
+            ->test(\App\Livewire\Proyectos\Vinculacion\ShowPpsServicioSocial::class, ['id' => $registro->id])
+            ->assertSeeInOrder(['Ficha', 'Adjunto 1 · Solicitud de práctica', 'Adjunto 2 · Carta de formalización', 'Adjunto 3 · Autorización de PPS'])
+            ->assertSee(route('pps-servicio-social.pdf', ['id' => $registro->id, 'ver' => 1, 'v' => $registro->updated_at->timestamp]))
+            ->assertSee(route('pps-servicio-social.anexo', ['id' => $registro->id, 'tipo' => 'carta-formalizacion']))
+            ->assertSee(route('pps-servicio-social.documento-generado', ['documento' => $autorizacion->id, 'ver' => 1]))
+            ->assertSee('Estado:')
+            ->assertSee('En revisión')
+            ->assertSeeInOrder(['Coordinador de la carrera', 'Docente supervisor'])
+            ->assertSee('Historial de movimientos')
+            ->assertDontSee('Datos registrados para revisión');
+    }
+
+    public function test_la_ficha_se_ve_en_el_visor_o_se_descarga_y_la_consultan_los_roles_de_historial(): void
+    {
+        $ctx = $this->contexto();
+        $controlador = app(\App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController::class);
+        $this->beforeApplicationDestroyed(fn () => \Illuminate\Support\Facades\File::deleteDirectory(storage_path('app/generated/form-dvus-014/'.$ctx['registro']->id)));
+
+        $this->actingAs($ctx['usuario']);
+        request()->query->set('ver', '1');
+        $enLinea = $controlador($ctx['registro']->id, app(\App\Services\PpsServicioSocial\FormDvus014DocumentService::class));
+        $this->assertStringStartsWith('inline;', $enLinea->headers->get('Content-Disposition'));
+        $this->assertSame('application/pdf', $enLinea->headers->get('Content-Type'));
+        request()->query->remove('ver');
+        $descarga = $controlador($ctx['registro']->id, app(\App\Services\PpsServicioSocial\FormDvus014DocumentService::class));
+        $this->assertStringStartsWith('attachment;', $descarga->headers->get('Content-Disposition'));
+
+        // Quien puede ver el registro por su rol (historial) también ve la ficha.
+        $historial = \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'proyectos.historial', 'guard_name' => 'web']);
+        $rol = Role::firstOrCreate(['name' => 'Historial PPS '.uniqid(), 'guard_name' => 'web']);
+        $rol->givePermissionTo($historial);
+        $consulta = User::factory()->create();
+        $consulta->assignRole($rol);
+        $consulta->update(['active_role_id' => $rol->id]);
+        $this->assertTrue($ctx['registro']->puedeConsultarse($consulta->id, $consulta->fresh()));
+
+        $ajeno = User::factory()->create();
+        $this->assertFalse($ctx['registro']->puedeConsultarse($ajeno->id, $ajeno));
+    }
+
+    public function test_los_anexos_de_word_se_ven_como_pdf_y_se_descargan_originales(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('pps-servicio-social/anexos/carta.docx', 'carta en word');
+        $ctx = $this->contexto();
+        $ctx['registro']->update(['archivo_carta_formalizacion' => 'pps-servicio-social/anexos/carta.docx']);
+        $controlador = app(\App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialAnexoController::class);
+        $servicio = app(\App\Services\PpsServicioSocial\FormDvus014DocumentService::class);
+        $this->actingAs($ctx['usuario']);
+
+        $vista = $controlador(request(), $ctx['registro']->id, 'carta-formalizacion', $servicio);
+        $this->assertSame('application/pdf', $vista->headers->get('Content-Type'));
+        $this->assertStringStartsWith('inline;', $vista->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF-', (string) file_get_contents($vista->getFile()->getPathname()));
+        @unlink($vista->getFile()->getPathname());
+
+        $descarga = $controlador(new \Illuminate\Http\Request(['download' => 1]), $ctx['registro']->id, 'carta-formalizacion', $servicio);
+        $this->assertStringStartsWith('attachment;', $descarga->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('carta.docx', $descarga->headers->get('Content-Disposition'));
     }
 
     public function test_autorizacion_se_bloquea_si_falta_fecha_de_inicio(): void
