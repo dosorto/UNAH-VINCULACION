@@ -2,6 +2,7 @@
 
 namespace App\Models\Demografia;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -41,5 +42,11 @@ class Departamento extends Model
     {
         return $this->belongsTo(Pais::class, 'pais_id');
     }
-    
+
+    /** Los formularios que no preguntan el país trabajan solo con los departamentos de Honduras. */
+    public function scopeDeHonduras(Builder $query): Builder
+    {
+        return $query->whereHas('pais', fn (Builder $pais) => $pais->where('codigo_iso', 'HND'));
+    }
+
 }

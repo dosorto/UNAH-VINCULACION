@@ -116,55 +116,46 @@ class ProyectoVoluntariadoFormularioTest extends TestCase
         $this->assertSame(600.0, $infra['costo_total']);
     }
 
-    public function test_resultados_de_mediano_largo_plazo_se_gestionan_por_modal(): void
+    public function test_resultados_de_mediano_largo_plazo_se_editan_en_su_lista(): void
     {
         $component = new CreateProyectoVinculacion;
 
-        // Agregar por modal.
-        $component->openResultadoProyectoModal();
-        $this->assertTrue($component->showResultadoProyectoModal);
-        $component->resultadoProyectoModal = array_merge($component->resultadoProyectoModal, [
-            'nombre_resultado' => 'Familias con huertos activos',
-            'nombre_indicador' => '% de familias con huerto tras 6 meses',
-            'nombre_medio_verificacion' => 'Ficha de visita domiciliaria',
-            'plazo' => 'largo_plazo',
-        ]);
-        $component->saveResultadoProyecto();
+        // Cada lista agrega una fila con su plazo; se completa en la misma pantalla.
+        $component->addResultadoProyecto('largo_plazo');
+        $component->addResultadoProyecto('mediano_plazo');
 
-        $this->assertFalse($component->showResultadoProyectoModal);
-        $this->assertCount(1, $component->resultadosProyecto);
+        $this->assertCount(2, $component->resultadosProyecto);
         $this->assertSame('largo_plazo', $component->resultadosProyecto[0]['plazo']);
+        $this->assertSame('mediano_plazo', $component->resultadosProyecto[1]['plazo']);
         $this->assertNotEmpty($component->resultadosProyecto[0]['wire_key']);
+        $this->assertNotSame($component->resultadosProyecto[0]['wire_key'], $component->resultadosProyecto[1]['wire_key']);
 
-        // Editar la fila existente.
-        $component->openResultadoProyectoModal(0);
-        $this->assertSame(0, $component->editResultadoProyectoIndex);
-        $component->resultadoProyectoModal['nombre_resultado'] = 'Familias con huertos consolidados';
-        $component->saveResultadoProyecto();
+        // Un plazo que no es de mediano ni largo plazo no agrega nada.
+        $component->addResultadoProyecto('corto_plazo');
+        $component->addResultadoProyecto('otro');
+        $this->assertCount(2, $component->resultadosProyecto);
 
-        $this->assertCount(1, $component->resultadosProyecto);
-        $this->assertSame('Familias con huertos consolidados', $component->resultadosProyecto[0]['nombre_resultado']);
-
-        // Borrar.
         $component->removeResultadoProyecto(0);
-        $this->assertCount(0, $component->resultadosProyecto);
+        $this->assertCount(1, $component->resultadosProyecto);
+        $this->assertSame('mediano_plazo', $component->resultadosProyecto[0]['plazo']);
     }
 
-    public function test_el_modal_de_resultado_exige_los_campos_obligatorios(): void
+    public function test_una_fila_de_mediano_o_largo_plazo_incompleta_no_deja_avanzar(): void
     {
         $component = new CreateProyectoVinculacion;
-        $component->openResultadoProyectoModal();
-        $component->resultadoProyectoModal['nombre_resultado'] = 'Solo el resultado';
+        $component->currentStep = 7;
+        $component->addResultadoProyecto('mediano_plazo');
+        $component->resultadosProyecto[0]['nombre_resultado'] = 'Solo el resultado';
 
         try {
-            $component->saveResultadoProyecto();
+            $component->nextStep();
             $this->fail('Se esperaba ValidationException.');
         } catch (ValidationException $e) {
-            $this->assertArrayHasKey('resultadoProyectoModal.nombre_indicador', $e->errors());
-            $this->assertArrayHasKey('resultadoProyectoModal.nombre_medio_verificacion', $e->errors());
+            $this->assertArrayHasKey('resultadosProyecto.0.nombre_indicador', $e->errors());
+            $this->assertArrayHasKey('resultadosProyecto.0.nombre_medio_verificacion', $e->errors());
         }
 
-        $this->assertCount(0, $component->resultadosProyecto);
+        $this->assertSame(7, $component->currentStep);
     }
 
     public function test_completitud_de_paso_5_exige_experiencia_en_voluntariado(): void

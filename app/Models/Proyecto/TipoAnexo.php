@@ -21,19 +21,19 @@ class TipoAnexo extends Model
     public const TIPOS_BASE = [
         [
             'codigo' => self::CODIGO_CARTA_SOLICITUD,
-            'nombre' => 'Carta de solicitud del proyecto firmada por el representante legal de la contraparte',
+            'nombre' => '1. Carta de solicitud del proyecto firmada por el representante legal de la contraparte',
             'requiere_detalle' => false,
             'orden' => 1,
         ],
         [
             'codigo' => self::CODIGO_CONVENIO_CARTA,
-            'nombre' => 'Convenio/carta de intenciones firmada entre la UNAH y contraparte',
+            'nombre' => '2. Convenio/carta de intenciones firmada entre la UNAH y contraparte',
             'requiere_detalle' => false,
             'orden' => 2,
         ],
         [
             'codigo' => self::CODIGO_OFICIO_REMISION,
-            'nombre' => 'Oficio de remisión del Decano/Director Centro Regional',
+            'nombre' => '3. Oficio de remisión del Decano/Director Centro Regional',
             'requiere_detalle' => false,
             'orden' => 3,
         ],

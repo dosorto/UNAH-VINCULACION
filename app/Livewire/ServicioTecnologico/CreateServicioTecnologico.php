@@ -273,7 +273,7 @@ class CreateServicioTecnologico extends Component
                 ? collect()
                 : Carrera::where(function($q) { $q->whereHas('departamentosAcademicos', fn($dq) => $dq->whereIn('departamento_academico.id', $this->departamentos_academicos))->orWhereIn('departamento_academico_id', $this->departamentos_academicos); })->orderBy('nombre')->pluck('nombre', 'id'),
             'empleadosOpts' => Empleado::where('user_id', '!=', auth()->id())->orderBy('nombre_completo')->pluck('nombre_completo', 'id'),
-            'departamentosGeo' => \App\Models\Demografia\Departamento::orderBy('nombre')->pluck('nombre', 'id'),
+            'departamentosGeo' => \App\Models\Demografia\Departamento::deHonduras()->orderBy('nombre')->pluck('nombre', 'id'),
             'municipiosGeo' => empty($this->departamento_geo) ? collect() : \App\Models\Demografia\Municipio::whereIn('departamento_id', $this->departamento_geo)->orderBy('nombre')->pluck('nombre', 'id'),
         ]);
     }

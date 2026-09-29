@@ -11,6 +11,7 @@ use Database\Seeders\Proyecto\VinculacionTiposAccionSeeder;
 use Database\Seeders\Personal\PersonalSeeder;
 use Database\Seeders\Personal\NotificacionesPoaRolesSeeder;
 use Database\Seeders\Demografia\MunicipioSeeder;
+use Database\Seeders\Demografia\DivisionTerritorialSeeder;
 use Database\Seeders\Personal\PermisosSeeder;
 use Database\Seeders\EjesPrioritariosUnahSeeder;
 use Database\Seeders\Proyecto\MetasContribuyeSeeder;
@@ -31,6 +32,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PaisesSeeder::class);
         $this->call(DepartamentoSeeder::class);
         $this->call(MunicipioSeeder::class);
+        $this->call(DivisionTerritorialSeeder::class);
         $this->call(UnidadAcademicaSeeder::class);
         $this->call(VinculacionTiposAccionSeeder::class);
         $this->call(ProyectoSeeder::class);

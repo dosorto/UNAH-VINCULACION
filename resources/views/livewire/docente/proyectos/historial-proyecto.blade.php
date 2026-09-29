@@ -152,21 +152,6 @@
                         </p>
                     @endif
 
-                    @if($opcionesDestinatariosIntermedio->isNotEmpty() && $informeIntermedio['puede_enviar'])
-                        <div class="mt-4 grid gap-3 md:grid-cols-2">
-                            @foreach($opcionesDestinatariosIntermedio as $etapaId => $opcion)
-                                <label class="text-sm text-gray-700 dark:text-gray-200">
-                                    Destinatario para {{ $opcion['etapa']->nombre }}
-                                    <select wire:model="destinatariosIntermedio.{{ $etapaId }}" class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
-                                        <option value="">Seleccione un destinatario</option>
-                                        @foreach($opcion['usuarios'] as $usuario)
-                                            <option value="{{ $usuario->id }}">{{ $usuario->empleado?->nombre_completo ?? $usuario->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </label>
-                            @endforeach
-                        </div>
-                    @endif
                 </div>
 
                 <div class="flex flex-wrap justify-end gap-2">
@@ -184,7 +169,10 @@
                     @if($informeIntermedio['informe']?->estado === \App\Models\InformeIntermedio\InformeIntermedioProyecto::ESTADO_BORRADOR)
                         <button type="button" x-on:click.prevent="confirmDialog('¿Eliminar el PDF en borrador?', { type: 'danger' }).then((ok) => ok && $wire.eliminarInformeIntermedio())"  class="rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 dark:border-rose-800 dark:text-rose-300">Eliminar</button>
                     @endif
-                    @if($informeIntermedio['puede_enviar'])
+                    @if($informeIntermedio['puede_enviar'] && $opcionesDestinatariosIntermedio->isNotEmpty())
+                        {{-- El flujo pide elegir destinatario: se elige en el modal antes de enviar. --}}
+                        <button type="button" wire:click="abrirEnvioIntermedioModal" class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Enviar a revisión</button>
+                    @elseif($informeIntermedio['puede_enviar'])
                         <button type="button" x-on:click.prevent="confirmDialog('¿Enviar el Informe Intermedio a revisión?').then((ok) => ok && $wire.enviarInformeIntermedio())"  class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Enviar a revisión</button>
                     @endif
                 </div>
@@ -205,6 +193,25 @@
                 </details>
             @endif
         </section>
+
+        @if($showEnvioIntermedioModal && $informeIntermedio['puede_enviar'])
+            @php $esReenvioIntermedio = $informeIntermedio['informe']?->estado === \App\Models\InformeIntermedio\InformeIntermedioProyecto::ESTADO_SUBSANACION; @endphp
+            @include('livewire.docente.proyectos.partials.modal-envio-destinatarios', [
+                'titulo' => 'Enviar el Informe Intermedio a revisión',
+                'descripcion' => $esReenvioIntermedio
+                    ? 'El informe vuelve a quienes lo estaban revisando. Elija un destinatario solo si la persona de esa etapa ya no puede revisarlo.'
+                    : 'Elija a quién le llega el informe en cada etapa de revisión.',
+                'opciones' => $opcionesDestinatariosIntermedio,
+                'candidatos' => $candidatosDestinatariosIntermedio,
+                'modelo' => 'destinatariosIntermedio',
+                'seleccionados' => $destinatariosIntermedio,
+                'obligatorio' => !$esReenvioIntermedio,
+                'accionEnviar' => 'enviarInformeIntermedio',
+                'accionCerrar' => 'cerrarEnvioIntermedioModal',
+                'textoEnviar' => $esReenvioIntermedio ? 'Reenviar informe' : 'Enviar a revisión',
+                'clave' => 'envio-intermedio',
+            ])
+        @endif
     @endif
 
     @if($cierreInformeFinal['visible'] ?? false)
@@ -236,21 +243,6 @@
                             <strong>Motivo de rechazo:</strong> {{ $cierreInformeFinal['motivo_rechazo'] }}
                         </p>
                     @endif
-                    @if($opcionesDestinatariosCierre->isNotEmpty() && $cierreInformeFinal['accion'] === 'enviar')
-                        <div class="mt-4 grid gap-3 md:grid-cols-2">
-                            @foreach($opcionesDestinatariosCierre as $etapaId => $opcion)
-                                <label class="text-sm text-gray-700 dark:text-gray-200">
-                                    Destinatario para {{ $opcion['etapa']->nombre }}
-                                    <select wire:model="destinatariosCierre.{{ $etapaId }}" class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
-                                        <option value="">Seleccione un destinatario</option>
-                                        @foreach($opcion['usuarios'] as $usuario)
-                                            <option value="{{ $usuario->id }}">{{ $usuario->empleado?->nombre_completo ?? $usuario->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </label>
-                            @endforeach
-                        </div>
-                    @endif
                 </div>
 
                 <div class="flex flex-wrap justify-end gap-2">
@@ -266,7 +258,12 @@
                     @elseif($cierreInformeFinal['accion'] === 'enviar' && $cierreInformeFinal['puede_enviar'])
                         {{-- Mientras no se envíe, el informe sigue siendo editable: sin este enlace no habría cómo volver a él. --}}
                         <a href="{{ route('proyectos.informe-final', $proyecto) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Editar informe final</a>
-                        <button type="button" x-on:click.prevent="confirmDialog('La edición quedará bloqueada.', { title: '¿Enviar el INF-001 al flujo de cierre?' }).then((ok) => ok && $wire.enviarInformeFinal())"  class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</button>
+                        @if($opcionesDestinatariosCierre->isNotEmpty())
+                            {{-- El flujo pide elegir destinatario: se elige en el modal antes de enviar. --}}
+                            <button type="button" wire:click="abrirEnvioCierreModal" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</button>
+                        @else
+                            <button type="button" x-on:click.prevent="confirmDialog('La edición quedará bloqueada.', { title: '¿Enviar el INF-001 al flujo de cierre?' }).then((ok) => ok && $wire.enviarInformeFinal())"  class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</button>
+                        @endif
                     @elseif($cierreInformeFinal['accion'] === 'ver')
                         <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-200">Informe final en revisión</a>
                     @elseif($cierreInformeFinal['accion'] === 'aprobado')
@@ -283,6 +280,22 @@
                 </div>
             </div>
         </section>
+
+        @if($showEnvioCierreModal && $cierreInformeFinal['accion'] === 'enviar')
+            @include('livewire.docente.proyectos.partials.modal-envio-destinatarios', [
+                'titulo' => 'Enviar el informe final al flujo de cierre',
+                'descripcion' => 'Elija a quién le llega el informe en cada etapa de revisión. Al enviarlo, la edición quedará bloqueada.',
+                'opciones' => $opcionesDestinatariosCierre,
+                'candidatos' => $candidatosDestinatariosCierre,
+                'modelo' => 'destinatariosCierre',
+                'seleccionados' => $destinatariosCierre,
+                'obligatorio' => true,
+                'accionEnviar' => 'enviarInformeFinal',
+                'accionCerrar' => 'cerrarEnvioCierreModal',
+                'textoEnviar' => 'Enviar informe final',
+                'clave' => 'envio-cierre',
+            ])
+        @endif
     @endif
 
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">

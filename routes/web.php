@@ -85,6 +85,8 @@ use App\Livewire\Proyectos\Vinculacion\ListInformesSolicitado;
 use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
+use App\Livewire\Proyectos\Contrapartes\EntidadContraparteList;
+use App\Livewire\Proyectos\PpsInstituciones\PpsInstitucionList;
 use App\Livewire\Proyectos\Vinculacion\ShowPpsServicioSocial;
 use App\Livewire\ServicioTecnologico\CreateServicioTecnologico;
 use App\Livewire\ServicioTecnologico\ListServiciosTecnologicos;
@@ -545,6 +547,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('fichasActualizacionVinculacion', ListFichasActualizacionVinculacion::class)
             ->name('fichasActualizacionVinculacion')
             ->middleware('can:proyectos.revision-final');
+
+        Route::get('entidades-contraparte', EntidadContraparteList::class)
+            ->name('proyectos.contrapartes')
+            ->middleware('can:proyectos.contrapartes');
+
+        Route::get('instituciones-pps', PpsInstitucionList::class)
+            ->name('pps.instituciones')
+            ->middleware('can:pps.instituciones');
     });
 
     // rutas agrupadas para el modulo de Configuración
@@ -596,11 +606,11 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('SolicitudProyectosDocente', ProyectosPorFirmar::class)
             ->name('SolicitudProyectosDocente')
-            ->middleware('can:docente.proyectos');
+            ->middleware('can:docente.trazabilidad');
 
         Route::get('FichasActualizacionPorFirmar', FichasActualizacionPorFirmar::class)
             ->name('FichasActualizacionPorFirmar')
-            ->middleware('can:docente.proyectos');
+            ->middleware('can:docente.trazabilidad');
 
         Route::get('FichasActualizacionDocente', FichasActualizacionDocente::class)
             ->name('FichasActualizacionDocente')
@@ -608,11 +618,11 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('AprobadoProyectosDocente', ProyectosAprobados::class)
             ->name('AprobadoProyectosDocente')
-            ->middleware('can:docente.proyectos');
+            ->middleware('can:docente.trazabilidad');
 
         Route::get('PendientesProyectosDocente', ProyectosRechazados::class)
             ->name('RechazadoProyectosDocente')
-            ->middleware('can:docente.proyectos');
+            ->middleware('can:docente.trazabilidad');
 
         // Rutas para proyectos creados desde códigos de investigación
         Route::get('proyectosAntesDelSistema', ProyectosAntesDelSistema::class)

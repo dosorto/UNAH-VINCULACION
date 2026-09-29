@@ -124,6 +124,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
             ->set('estudiante_nombre_completo', 'Estudiante capturado manualmente')
             ->set('estudiante_celular', '99999999')
             ->set('estudiante_correo_institucional', 'manual@unah.edu.hn')
+            ->set('estudiante_correo_personal', 'manual@example.com')
             ->call('nextStep')
             ->assertSet('currentStep', 3)
             ->assertHasNoErrors();
@@ -258,20 +259,48 @@ class PpsServicioSocialWorkflowTest extends TestCase
     public function test_generacion_valida_de_solicitud_reutiliza_datos_del_formulario(): void
     {
         $ctx = $this->contexto();
-        $ctx['registro'] = app(PpsServicioSocialWorkflowService::class)->enviarARevision($ctx['registro'], $ctx['usuario']->id);
+        // Se genera antes del envío, sin coordinador del flujo: la firma quien llena el formulario.
         $documento = app(PpsDocumentoGenerator::class)->generarSolicitud($ctx['registro'], $ctx['usuario']->id);
 
         $this->assertSame(PpsDocumentoGenerator::SOLICITUD, $documento->tipo);
+        $this->assertSame(1, $documento->version);
         Storage::disk('local')->assertExists($documento->archivo);
+
+        // Al enviar a revisión no se genera otra versión si ya existe.
+        app(PpsServicioSocialWorkflowService::class)->enviarARevision($ctx['registro'], $ctx['usuario']->id);
+        $this->assertSame(1, $ctx['registro']->documentosGenerados()->where('tipo', PpsDocumentoGenerator::SOLICITUD)->count());
+    }
+
+    public function test_la_solicitud_se_redacta_para_el_destinatario_y_la_firma_quien_llena_el_formulario(): void
+    {
+        $ctx = $this->contexto();
+        $ctx['registro']->update(['solicitud_firmante_cargo' => 'Coordinador Académico']);
+        $html = view('pdf.pps-servicio-social.generado', [
+            'pps' => $ctx['registro']->fresh(),
+            'tipo' => PpsDocumentoGenerator::SOLICITUD,
+            'formData' => \App\Support\PpsServicioSocial\FormDvus014Data::from($ctx['registro']->fresh()),
+            'firmante' => ['nombre' => $ctx['empleado']->nombre_completo, 'cargo' => 'Coordinador Académico', 'src' => null],
+        ])->render();
+
+        $this->assertStringContainsString('LICENCIADA<br>', $html);
+        $this->assertStringContainsString('MARÍA HELENA MEJÍA', $html);
+        $this->assertStringContainsString('COORDINADORA DE RECLUTAMIENTO', $html);
+        $this->assertStringContainsString('Estimada Licenciada:', $html);
+        $this->assertStringContainsString('Choluteca,', $html);
+        $this->assertStringContainsString('la práctica profesional supervisada de <strong>120 horas</strong>', $html);
+        $this->assertStringContainsString('válida solo en modalidad <strong>presencial</strong>', $html);
+        $this->assertStringContainsString('máximo 40 horas semanales', $html);
+        $this->assertStringContainsString($ctx['empleado']->nombre_completo, $html);
+        $this->assertStringContainsString('Coordinador Académico', $html);
     }
 
     public function test_solicitud_se_bloquea_con_mensaje_si_falta_un_dato(): void
     {
         $ctx = $this->contexto();
-        $ctx['registro']->update(['cargo_jefe_directo' => null]);
+        $ctx['registro']->update(['destinatario_cargo' => null]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('cargo del destinatario de la empresa');
+        $this->expectExceptionMessage('cargo del destinatario de la solicitud');
 
         app(PpsDocumentoGenerator::class)->generarSolicitud($ctx['registro']->fresh(), $ctx['usuario']->id);
     }
@@ -632,6 +661,10 @@ class PpsServicioSocialWorkflowTest extends TestCase
             'territorio_ejecucion' => 'Nacional',
             'modalidad_ejecucion' => 'Presencial',
             'nombre_institucion' => 'Empresa Test S.A.',
+            'destinatario_tratamiento' => 'Licenciada',
+            'destinatario_nombre' => 'María Helena Mejía',
+            'destinatario_cargo' => 'Coordinadora de Reclutamiento',
+            'solicitud_lugar' => 'Choluteca',
             'nombre_jefe_directo' => 'Jefe Test',
             'cargo_jefe_directo' => 'Jefe de Recursos Humanos',
             'nombre_docente_supervisor' => 'Docente Test',

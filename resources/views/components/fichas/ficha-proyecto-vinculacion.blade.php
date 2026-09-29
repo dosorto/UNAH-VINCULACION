@@ -1271,9 +1271,15 @@
                     $asistentesTecnicosHombres = $contarIntegrantes($esAsistenteTecnico, 'masculino');
                     $asistentesTecnicosMujeres = $contarIntegrantes($esAsistenteTecnico, 'femenino');
 
-                    if ($esVoluntariado) {
-                        // Ítem 15 del FORM-DVUS-015: cantidades capturadas en el formulario, no
-                        // derivadas del ítem 12 (que solo admite docentes permanentes).
+                    // Voluntariado de personal e internacional (ítems 13-14 del 001, 15-16 del 015):
+                    // se usan las cantidades capturadas en el formulario. Los proyectos 001 anteriores
+                    // a esa captura tienen todas las columnas en null y conservan el cálculo previo.
+                    $usaColumnasVoluntariado = $esVoluntariado || collect(\App\Models\Proyecto\Proyecto::columnasVoluntariadoParticipacion())
+                        ->contains(fn ($columna) => $proyecto->{$columna} !== null);
+
+                    if ($usaColumnasVoluntariado) {
+                        // Cantidades capturadas en el formulario, no derivadas del equipo docente
+                        // (que solo admite docentes permanentes).
                         $docentesXHoraHombres = (int) $proyecto->vol_profesores_hora_hombres;
                         $docentesXHoraMujeres = (int) $proyecto->vol_profesores_hora_mujeres;
                         $administrativosHombres = (int) $proyecto->vol_personal_administrativo_hombres;
@@ -1371,9 +1377,9 @@
                                 })->count();
                             };
 
-                            if ($esVoluntariado) {
-                                // Ítem 16 del FORM-DVUS-015: cantidades capturadas en el formulario, no
-                                // derivadas del equipo de cooperación internacional (ítem 13).
+                            if ($usaColumnasVoluntariado) {
+                                // Cantidades capturadas en el formulario, no derivadas de los
+                                // docentes internacionales / equipo de cooperación internacional.
                                 $columnasVoluntariadoInternacional = [
                                     'Estudiante de grado' => 'vol_int_grado',
                                     'Maestría' => 'vol_int_maestria',
@@ -2533,7 +2539,7 @@
                     </table>
                     
                     <div class="documents-note">
-                        <p><strong>Nota:</strong> El documento 1 o el documento 2 (cualquiera de los dos) es obligatorio. El documento 3 es obligatorio.</p>
+                        <p><strong>Nota:</strong> El documento 1 o el documento 2 es obligatorio. El documento 3 es obligatorio.</p>
                     </div>
                 </div>
 

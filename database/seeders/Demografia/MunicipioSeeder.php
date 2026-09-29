@@ -4,7 +4,9 @@ namespace Database\Seeders\Demografia;
 
 use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Municipio;
+use App\Models\Demografia\Pais;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class MunicipioSeeder extends Seeder
 {
@@ -13,8 +15,16 @@ class MunicipioSeeder extends Seeder
      */
     public function run(): void
     {
-        // Obtén los departamentos
-        $departamentos = Departamento::all()->keyBy('nombre');
+        $honduras = Pais::where('codigo_iso', 'HND')->first();
+
+        if (! $honduras) {
+            echo "El país Honduras no se encontró en la base de datos.\n";
+
+            return;
+        }
+
+        // Solo Honduras: otros países también tienen departamentos como La Paz o Colón.
+        $departamentos = Departamento::where('pais_id', $honduras->id)->get()->keyBy('nombre');
 
         // Lista de municipios por departamento
         $municipios = [
@@ -336,23 +346,21 @@ class MunicipioSeeder extends Seeder
                 'Caridad',
                 'Goascorán',
                 'Langue',
-                'San Francisco de La Paz',
-                'Santa María del Real',
-                'Tocoa',
+                'San Francisco de Coray',
+                'San Lorenzo',
             ],
             'Yoro' => [
                 'Yoro',
+                'Arenal',
+                'El Negrito',
                 'El Progreso',
-                'Atima',
-                'Cuyamel',
-                'Dulce Nombre de Culmí',
+                'Jocón',
                 'Morazán',
                 'Olanchito',
-                'San Francisco de Yoro',
-                'San Juan de Flores',
-                'San Nicolás',
                 'Santa Rita',
-                'Yoro',
+                'Sulaco',
+                'Victoria',
+                'Yorito',
             ],
         ];
 
@@ -369,6 +377,47 @@ class MunicipioSeeder extends Seeder
                 }
             } else {
                 echo "El departamento {$nombreDepartamento} no se encontró en la base de datos.\n";
+            }
+        }
+
+        $this->retirarMunicipiosMalUbicados($departamentos);
+    }
+
+    /**
+     * Versiones anteriores de este seeder cargaron en Valle y Yoro municipios de otros departamentos
+     * (o que no son municipios). Se eliminan si nada los referencia; si están en uso se conservan.
+     */
+    private function retirarMunicipiosMalUbicados($departamentos): void
+    {
+        $malUbicados = [
+            'Valle' => ['San Francisco de La Paz', 'Santa María del Real', 'Tocoa'],
+            'Yoro' => ['Atima', 'Cuyamel', 'Dulce Nombre de Culmí', 'San Francisco de Yoro', 'San Juan de Flores', 'San Nicolás'],
+        ];
+
+        $referencias = [
+            'proyecto_municipio', 'servicio_municipio', 'inf_final_municipio', 'informe_final_proyectos',
+            'enf_lugares_ejecucion', 'aldea', 'ciudad',
+        ];
+
+        foreach ($malUbicados as $nombreDepartamento => $nombres) {
+            $departamento = $departamentos->get($nombreDepartamento);
+
+            if (! $departamento) {
+                continue;
+            }
+
+            $municipios = Municipio::where('departamento_id', $departamento->id)->whereIn('nombre', $nombres)->get();
+
+            foreach ($municipios as $municipio) {
+                $enUso = collect($referencias)->contains(
+                    fn (string $tabla) => DB::table($tabla)->where('municipio_id', $municipio->id)->exists()
+                );
+
+                if ($enUso) {
+                    echo "El municipio {$municipio->nombre} ({$nombreDepartamento}) está en uso; revíselo manualmente.\n";
+                } else {
+                    $municipio->delete();
+                }
             }
         }
     }

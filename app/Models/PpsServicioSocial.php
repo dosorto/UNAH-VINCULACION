@@ -75,6 +75,11 @@ class PpsServicioSocial extends Model
         'correo_rrhh',
         'tipo_institucion',
         'sector_institucion',
+        'destinatario_tratamiento',
+        'destinatario_nombre',
+        'destinatario_cargo',
+        'solicitud_lugar',
+        'solicitud_firmante_cargo',
         'nombre_jefe_directo',
         'celular_jefe_directo',
         'correo_jefe_directo',
@@ -92,6 +97,7 @@ class PpsServicioSocial extends Model
         'archivo_carta_formalizacion',
         'adjunta_convenio_marco',
         'archivo_convenio_marco',
+        'pps_institucion_id',
         'created_by',
         'updated_by',
         'enviado_por',
@@ -121,6 +127,12 @@ class PpsServicioSocial extends Model
     public function etapaActual(): BelongsTo
     {
         return $this->belongsTo(FlujoAprobacionEtapa::class, 'etapa_actual_id');
+    }
+
+    /** Institución del catálogo; los campos *_institucion del registro guardan la copia para el PDF. */
+    public function institucion(): BelongsTo
+    {
+        return $this->belongsTo(PpsInstitucion::class, 'pps_institucion_id');
     }
 
     public function documentosGenerados(): HasMany

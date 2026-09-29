@@ -5,7 +5,7 @@
         :rol="$ambito->rolActivo"
         :ambito="$ambito->etiqueta">
         <x-slot:acciones>
-            @can('docente.proyectos')
+            @can('docente.trazabilidad')
                 <a href="{{ route('SolicitudProyectosDocente') }}" wire:navigate
                     class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-primary-900 transition hover:bg-amber-300">
                     @svg('heroicon-o-inbox-arrow-down', ['class' => 'h-4 w-4'])
@@ -69,7 +69,7 @@
 
                 <x-dashboard.lista-pendientes :items="$pendientes"
                     vacio="No tienes nada pendiente de revisar"
-                    :verTodosHref="auth()->user()?->can('docente.proyectos') ? route('SolicitudProyectosDocente') : null"
+                    :verTodosHref="auth()->user()?->can('docente.trazabilidad') ? route('SolicitudProyectosDocente') : null"
                     verTodosTexto="Ver la bandeja completa" />
 
                 <x-slot:pie>
