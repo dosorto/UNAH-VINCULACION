@@ -6,8 +6,8 @@ contenido de las celdas destinadas a datos y conserva los recursos, estilos,
 anchos, altos, encabezados, pies, marca de agua y saltos del DOCX.
 
 `FormDvus018DocumentService` crea un DOCX en un directorio temporal único,
-convierte con LibreOffice headless, valida que el resultado sea un PDF Carta de
-11 páginas y elimina el DOCX y el perfil temporal. El PDF final se cachea por la
+convierte con LibreOffice headless, valida el PDF sin exigir una cantidad fija de
+páginas y elimina el DOCX y el perfil temporal. El PDF final se cachea por la
 huella SHA-256 de la plantilla y de los datos. Por eso las rutas `Ver` y
 `Descargar` usan exactamente los mismos bytes; sólo cambia
 `Content-Disposition`.

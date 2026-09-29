@@ -24,12 +24,12 @@ class PasantiaIntegrationTest extends TestCase
     {
         $view = file_get_contents(base_path('resources/views/livewire/proyectos/vinculacion/show-pasantia.blade.php'));
 
-        foreach (['FORM-DVUS-013', 'Enviar a revisión', 'Enviar a subsanación', 'Historial de movimientos', 'Documentos generados', 'Anexos'] as $texto) {
+        foreach (['FORM-DVUS-013', 'Descargar PDF', 'Continuar editando', 'Historial de movimientos', 'Progreso del flujo', 'Sin enviar'] as $texto) {
             $this->assertStringContainsString($texto, $view);
         }
 
-        foreach (['enviarRevision', 'aprobar', 'abrirModalSubsanacion', 'iniciarSubsanacion'] as $accion) {
-            $this->assertStringContainsString($accion, $view);
+        foreach (['Documentos generados', 'Ver / descargar anexo', '>Nuevo registro<', '>Eliminar<'] as $texto) {
+            $this->assertStringNotContainsString($texto, $view);
         }
 
         $editor = file_get_contents(base_path('resources/views/livewire/proyectos/vinculacion/create-pasantia.blade.php'));

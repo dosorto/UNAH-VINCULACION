@@ -238,38 +238,49 @@ class ProyectoLegacyWorkflowAdoptionTest extends TestCase
         $this->assertSame(2, $cicloDos->first()->revision_ciclo);
     }
 
-    public function test_borrador_solo_fija_el_flujo_y_la_adopcion_no_puede_duplicarse(): void
+    public function test_no_adapta_proyectos_sin_envio_aunque_se_fuerce_el_modo(): void
     {
         Mail::fake();
-        $contexto = $this->crearContexto(2, null, 'Autoguardado', false, false);
         $service = app(ProyectoLegacyWorkflowAdoptionService::class);
-
-        $adopcion = $service->adoptar(
-            $contexto['proyecto'],
-            $contexto['flujo'],
-            ProyectoLegacyWorkflowAdoptionService::MODO_BORRADOR,
-            null,
-            [],
-            $contexto['actor']
-        );
-
-        $this->assertSame(ProyectoLegacyWorkflowAdoptionService::MODO_BORRADOR, $adopcion->modo);
-        $this->assertNull($adopcion->etapa_inicio_id);
-        $this->assertSame($contexto['flujo']->id, $contexto['proyecto']->fresh()->flujo_aprobacion_id);
-        $this->assertSame(0, $contexto['proyecto']->firma_proyecto()->count());
+        foreach (['Borrador', 'Autoguardado', 'PendienteInformacion', 'Pendiente informacion', ''] as $estado) {
+            $contexto = $this->crearContexto(2, null, $estado, false, false);
+            $proyecto = $contexto['proyecto'];
+            $this->assertFalse($service->permiteAdaptacion($proyecto));
+            foreach ([ProyectoLegacyWorkflowAdoptionService::MODO_BORRADOR, ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION] as $modo) {
+                try {
+                    $service->adoptar($proyecto, $contexto['flujo'], $modo, null, [], $contexto['actor']);
+                    $this->fail('No debe adaptar un expediente sin envío.');
+                } catch (\RuntimeException $exception) {
+                    $this->assertStringContainsString('no han sido enviados', $exception->getMessage());
+                }
+                $this->assertNull($proyecto->fresh()->flujo_aprobacion_id);
+                $this->assertFalse($proyecto->adopcionFlujoLegacy()->exists());
+                $this->assertSame(0, $proyecto->firma_proyecto()->count());
+            }
+        }
         Mail::assertNothingQueued();
+    }
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('ya fue adoptado');
-
-        $service->adoptar(
-            $contexto['proyecto']->fresh(),
-            $contexto['flujo'],
-            ProyectoLegacyWorkflowAdoptionService::MODO_BORRADOR,
-            null,
-            [],
-            $contexto['actor']
-        );
+    public function test_borrador_no_muestra_adaptar_y_rechaza_apertura_y_guardado_directos(): void
+    {
+        $contexto = $this->crearContexto(2, null, 'Autoguardado', false, false);
+        $rol = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $rol->givePermissionTo(Permission::firstOrCreate(['name' => 'proyectos.historial', 'guard_name' => 'web']));
+        $contexto['actor']->assignRole($rol);
+        $proyecto = $contexto['proyecto'];
+        $proyecto->update(['nombre_proyecto' => 'Borrador sin adopción '.uniqid()]);
+        Livewire::actingAs($contexto['actor'])->test(ListProyectosVinculacion::class)
+            ->set('search', $proyecto->nombre_proyecto)
+            ->assertDontSee($proyecto->nombre_proyecto)
+            ->assertDontSee('Adaptar flujo')
+            ->call('openFlowModal', $proyecto->id)->assertForbidden();
+        Livewire::actingAs($contexto['actor'])->test(ListProyectosVinculacion::class)
+            ->set('flowProyectoId', $proyecto->id)
+            ->set('flowSelectedId', $contexto['flujo']->id)
+            ->set('flowAdoptionMode', ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION)
+            ->call('saveFlow');
+        $this->assertNull($proyecto->fresh()->flujo_aprobacion_id);
+        $this->assertFalse($proyecto->adopcionFlujoLegacy()->exists());
     }
 
     public function test_detecta_la_primera_etapa_no_aprobada_por_la_secuencia_legacy(): void

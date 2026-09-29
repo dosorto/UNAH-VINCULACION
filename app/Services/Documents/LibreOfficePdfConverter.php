@@ -6,14 +6,17 @@ use RuntimeException;
 use Symfony\Component\Process\Process;
 
 /**
- * Convierte un DOCX llenado desde una plantilla a PDF con LibreOffice sin interfaz. Es la
- * herramienta de los documentos que se muestran en el visor de PDF (FORM-DVUS-018, solicitud
- * de práctica PPS): el PDF queda igual a la plantilla de Word.
+ * Convierte un DOCX llenado desde una plantilla a PDF con LibreOffice sin interfaz. La usan los
+ * documentos que se muestran en el visor de PDF (FORM-DVUS-013, FORM-DVUS-018 y la solicitud de
+ * práctica PPS): el PDF queda igual a la plantilla de Word.
  */
 class LibreOfficePdfConverter
 {
-    /** Devuelve la ruta del PDF creado en $outputDirectory con el mismo nombre del DOCX. */
-    public function convert(string $docxPath, string $outputDirectory, string $documento): string
+    /**
+     * Devuelve la ruta del PDF creado en $directory con el mismo nombre del DOCX. $documento solo
+     * nombra el documento en los mensajes de error.
+     */
+    public function convert(string $source, string $directory, string $documento = 'el documento'): string
     {
         $binary = $this->resolveExecutable(
             (string) config('documents.libreoffice_binary'),
@@ -23,21 +26,35 @@ class LibreOfficePdfConverter
             throw new RuntimeException('LibreOffice no está disponible. Configure LIBREOFFICE_BINARY con la ruta de libreoffice o soffice.');
         }
 
-        $profileDirectory = $outputDirectory.'/libreoffice-profile';
-        if (! is_dir($profileDirectory) && ! mkdir($profileDirectory, 0775, true) && ! is_dir($profileDirectory)) {
-            throw new RuntimeException("No se pudo crear el directorio {$profileDirectory}.");
+        $profile = $directory.'/profile-'.bin2hex(random_bytes(8));
+        $config = $profile.'/config';
+        $cache = $profile.'/cache';
+        $runtime = $profile.'/runtime';
+
+        foreach ([$profile, $config, $cache, $runtime] as $path) {
+            if (! is_dir($path) && ! mkdir($path, 0700, true) && ! is_dir($path)) {
+                throw new RuntimeException('No se pudo preparar el perfil temporal de LibreOffice.');
+            }
         }
-        $profileUri = 'file://'.str_replace('%2F', '/', rawurlencode($profileDirectory));
+
+        // LibreOffice mantiene estado en HOME/XDG incluso cuando recibe
+        // UserInstallation. Aislarlos evita que un perfil heredado, bloqueado
+        // o dañado interrumpa la conversión de documentos de NEXO.
+        $environment = [
+            'HOME' => $profile,
+            'XDG_CONFIG_HOME' => $config,
+            'XDG_CACHE_HOME' => $cache,
+            'XDG_RUNTIME_DIR' => $runtime,
+        ];
+
         $process = new Process([
             $binary,
-            '-env:UserInstallation='.$profileUri,
+            '-env:UserInstallation=file://'.str_replace('%2F', '/', rawurlencode($profile)),
             '--headless',
-            '--convert-to',
-            'pdf:writer_pdf_Export',
-            '--outdir',
-            $outputDirectory,
-            $docxPath,
-        ]);
+            '--convert-to', 'pdf:writer_pdf_Export',
+            '--outdir', $directory,
+            $source,
+        ], $directory, $environment);
         $process->setTimeout(180);
         $process->run();
 
@@ -45,12 +62,12 @@ class LibreOfficePdfConverter
             throw new RuntimeException("LibreOffice no pudo convertir {$documento}: ".trim($process->getErrorOutput() ?: $process->getOutput()));
         }
 
-        $pdfPath = $outputDirectory.'/'.pathinfo($docxPath, PATHINFO_FILENAME).'.pdf';
-        if (! $this->isValidPdf($pdfPath)) {
-            throw new RuntimeException("LibreOffice finalizó sin crear un PDF válido de {$documento}.");
+        $pdf = $directory.'/'.pathinfo($source, PATHINFO_FILENAME).'.pdf';
+        if (! $this->isValidPdf($pdf)) {
+            throw new RuntimeException("LibreOffice no generó un PDF válido de {$documento}.");
         }
 
-        return $pdfPath;
+        return $pdf;
     }
 
     public function isValidPdf(string $path): bool

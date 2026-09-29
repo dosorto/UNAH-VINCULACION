@@ -121,6 +121,8 @@ class ListProyectosVinculacion extends Component
         $this->authorizeWorkflowAdministration();
         $this->flowProyectoId = $id;
         $proyecto = Proyecto::with('adopcionFlujoLegacy')->findOrFail($id);
+        abort_unless($proyecto->adopcionFlujoLegacy
+            || app(ProyectoLegacyWorkflowAdoptionService::class)->permiteAdaptacion($proyecto), 403);
         $this->flowSelectedId = $proyecto?->flujo_aprobacion_id
             ?? FlujoAprobacion::defaultForProyectos($proyecto?->tipo_accion_id, $proyecto?->codigoFormularioFlujo())?->id
             ?? FlujoAprobacion::defaultForProyectos($proyecto?->tipo_accion_id)?->id
@@ -212,6 +214,9 @@ class ListProyectosVinculacion extends Component
         $service = app(ProyectoLegacyWorkflowAdoptionService::class);
 
         try {
+            if (! $service->permiteAdaptacion($proyecto)) {
+                throw new \RuntimeException('No se pueden adaptar proyectos que no han sido enviados a revisión.');
+            }
             if ($service->requiereAdopcion($proyecto)) {
                 $this->validate([
                     'flowAdoptionMode' => ['required', Rule::in(array_keys($service->modos()))],
@@ -363,7 +368,7 @@ class ListProyectosVinculacion extends Component
                 $query->select('estadoable_id')
                     ->from('estado_proyecto')
                     ->where('estadoable_type', Proyecto::class)
-                    ->whereIn('tipo_estado_id', TipoEstado::whereIn('nombre', ['Borrador'])->pluck('id')->toArray())
+                    ->whereIn('tipo_estado_id', TipoEstado::whereIn('nombre', ProyectoLegacyWorkflowAdoptionService::ESTADOS_SIN_ENVIO)->pluck('id')->toArray())
                     ->where('es_actual', true);
             })
             ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
@@ -453,6 +458,7 @@ class ListProyectosVinculacion extends Component
                     'fecha' => $proyecto->fecha_inicio,
                     'sort_date' => $proyecto->created_at,
                     'flujo_adoptado' => $proyecto->adopcionFlujoLegacy !== null,
+                    'permite_adaptacion' => app(ProyectoLegacyWorkflowAdoptionService::class)->permiteAdaptacion($proyecto),
                     'flujo_iniciado' => $proyecto->firma_proyecto()
                         ->whereNotNull('flujo_aprobacion_etapa_id')
                         ->exists(),

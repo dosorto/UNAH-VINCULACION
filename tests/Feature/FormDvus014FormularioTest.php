@@ -423,8 +423,8 @@ class FormDvus014FormularioTest extends TestCase
 
         // Sin categoría ni departamento en el expediente, se eligen de sus catálogos con buscador.
         $this->assertNotContains('docente_categoria', $campos);
-        $formulario->assertSeeHtml('wire:key="searchable-select-docente_categoria-')
-            ->assertSeeHtml('wire:key="searchable-select-docente_departamento-')
+        $formulario->assertSeeHtml("entangle('docente_categoria')")
+            ->assertSeeHtml("entangle('docente_departamento')")
             ->assertViewHas('categoriasDocente', fn ($opciones) => $opciones->isNotEmpty() && $opciones->keys()->all() === $opciones->values()->all())
             ->assertViewHas('departamentosDocente', fn ($opciones) => $opciones->count() === $opciones->unique()->count());
         $categoria = \App\Models\Personal\CategoriaEmpleado::query()->value('nombre');

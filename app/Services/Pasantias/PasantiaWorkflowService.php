@@ -45,6 +45,7 @@ class PasantiaWorkflowService
             if (! $firma) throw new RuntimeException('No se pudo determinar la etapa inicial.');
             $actor = User::find($userId)?->empleado;
             if (! $actor) throw new RuntimeException('El usuario no tiene un empleado activo asociado.');
+            $this->registrarFirmaDelCreador($registro, $actor);
             $tipo = $firma->cargo_firma()->value('tipo_estado_id') ?: TipoEstado::where('nombre', 'Enviado')->value('id');
             if (! $tipo) throw new RuntimeException('No existe estado para iniciar revisión.');
             $registro->agregarEstado($actor, $tipo, $rejected ? 'Reenvío posterior a subsanación.' : 'Registro enviado a revisión.');
@@ -82,6 +83,44 @@ class PasantiaWorkflowService
     }
 
     public function aprobar(Pasantia $registro, int $userId): Pasantia { return $this->resolverFirma($registro, $userId, 'Aprobado'); }
+
+    private function registrarFirmaDelCreador(Pasantia $registro, \App\Models\Personal\Empleado $empleado): void
+    {
+        if ($empleado->trashed() || (int) $empleado->user_id !== (int) $registro->created_by) {
+            throw new RuntimeException('La firma inicial debe corresponder al empleado que creó la pasantía.');
+        }
+
+        // Como en Desarrollo Local, la firma del emisor es independiente
+        // de las etapas configuradas y se registra dentro del envío atómico.
+        $cargo = CargoFirma::query()->where('descripcion', 'Proyecto')
+            ->whereHas('tipoCargoFirma', fn ($query) => $query->where('nombre', 'Coordinador Proyecto'))
+            ->orderBy('id')->first();
+        if (! $cargo) {
+            throw new RuntimeException('No se encontró el cargo de firma del coordinador configurado para proyectos.');
+        }
+
+        $empleado->loadMissing(['firma', 'sello']);
+        $firma = $registro->firmasDeEtapa()->firstOrCreate([
+            'cargo_firma_id' => $cargo->id,
+            'flujo_aprobacion_etapa_id' => null,
+            'tipo_firma' => 'proyecto',
+        ], [
+            'empleado_id' => $empleado->id,
+            'responsable_usuario_id' => $empleado->user_id,
+            'estado_revision' => 'Aprobado',
+            'firma_id' => $empleado->firma?->id,
+            'sello_id' => $empleado->sello?->id,
+            'fecha_firma' => now(),
+            'hash' => 'hash',
+        ]);
+
+        if ($firma->wasRecentlyCreated) {
+            $registro->forceFill([
+                'nombre_firma_coordinador' => $empleado->nombre_completo,
+                'firma_coordinador' => $empleado->firma?->ruta_storage,
+            ])->saveQuietly();
+        }
+    }
 
     public function rechazar(Pasantia $registro, int $userId, string $comentario): Pasantia
     {
@@ -124,7 +163,12 @@ class PasantiaWorkflowService
             }
             $firma = $this->firmaParaUsuario($registro, $userId); $actor = User::find($userId)?->empleado;
             if (! $actor) throw new RuntimeException('El revisor no tiene un empleado activo asociado.');
-            $firma->update(['estado_revision' => $estado, 'fecha_firma' => now()]);
+            $firma->update([
+                'estado_revision' => $estado,
+                'fecha_firma' => now(),
+                'firma_id' => $actor->firma?->id,
+                'sello_id' => $actor->sello?->id,
+            ]);
             $next = $registro->siguienteFirmaDeEtapa($firma);
             if ($next) { $registro->forceFill(['etapa_actual_id' => $next->flujo_aprobacion_etapa_id])->saveQuietly(); $tipo = $next->cargo_firma()->value('tipo_estado_id'); $comentario = 'Registro avanzado a la siguiente etapa.'; }
             else {
@@ -156,9 +200,9 @@ class PasantiaWorkflowService
             'fecha_finalizacion' => 'fecha de finalización', 'duracion_semanas' => 'duración en semanas',
             'total_horas' => 'total de horas', 'horas_semanales' => 'promedio de horas semanales',
             'pasantia_obligatoria' => 'reconocimiento de la pasantía', 'otorga_creditos' => 'otorgamiento de créditos',
-            'modalidad_ejecucion' => 'modalidad de ejecución', 'descripcion_experiencia' => 'experiencia y resultados',
-            'descripcion_cargo' => 'descripción del cargo', 'resumen_responsabilidades' => 'responsabilidades y tareas',
-            'area_departamento' => 'área o departamento', 'area_conocimiento' => 'área de conocimiento',
+            'modalidad_ejecucion' => 'modalidad de ejecución',
+            'resumen_responsabilidades' => 'responsabilidades y tareas',
+            'area_departamento' => 'área o departamento',
             'descripcion_conocimientos_teoricos' => 'conocimientos teóricos', 'habilidades_desarrollar' => 'habilidades',
             'pasantia_remunerada' => 'compensación', 'nombre_institucion' => 'institución',
             'direccion_institucion' => 'dirección de la institución', 'ciudad_institucion' => 'ciudad',

@@ -448,17 +448,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/pasantias/{id}', ShowPasantia::class)
             ->name('pasantias.show')
             ->middleware('permission:docente.crear-proyecto|docente.proyectos|proyectos.historial');
-        Route::get('/pasantias/{id}/pdf', function (int $id) {
-            $registro = \App\Models\Pasantia::findOrFail($id);
-            abort_unless($registro->created_by === auth()->id()
-                || auth()->user()?->can('proyectos.historial')
-                || auth()->user()?->can('docente.proyectos')
-                || $registro->usuarioPuedeRevisar(auth()->user()), 403);
-            $tipo = request()->query('tipo', 'formulario');
-            abort_unless(in_array($tipo, ['formulario', 'solicitud_practica', 'autorizacion_pps'], true), 404);
-            $doc = $registro->documentosGenerados()->where('tipo', $tipo)->latest('version')->firstOrFail();
-            return response()->download(storage_path('app/'.$doc->archivo), $doc->nombre_original);
-        })->name('pasantias.pdf')->middleware('permission:docente.crear-proyecto|docente.proyectos|proyectos.historial');
+        Route::get('/pasantias/{id}/pdf', [\App\Http\Controllers\PasantiaDocumentController::class, 'pdf'])
+            ->name('pasantias.pdf')->middleware('permission:docente.crear-proyecto|docente.proyectos|proyectos.historial');
+        Route::get('/pasantias/{id}/anexo/{tipo}', [\App\Http\Controllers\PasantiaDocumentController::class, 'attachment'])
+            ->name('pasantias.anexo')->middleware('permission:docente.crear-proyecto|docente.proyectos|proyectos.historial');
 
         Route::get('/pps-servicio-social', function () {
             $activeRole = auth()->user()?->activeRole;

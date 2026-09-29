@@ -23,6 +23,12 @@ final class ProyectoLegacyWorkflowAdoptionService
 {
     public const MODO_BORRADOR = 'BORRADOR';
 
+    public const ESTADOS_SIN_ENVIO = [
+        'Borrador', 'Autoguardado', 'PendienteInformacion',
+        'Pendiente informacion', 'Pendiente información', 'Pendiente_informacion',
+        'Pendiente de informacion', 'Pendiente de información',
+    ];
+
     public const MODO_EN_REVISION = 'EN_REVISION';
 
     public const MODO_SUBSANACION = 'SUBSANACION';
@@ -30,6 +36,13 @@ final class ProyectoLegacyWorkflowAdoptionService
     public const MODO_COMPLETADO = 'COMPLETADO';
 
     public function __construct(private readonly WorkflowResumptionPolicy $resumptionPolicy) {}
+
+    public function permiteAdaptacion(Proyecto $proyecto): bool
+    {
+        $estado = $proyecto->estado?->tipoestado?->nombre;
+
+        return filled($estado) && $this->modoSugerido($estado) !== self::MODO_BORRADOR;
+    }
 
     public function requiereAdopcion(Proyecto $proyecto): bool
     {
@@ -72,6 +85,10 @@ final class ProyectoLegacyWorkflowAdoptionService
             ? $etapaSugerida
             : null;
         $bloqueos = collect();
+
+        if (! $this->permiteAdaptacion($proyecto)) {
+            $bloqueos->push('No se pueden adaptar proyectos que no han sido enviados a revisión. El borrador utilizará el flujo configurado al enviarse.');
+        }
 
         if ($proyecto->adopcionFlujoLegacy) {
             $bloqueos->push('Este proyecto ya fue adoptado por un flujo configurable.');
@@ -426,6 +443,10 @@ final class ProyectoLegacyWorkflowAdoptionService
     {
         $actualizado = DB::transaction(function () use ($proyecto, $flujo): Proyecto {
             $proyectoBloqueado = Proyecto::query()->whereKey($proyecto->id)->lockForUpdate()->firstOrFail();
+
+            if (! $this->permiteAdaptacion($proyectoBloqueado)) {
+                throw new \RuntimeException('No se pueden adaptar proyectos que no han sido enviados a revisión.');
+            }
 
             if ($this->tieneRevisionesConfigurables($proyectoBloqueado)) {
                 throw new \RuntimeException('No se puede cambiar el flujo porque el proyecto ya inició una revisión.');
@@ -867,7 +888,7 @@ final class ProyectoLegacyWorkflowAdoptionService
             return self::MODO_SUBSANACION;
         }
 
-        if (in_array($estado, ['BORRADOR', 'AUTOGUARDADO', 'PENDIENTEINFORMACION', 'PENDIENTE_INFORMACION'], true)) {
+        if (in_array($estado, array_map(fn (string $nombre): string => $this->normalizar($nombre), self::ESTADOS_SIN_ENVIO), true)) {
             return self::MODO_BORRADOR;
         }
 

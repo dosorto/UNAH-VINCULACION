@@ -62,6 +62,80 @@ class DocxTemplateEditor
         return $row + 1;
     }
 
+    public function setCellImage(int $table, int $row, int $cell, string $path): self
+    {
+        $size = @getimagesize($path);
+        if (! $size || ! in_array($size['mime'], ['image/png', 'image/jpeg', 'image/webp'], true)) {
+            throw new RuntimeException('La firma debe ser una imagen PNG, JPEG o WebP válida.');
+        }
+
+        // WebP es válido para la web, pero no es un formato de imagen portable
+        // dentro de DOCX. Se normaliza a PNG solo en el directorio temporal de
+        // generación, sin alterar el archivo de firma almacenado por el usuario.
+        if ($size['mime'] === 'image/webp') {
+            if (! function_exists('imagecreatefromwebp') || ! function_exists('imagepng')) {
+                throw new RuntimeException('El servidor no tiene soporte para convertir firmas WebP a PNG.');
+            }
+
+            $source = @imagecreatefromwebp($path);
+            if (! $source) {
+                throw new RuntimeException('No se pudo leer la firma WebP.');
+            }
+
+            $path = dirname($this->path).'/signature-'.bin2hex(random_bytes(8)).'.png';
+            imagealphablending($source, false);
+            imagesavealpha($source, true);
+            $saved = imagepng($source, $path);
+            imagedestroy($source);
+
+            if (! $saved) {
+                throw new RuntimeException('No se pudo convertir la firma WebP a PNG.');
+            }
+
+            $size = @getimagesize($path);
+        }
+
+        $extension = $size['mime'] === 'image/png' ? 'png' : 'jpg';
+        $id = 'signature'.bin2hex(random_bytes(8));
+        $name = $id.'.'.$extension;
+        $rels = new DOMDocument;
+        $rels->loadXML($this->readEntry('word/_rels/document.xml.rels'), LIBXML_NONET);
+        $relation = $rels->createElementNS('http://schemas.openxmlformats.org/package/2006/relationships', 'Relationship');
+        $relation->setAttribute('Id', $id);
+        $relation->setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
+        $relation->setAttribute('Target', 'media/'.$name);
+        $rels->documentElement->appendChild($relation);
+        $types = new DOMDocument;
+        $types->loadXML($this->readEntry('[Content_Types].xml'), LIBXML_NONET);
+        $type = $types->createElementNS('http://schemas.openxmlformats.org/package/2006/content-types', 'Override');
+        $type->setAttribute('PartName', '/word/media/'.$name);
+        $type->setAttribute('ContentType', $size['mime']);
+        $types->documentElement->appendChild($type);
+        $zip = new ZipArchive;
+        if ($zip->open($this->path) !== true) throw new RuntimeException('No se pudo insertar la firma en el documento.');
+        $zip->addFile($path, 'word/media/'.$name);
+        $zip->addFromString('word/_rels/document.xml.rels', $rels->saveXML());
+        $zip->addFromString('[Content_Types].xml', $types->saveXML());
+        $zip->close();
+
+        $target = $this->cell($table, $row, $cell);
+        $paragraph = $this->child($target, 'p', false);
+        $run = $this->document->createElementNS(self::WORD_NS, 'w:r');
+        $pict = $this->document->createElementNS(self::WORD_NS, 'w:pict');
+        $shape = $this->document->createElementNS('urn:schemas-microsoft-com:vml', 'v:shape');
+        $scale = min(120 / $size[0], 40 / $size[1]);
+        $shape->setAttribute('id', $id);
+        $shape->setAttribute('type', '#_x0000_t75');
+        $shape->setAttribute('style', 'width:'.round($size[0] * $scale, 2).'pt;height:'.round($size[1] * $scale, 2).'pt');
+        $image = $this->document->createElementNS('urn:schemas-microsoft-com:vml', 'v:imagedata');
+        $image->setAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'r:id', $id);
+        $shape->appendChild($image);
+        $pict->appendChild($shape);
+        $run->appendChild($pict);
+        $paragraph->appendChild($run);
+        return $this;
+    }
+
     /**
      * Replaces {{name}} markers in the edited part. Word may split a marker across several
      * runs when the template is edited, so each paragraph is read as a whole and the value is

@@ -129,7 +129,7 @@ printf 'call\n' >> "__COUNTER__"
 printf '%%PDF-1.7\n%% FORM-DVUS-018 deterministic test payload %0150d\n%%%%EOF\n' 1 > "$out/FORM-DVUS-018.pdf"
 SH);
         file_put_contents($libreOffice, str_replace('__COUNTER__', $counter, file_get_contents($libreOffice)));
-        file_put_contents($pdfInfo, "#!/bin/sh\nprintf 'Pages:          11\\n'\n");
+        file_put_contents($pdfInfo, "#!/bin/sh\nprintf 'Pages:          12\\n'\n");
         chmod($libreOffice, 0755);
         chmod($pdfInfo, 0755);
         config()->set('documents.libreoffice_binary', $libreOffice);

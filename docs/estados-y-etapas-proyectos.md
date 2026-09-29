@@ -2,6 +2,32 @@
 
 Fecha de documentación: 22 de septiembre de 2026.
 
+### Actualización del 23 de septiembre: excluir expedientes sin envío de la adaptación
+
+El historial administrativo excluía solo el valor literal `Borrador`, mientras
+la presentación mostraba también `Autoguardado` como Borrador. Por eso podían
+aparecer expedientes sin envío con la acción Adaptar flujo.
+
+Se centralizaron los estados previos al envío (`Borrador`, `Autoguardado` y
+las variantes de `PendienteInformacion`) y se excluyen de este listado.
+La acción de adaptación también comprueba la elegibilidad. El servidor bloquea
+abrir el modal, guardar y adoptar directamente estos expedientes, incluso si
+se intenta forzar el modo En revisión. Los expedientes sin estado tampoco
+pueden iniciar una adopción.
+
+El modo histórico BORRADOR se conserva como dato de auditoría, pero ya no
+permite nuevas adopciones de borradores. No se eliminan proyectos, firmas ni
+adopciones anteriores. Los proyectos enviados, incluidos los de subsanación,
+mantienen su diagnóstico y sus comprobaciones de adaptación. Los borradores
+siguen su creación y envío normales desde el área docente.
+
+La validación focalizada incluye bloqueo sin modificaciones de datos,
+ocultamiento del Autoguardado en el listado, llamadas directas al modal y
+guardado, y ambos recorridos completos (nuevo y legacy) hasta Finalizado.
+Para ejecutar estos últimos se aplicó únicamente en `vinculacion_testing` la
+migración preexistente pendiente
+`2026_09_22_000001_make_informe_final_contraparte_aportes_nullable.php`.
+
 La auditoría posterior, con dos recorridos continuos hasta Finalizado y una
 ejecución conjunta de 387 pruebas (381 aprobadas y 6 fallidas), está registrada
 en [Pruebas de flujos desde cero](pruebas-flujos-desde-cero-2026-09-22.md).

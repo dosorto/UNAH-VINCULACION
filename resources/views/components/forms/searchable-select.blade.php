@@ -1,106 +1,114 @@
 @props([
+    'model' => null,
     'options' => [],
-    'placeholder' => 'Buscar o seleccionar...',
-    'emptyText' => 'Sin resultados.',
+    'selected' => null,
     'disabled' => false,
-    // Valor al quitar la selección: null para ids; '' para campos de texto.
+    'label' => 'Seleccionar opción',
+    'placeholder' => null,
+    'emptyText' => 'No se encontraron opciones.',
+    // Valor al quitar la selección: null para ids; '' para propiedades de texto (no aceptan null).
     'emptyValue' => null,
 ])
 
 @php
-    // Acepta [id => etiqueta] o [['id' => ..., 'label' => ...], ...].
-    $normalized = collect($options)->map(function ($value, $key) {
+    // Admite tanto :model="'form.campo'" como wire:model.live="campo".
+    $wireModel = $model ?: $attributes->wire('model')->value();
+
+    if (blank($wireModel)) {
+        throw new InvalidArgumentException('El componente searchable-select requiere model o wire:model.');
+    }
+
+    // Admite [id => etiqueta] y listas de objetos con id/label/nombre.
+    $items = collect($options)->map(function ($value, $key) {
         if (is_array($value)) {
-            return ['id' => (string) ($value['id'] ?? $key), 'label' => (string) ($value['label'] ?? $value['nombre'] ?? '')];
+            return [
+                'id' => (string) ($value['id'] ?? $key),
+                'label' => (string) ($value['label'] ?? $value['nombre'] ?? $value['text'] ?? ''),
+            ];
         }
 
         return ['id' => (string) $key, 'label' => (string) $value];
     })->values()->all();
 
-    $wireModel = $attributes->wire('model')->value();
-    // Las opciones viven en x-data: si cambian (otro país, otro departamento) el componente se recrea.
-    $componentKey = 'searchable-select-'.$wireModel.'-'.md5(json_encode($normalized).($disabled ? '1' : '0'));
+    $componentKey = 'searchable-select-'.md5(
+        $wireModel.json_encode($items).json_encode($selected).(int) $disabled
+    );
 @endphp
 
-{{-- Selección única con el mismo diseño que los selectores con búsqueda del registro de proyectos. --}}
-<div
-    wire:key="{{ $componentKey }}"
+<div wire:key="{{ $componentKey }}" class="relative" x-id="['selector', 'opciones']"
     x-data="{
         open: false,
         search: '',
+        active: -1,
         disabled: @js((bool) $disabled),
-        options: @js($normalized),
+        options: @js($items),
         selected: @entangle($wireModel).live,
         normalize(value) {
-            return String(value ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+            return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
         },
-        selectedOption() {
-            return this.options.find(option => option.id === String(this.selected ?? ''));
-        },
-        filteredOptions() {
+        get filtered() {
             const term = this.normalize(this.search.trim());
             return term ? this.options.filter(option => this.normalize(option.label).includes(term)) : this.options;
         },
-        openList() {
-            if (this.disabled) return;
+        get selectedOption() {
+            return this.options.find(option => option.id === String(this.selected ?? ''));
+        },
+        get selectedText() {
+            return this.selectedOption?.label || '';
+        },
+        show() {
+            if (this.disabled || this.open) return;
             this.open = true;
-            this.$nextTick(() => this.$refs.search?.focus());
+            this.search = '';
+            this.active = -1;
         },
         close() {
             this.open = false;
             this.search = '';
+            this.active = -1;
         },
-        choose(option) {
-            this.selected = option.id;
-            this.close();
+        move(direction) {
+            if (!this.open) this.show();
+            if (!this.filtered.length) return;
+            this.active = (this.active + direction + this.filtered.length) % this.filtered.length;
+            this.$nextTick(() => this.$refs.list?.querySelectorAll('[role=option]')[this.active]?.scrollIntoView({ block: 'nearest' }));
         },
-        clear() {
-            this.selected = @js($emptyValue);
+        choose(value) {
+            this.selected = value || @js($emptyValue);
             this.close();
         },
     }"
-    @click.outside="close()"
-    class="relative"
->
-    <div
-        @click="openList()"
-        class="min-h-[42px] w-full rounded-md border px-3 py-2 flex flex-wrap gap-1.5 items-center transition"
-        :class="disabled
-            ? 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/60 cursor-not-allowed'
-            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-text focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'"
-    >
-        <span x-show="selectedOption() && search === ''" class="truncate text-sm text-gray-900 dark:text-white" x-text="selectedOption()?.label"></span>
-        <input
-            x-ref="search"
-            x-model="search"
-            @focus="openList()"
-            @keydown.escape="close()"
-            @keydown.enter.prevent="filteredOptions().length && choose(filteredOptions()[0])"
-            :disabled="disabled"
-            :placeholder="selectedOption() ? '' : @js($placeholder)"
-            class="min-w-[120px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 disabled:cursor-not-allowed disabled:text-gray-500 dark:text-white"
-            type="text"
-        />
-        <button type="button" x-show="selectedOption() && !disabled" @click.stop="clear()" class="font-bold leading-none text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" title="Quitar selección">×</button>
-        <span class="ml-auto text-gray-400 text-xs" x-text="open && !disabled ? '▴' : '▾'"></span>
+    x-on:click.outside="close()" x-on:keydown.escape.stop.prevent="close()"
+    x-on:focusout="if (!$el.contains($event.relatedTarget)) close()">
+    <div class="relative">
+        <input x-ref="search" type="text" autocomplete="off" :disabled="disabled"
+            x-bind:value="open ? search : selectedText"
+            x-on:focus="show()" x-on:click="show()"
+            x-on:input="search = $event.target.value; open = true; active = -1"
+            placeholder="{{ $placeholder ?? 'Buscar o seleccionar '.mb_strtolower($label).'...' }}"
+            aria-label="Buscar: {{ $label }}" role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
+            x-bind:aria-expanded="open" x-bind:aria-controls="$id('opciones')"
+            x-bind:aria-activedescendant="active >= 0 ? $id('selector') + '-' + active : null"
+            x-on:keydown.arrow-down.prevent="move(1)" x-on:keydown.arrow-up.prevent="move(-1)"
+            x-on:keydown.enter.prevent="if (open && active >= 0 && filtered[active]) choose(filtered[active].id)"
+            class="w-full rounded-lg border border-gray-300 bg-white py-3 pl-3 pr-14 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+        <button x-cloak x-show="selected !== null && selected !== ''" type="button" :disabled="disabled"
+            x-on:click="choose(null)" aria-label="Quitar selección: {{ $label }}"
+            class="absolute inset-y-0 right-7 px-1 text-gray-400 hover:text-gray-700 focus:text-blue-600 disabled:hidden dark:hover:text-gray-200">&times;</button>
+        <svg class="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" x-bind:class="open ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M6 8l4 4 4-4H6z"/></svg>
     </div>
-    <div
-        x-show="open && !disabled"
-        x-cloak
-        class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-56 overflow-y-auto"
-    >
-        <template x-if="filteredOptions().length === 0">
-            <div class="px-3 py-2 text-sm text-gray-500">{{ $emptyText }}</div>
-        </template>
-        <template x-for="option in filteredOptions()" :key="option.id">
-            <div
-                @click="choose(option)"
-                class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between gap-3"
-                :class="selectedOption()?.id === option.id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium' : 'text-gray-700 dark:text-gray-300'"
-            >
-                <span x-text="option.label"></span>
-                <span x-show="selectedOption()?.id === option.id" class="text-blue-600 dark:text-blue-300 text-xs">✓</span>
+    <div x-cloak x-show="open" class="absolute z-[70] mt-1 w-full overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800">
+        <div role="listbox" x-bind:id="$id('opciones')" aria-label="{{ $label }}" class="max-h-64 overflow-y-auto">
+            <div x-ref="list">
+                <template x-for="(option, index) in filtered" :key="option.id">
+                    <button type="button" tabindex="-1" role="option" x-bind:id="$id('selector') + '-' + index" x-bind:aria-selected="String(selected ?? '') === option.id"
+                        x-on:mousedown.prevent x-on:click="choose(option.id)" x-on:mouseenter="active = index"
+                        class="block w-full px-3 py-3 text-left text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        x-bind:class="active === index || String(selected ?? '') === option.id ? 'bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-200' : 'text-gray-900 dark:text-gray-100'"
+                        x-text="option.label"></button>
+                </template>
             </div>
-        </template>
+            <p x-show="filtered.length === 0" role="status" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">{{ $emptyText }}</p>
+        </div>
     </div>
 </div>

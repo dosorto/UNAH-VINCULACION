@@ -15,6 +15,7 @@ return [
         '/opt/homebrew/bin/pdfinfo',
         '/usr/local/bin/pdfinfo',
     ],
+    'form_dvus_013_template' => storage_path('app/templates/form-dvus-013.docx'),
     'form_dvus_018_template' => storage_path('app/templates/form-dvus-018.docx'),
     'form_dvus_018_expected_pages' => 11,
     'solicitud_practica_pps_template' => storage_path('app/templates/solicitud-practica-pps.docx'),

@@ -4,22 +4,112 @@ namespace Tests\Feature;
 
 use App\Livewire\Proyectos\Vinculacion\CreatePasantia;
 use App\Livewire\Proyectos\Vinculacion\EditPasantia;
-use App\Models\Pasantia;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Estado\TipoEstado;
+use App\Models\Pasantia;
 use App\Models\User;
 use App\Services\Integraciones\IntegracionApiService;
 use App\Services\Pasantias\PasantiaWorkflowService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 class PasantiaLivewireTest extends TestCase
 {
     use DatabaseTransactions;
+
+    public function test_siguiente_exige_campos_obligatorios_en_cada_seccion(): void
+    {
+        foreach ([1 => 'numero_cuenta', 2 => 'tipo_pasantia', 3 => 'resumen_responsabilidades',
+            4 => 'nombre_institucion', 5 => 'nombre_contacto_directo', 6 => 'numero_empleado_docente'] as $paso => $campo) {
+            Livewire::test(CreatePasantia::class)
+                ->set('pasoActual', $paso)
+                ->call('siguiente')
+                ->assertSet('pasoActual', $paso)
+                ->assertHasErrors(['form.'.$campo => 'required']);
+        }
+    }
+
+    public function test_siguiente_exige_creditos_y_remuneracion_solo_si_aplican(): void
+    {
+        foreach ([2 => ['otorga_creditos', 'cantidad_creditos'], 3 => ['pasantia_remunerada', 'monto_remuneracion']] as $paso => [$respuesta, $cantidad]) {
+            $componente = Livewire::test(CreatePasantia::class)
+                ->set('autoguardadoActivo', false)
+                ->set('pasoActual', $paso)
+                ->set('form.'.$respuesta, 'Sí')
+                ->call('siguiente')
+                ->assertHasErrors(['form.'.$cantidad => 'required']);
+
+            $componente->set('form.'.$respuesta, 'No')
+                ->call('siguiente')
+                ->assertHasNoErrors('form.'.$cantidad);
+        }
+    }
+
+    public function test_muestra_catalogos_y_opciones_del_documento_oficial(): void
+    {
+        Livewire::test(CreatePasantia::class)
+            ->assertSeeHtml('aria-label="Buscar: Escuela / departamento académico"')
+            ->set('pasoActual', 4)
+            ->assertSeeHtml('aria-label="Buscar: País"')
+            ->assertSee('Gobierno Municipal')
+            ->assertSee('Agricultura, alimentación y silvicultura');
+    }
+
+    public function test_selecciona_varias_asignaturas_sin_duplicados_y_recarga_el_borrador(): void
+    {
+        $primera = \App\Models\Asignatura::create(['codigo' => 'TEST-013-A', 'nombre' => 'Asignatura de prueba A', 'activa' => true]);
+        $segunda = \App\Models\Asignatura::create(['codigo' => 'TEST-013-B', 'nombre' => 'Asignatura de prueba B', 'activa' => true]);
+        $componente = Livewire::test(CreatePasantia::class)
+            ->set('pasoActual', 3)
+            ->call('agregarAsignatura', $primera->id)
+            ->call('agregarAsignatura', $segunda->id)
+            ->call('agregarAsignatura', $primera->id);
+        $id = $componente->get('registroId');
+        $this->assertCount(2, Pasantia::findOrFail($id)->asignaturas);
+        Livewire::test(EditPasantia::class, ['id' => $id])
+            ->assertSet('form.asignaturas.1.codigo', 'TEST-013-B')
+            ->call('quitarAsignatura', 0)
+            ->assertSet('form.asignaturas.0.codigo', 'TEST-013-B');
+        $this->assertCount(1, Pasantia::findOrFail($id)->asignaturas);
+    }
+
+    public function test_busca_asignaturas_por_codigo_o_nombre_sin_carrera(): void
+    {
+        $asignatura = \App\Models\Asignatura::create(['codigo' => 'TEST-BUSQUEDA-013', 'nombre' => 'Materia global de prueba', 'activa' => true]);
+        Livewire::test(CreatePasantia::class)
+            ->set('pasoActual', 3)
+            ->assertViewHas('catalogoAsignaturas', fn ($items) => $items->isEmpty())
+            ->set('busquedaAsignatura', 'TEST-BUSQUEDA-013')
+            ->assertViewHas('catalogoAsignaturas', fn ($items) => $items->contains('id', $asignatura->id))
+            ->set('busquedaAsignatura', 'Materia global de prueba')
+            ->assertViewHas('catalogoAsignaturas', fn ($items) => $items->contains('id', $asignatura->id))
+            ->set('busquedaAsignatura', 'SIN-COINCIDENCIA-013')
+            ->assertViewHas('catalogoAsignaturas', fn ($items) => $items->isEmpty());
+    }
+
+    public function test_crea_asignatura_global_y_evita_duplicados_por_codigo(): void
+    {
+        $componente = Livewire::test(CreatePasantia::class)
+            ->set('autoguardadoActivo', false)
+            ->set('nuevaAsignaturaCodigo', ' test-alta-013 ')
+            ->set('nuevaAsignaturaNombre', 'Materia nueva')
+            ->call('crearAsignatura')
+            ->assertHasNoErrors()
+            ->assertSet('form.asignaturas.0.codigo', 'TEST-ALTA-013');
+        $this->assertDatabaseHas('asignaturas', ['codigo' => 'TEST-ALTA-013', 'carrera_id' => null]);
+
+        $componente->set('nuevaAsignaturaCodigo', 'test-alta-013')
+            ->set('nuevaAsignaturaNombre', 'Nombre distinto')
+            ->call('crearAsignatura')
+            ->assertHasErrors('nuevaAsignaturaCodigo')
+            ->assertSet('busquedaAsignatura', 'TEST-ALTA-013');
+        $this->assertSame(1, \App\Models\Asignatura::where('codigo', 'TEST-ALTA-013')->count());
+        $this->assertDatabaseHas('asignaturas', ['codigo' => 'TEST-ALTA-013', 'nombre' => 'Materia nueva']);
+    }
 
     public function test_puede_crear_borrador_vacio_y_conservar_nulos(): void
     {
@@ -244,7 +334,7 @@ class PasantiaLivewireTest extends TestCase
         $this->assertSame('Adjuntos', CreatePasantia::PASOS[8]);
 
         Livewire::test(CreatePasantia::class)
-            ->call('irAPaso', 8)
+            ->call('irAPaso', 7)
             ->assertSet('pasoActual', 1);
     }
 
@@ -308,7 +398,7 @@ class PasantiaLivewireTest extends TestCase
     public function test_bloquea_salto_a_paso_posterior_y_muestra_errores_del_anterior(): void
     {
         Livewire::test(CreatePasantia::class)
-            ->call('irAPaso', 8)
+            ->call('irAPaso', 7)
             ->assertSet('pasoActual', 1)
             ->assertHasErrors([
                 'form.facultad_centro',
@@ -318,18 +408,10 @@ class PasantiaLivewireTest extends TestCase
             ]);
     }
 
-    public function test_puede_avanzar_desde_firmas_sin_reglas_de_validacion(): void
-    {
-        Livewire::test(CreatePasantia::class)
-            ->set('pasoActual', 7)
-            ->call('siguiente')
-            ->assertSet('pasoActual', 8);
-    }
-
     public function test_el_ultimo_paso_valida_completitud_antes_de_abrir_el_envio(): void
     {
         $componente = Livewire::test(CreatePasantia::class)
-            ->set('pasoActual', 8)
+            ->set('pasoActual', 7)
             ->call('siguiente');
 
         $this->assertNotNull($componente->get('registroId'));
@@ -532,8 +614,8 @@ class PasantiaLivewireTest extends TestCase
             ->assertSet('form.celular_estudiante', null)
             ->assertSet('form.horas_semanales', null)
             ->assertSet('form.nombre_asignatura', null)
-            ->assertSet('form.descripcion_experiencia', null)
-            ->assertSet('form.area_conocimiento', null)
+            ->assertSet('form.descripcion_experiencia', 'Descripción de la experiencia y resultados')
+            ->assertSet('form.area_conocimiento', 'Representante legal')
             ->assertSet('form.nombre_institucion', null)
             ->assertSet('form.ciudad_institucion', null)
             ->assertSet('form.representante_legal', null)
@@ -543,8 +625,6 @@ class PasantiaLivewireTest extends TestCase
                 'form.celular_estudiante',
                 'form.horas_semanales',
                 'form.nombre_asignatura',
-                'form.descripcion_experiencia',
-                'form.area_conocimiento',
                 'form.nombre_institucion',
                 'form.ciudad_institucion',
                 'form.representante_legal',
@@ -556,8 +636,8 @@ class PasantiaLivewireTest extends TestCase
         $this->assertNull($registro->celular_estudiante);
         $this->assertNull($registro->horas_semanales);
         $this->assertNull($registro->nombre_asignatura);
-        $this->assertNull($registro->descripcion_experiencia);
-        $this->assertNull($registro->area_conocimiento);
+        $this->assertSame('Descripción de la experiencia y resultados', $registro->descripcion_experiencia);
+        $this->assertSame('Representante legal', $registro->area_conocimiento);
         $this->assertNull($registro->nombre_institucion);
         $this->assertNull($registro->ciudad_institucion);
         $this->assertNull($registro->representante_legal);
@@ -643,7 +723,7 @@ class PasantiaLivewireTest extends TestCase
 
     public function test_rechazo_exige_comentario(): void
     {
-        $registro = new Pasantia();
+        $registro = new Pasantia;
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('obligatorio');
         app(PasantiaWorkflowService::class)->rechazar($registro, 1, '   ');
@@ -693,8 +773,8 @@ class PasantiaLivewireTest extends TestCase
     {
         $usuario = User::factory()->make(['id' => 77]);
         $registro = new Pasantia(['created_by' => $usuario->id]);
-        $estadoActual = new EstadoProyecto();
-        $tipoEstado = new TipoEstado();
+        $estadoActual = new EstadoProyecto;
+        $tipoEstado = new TipoEstado;
         $tipoEstado->nombre = $estado;
         $estadoActual->setRelation('tipoestado', $tipoEstado);
         $registro->setRelation('estadoActual', $estadoActual);

@@ -204,6 +204,7 @@
                                         <button wire:click="openFirmas({{ $record->id }})"
                                                 class="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Firmas</button>
                                     @endif
+                                    @if(($row['flujo_adoptado'] ?? false) || ($row['permite_adaptacion'] ?? false))
                                     <button wire:click="openFlowModal({{ $record->id }})"
                                             class="px-3 py-1.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg">
                                         @if($row['flujo_adoptado'] ?? false)
@@ -214,6 +215,7 @@
                                             Adaptar flujo
                                         @endif
                                     </button>
+                                    @endif
                                 @endif
                             </div>
                         </td>
