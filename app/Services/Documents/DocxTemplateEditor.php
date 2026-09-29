@@ -58,9 +58,36 @@ class DocxTemplateEditor
     public function setCellImage(int $table, int $row, int $cell, string $path): self
     {
         $size = @getimagesize($path);
-        if (! $size || ! in_array($size['mime'], ['image/png', 'image/jpeg'], true)) {
-            throw new RuntimeException('La firma debe ser una imagen PNG o JPEG válida.');
+        if (! $size || ! in_array($size['mime'], ['image/png', 'image/jpeg', 'image/webp'], true)) {
+            throw new RuntimeException('La firma debe ser una imagen PNG, JPEG o WebP válida.');
         }
+
+        // WebP es válido para la web, pero no es un formato de imagen portable
+        // dentro de DOCX. Se normaliza a PNG solo en el directorio temporal de
+        // generación, sin alterar el archivo de firma almacenado por el usuario.
+        if ($size['mime'] === 'image/webp') {
+            if (! function_exists('imagecreatefromwebp') || ! function_exists('imagepng')) {
+                throw new RuntimeException('El servidor no tiene soporte para convertir firmas WebP a PNG.');
+            }
+
+            $source = @imagecreatefromwebp($path);
+            if (! $source) {
+                throw new RuntimeException('No se pudo leer la firma WebP.');
+            }
+
+            $path = dirname($this->path).'/signature-'.bin2hex(random_bytes(8)).'.png';
+            imagealphablending($source, false);
+            imagesavealpha($source, true);
+            $saved = imagepng($source, $path);
+            imagedestroy($source);
+
+            if (! $saved) {
+                throw new RuntimeException('No se pudo convertir la firma WebP a PNG.');
+            }
+
+            $size = @getimagesize($path);
+        }
+
         $extension = $size['mime'] === 'image/png' ? 'png' : 'jpg';
         $id = 'signature'.bin2hex(random_bytes(8));
         $name = $id.'.'.$extension;
