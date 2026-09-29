@@ -11,9 +11,6 @@
         $asterisco = '<span class="text-red-500">*</span>';
         $modoEdicion = $modoEdicion ?? false;
         $registroEdicion = $registroEdicion ?? null;
-        $fechaRegistroVisible = ($modoEdicion && $registroEdicion?->created_at)
-            ? $registroEdicion->created_at->format('d/m/Y H:i')
-            : now()->format('d/m/Y');
         $esRevisor = method_exists($this, 'esEdicionRevisor') && $this->esEdicionRevisor();
         $nacional = $territorio_ejecucion !== 'Internacional';
         $aplicaPresencial = $this->aplicaPresencial();
@@ -110,18 +107,14 @@
 
     <form wire:submit.prevent="guardar" wire:input.debounce.1500ms="autoGuardarBorrador" wire:change="autoGuardarBorrador" class="rounded-lg bg-white p-6 shadow dark:bg-gray-900">
 
-        {{-- ══════════════ PASO 1: Información general (I, ítems 9 y 10) ══════════════ --}}
+        {{-- ══════════════ PASO 1: Estudiante y práctica (I, II, ítems 9 y 10) ══════════════ --}}
         @if($currentStep === 1)
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 1: Información general</h2>
-            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Unidad académica y datos básicos de la práctica.</p>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 1: Estudiante y práctica</h2>
+            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Unidad académica, tipo de práctica y datos del estudiante.</p>
 
             <div class="space-y-8">
                 <section class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div>
-                        <label class="{{ $labelClass }}">Fecha de registro</label>
-                        <input type="text" value="{{ $fechaRegistroVisible }}" readonly class="{{ $readonlyClass }}">
-                    </div>
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-3">
                         <label class="{{ $labelClass }}">Facultad / Centro Universitario Regional / Instituto Tecnológico {!! $asterisco !!}</label>
                         <select wire:model.live="facultad_centro_id" class="{{ $inputClass }}">
                             <option value="">Seleccione...</option>
@@ -167,65 +160,63 @@
                         @error('total_horas') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
                 </section>
-            </div>
-        @endif
 
-        {{-- ══════════════ PASO 2: Estudiante (II) ══════════════ --}}
-        @if($currentStep === 2)
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 2: Datos del estudiante</h2>
-            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Busque al estudiante por su número de cuenta y complete sus datos de contacto.</p>
+                <section>
+                    <h3 class="{{ $sectionTitle }}">Estudiante</h3>
+                    <p class="{{ $hintClass }} mb-3">Búsquelo por su número de cuenta y complete sus datos de contacto.</p>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div class="md:col-span-2">
+                            <label class="{{ $labelClass }}">Número de cuenta {!! $asterisco !!}</label>
+                            <div x-data="{ cuenta: @js($numero_cuenta) }" class="flex max-w-md gap-2">
+                                <input type="text" inputmode="numeric" wire:model.blur="numero_cuenta" wire:blur="limpiarErrorBusquedaEstudiante" x-model="cuenta" class="{{ $inputClass }}">
+                                <button type="button" x-cloak x-show="cuenta.trim().length > 0"
+                                        wire:click="buscarEstudiante" wire:loading.attr="disabled" wire:target="buscarEstudiante"
+                                        class="shrink-0 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                                    <span wire:loading.remove wire:target="buscarEstudiante">Buscar</span>
+                                    <span wire:loading wire:target="buscarEstudiante">Buscando…</span>
+                                </button>
+                            </div>
+                            @if($estudianteConsultado)
+                                <p class="mt-1 text-xs text-green-700 dark:text-green-400">✓ Nombre y correo institucional obtenidos del registro estudiantil.</p>
+                            @else
+                                <p class="{{ $hintClass }}">Con «Buscar» se completan el nombre y el correo institucional. Si el servicio no responde, escríbalos.</p>
+                            @endif
+                            @error('numero_cuenta') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div class="md:col-span-2">
-                    <label class="{{ $labelClass }}">Número de cuenta {!! $asterisco !!}</label>
-                    <div x-data="{ cuenta: @js($numero_cuenta) }" class="flex max-w-md gap-2">
-                        <input type="text" inputmode="numeric" wire:model.blur="numero_cuenta" wire:blur="limpiarErrorBusquedaEstudiante" x-model="cuenta" class="{{ $inputClass }}">
-                        <button type="button" x-cloak x-show="cuenta.trim().length > 0"
-                                wire:click="buscarEstudiante" wire:loading.attr="disabled" wire:target="buscarEstudiante"
-                                class="shrink-0 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
-                            <span wire:loading.remove wire:target="buscarEstudiante">Buscar</span>
-                            <span wire:loading wire:target="buscarEstudiante">Buscando…</span>
-                        </button>
+                        <div class="md:col-span-2">
+                            <label class="{{ $labelClass }}">Nombre completo {!! $asterisco !!}</label>
+                            <input type="text" wire:model="estudiante_nombre_completo" class="{{ $inputClass }}">
+                            <p class="{{ $hintClass }}">Exactamente como aparece en la tarjeta de identidad.</p>
+                            @error('estudiante_nombre_completo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $labelClass }}">Número de celular {!! $asterisco !!}</label>
+                            <input type="tel" wire:model="estudiante_celular" class="{{ $inputClass }}">
+                            @error('estudiante_celular') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $labelClass }}">Correo electrónico institucional {!! $asterisco !!}</label>
+                            <input type="email" wire:model="estudiante_correo_institucional" class="{{ $inputClass }}">
+                            @error('estudiante_correo_institucional') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $labelClass }}">Correo electrónico personal {!! $asterisco !!}</label>
+                            <input type="email" wire:model="estudiante_correo_personal" class="{{ $inputClass }}">
+                            @error('estudiante_correo_personal') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
                     </div>
-                    @if($estudianteConsultado)
-                        <p class="mt-1 text-xs text-green-700 dark:text-green-400">✓ Nombre y correo institucional obtenidos del registro estudiantil.</p>
-                    @else
-                        <p class="{{ $hintClass }}">Con «Buscar» se completan el nombre y el correo institucional. Si el servicio no responde, escríbalos.</p>
-                    @endif
-                    @error('numero_cuenta') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                </div>
-
-                <div class="md:col-span-2">
-                    <label class="{{ $labelClass }}">Nombre completo {!! $asterisco !!}</label>
-                    <input type="text" wire:model="estudiante_nombre_completo" class="{{ $inputClass }}">
-                    <p class="{{ $hintClass }}">Exactamente como aparece en la tarjeta de identidad.</p>
-                    @error('estudiante_nombre_completo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                </div>
-
-                <div>
-                    <label class="{{ $labelClass }}">Número de celular {!! $asterisco !!}</label>
-                    <input type="tel" wire:model="estudiante_celular" class="{{ $inputClass }}">
-                    @error('estudiante_celular') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                </div>
-
-                <div>
-                    <label class="{{ $labelClass }}">Correo electrónico institucional {!! $asterisco !!}</label>
-                    <input type="email" wire:model="estudiante_correo_institucional" class="{{ $inputClass }}">
-                    @error('estudiante_correo_institucional') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                </div>
-
-                <div>
-                    <label class="{{ $labelClass }}">Correo electrónico personal {!! $asterisco !!}</label>
-                    <input type="email" wire:model="estudiante_correo_personal" class="{{ $inputClass }}">
-                    @error('estudiante_correo_personal') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                </div>
+                </section>
             </div>
         @endif
 
-        {{-- ══════════════ PASO 3: Institución, destinatario y modalidad (VI e ítem 12) ══════════════ --}}
-        @if($currentStep === 3)
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 3: Institución, destinatario y modalidad</h2>
-            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">A quién se dirige la solicitud de práctica y en qué modalidad se realizará.</p>
+        {{-- ══════════════ PASO 2: Institución y solicitud de práctica (VI e ítem 12) ══════════════ --}}
+        @if($currentStep === 2)
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 2: Institución y solicitud de práctica</h2>
+            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Elija la institución, a quién va dirigida la carta y la modalidad; luego genere la solicitud de práctica.</p>
 
             <div class="space-y-8">
                 <section>
@@ -418,45 +409,26 @@
                     </div>
                     @error('modalidad_ejecucion') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                 </section>
-            </div>
-        @endif
 
-        {{-- ══════════════ PASO 4: Solicitud de práctica ══════════════ --}}
-        @if($currentStep === 4)
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 4: Solicitud de práctica</h2>
-            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Genere la carta para la institución y envíesela. Con su respuesta (funciones, fecha tentativa de inicio, horario y jefe inmediato) complete los pasos siguientes.</p>
-
-            <div class="space-y-6">
-                <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                        <label class="{{ $labelClass }}">Lugar de emisión {!! $asterisco !!}</label>
-                        <input type="text" wire:model="solicitud_lugar" maxlength="255" class="{{ $inputClass }}" placeholder="Ej.: Choluteca">
-                        <p class="{{ $hintClass }}">Aparece junto a la fecha de la carta.</p>
-                        @error('solicitud_lugar') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                <section class="rounded-lg border border-blue-200 p-4 dark:border-blue-900">
+                    <h3 class="{{ $sectionTitle }}">Solicitud de práctica</h3>
+                    <p class="{{ $hintClass }} mb-4">Se genera con los datos del paso 1 y de esta página. Envíela a la institución y, con su respuesta, continúe con el paso 3. Si cambia algún dato, genere una nueva versión.</p>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="{{ $labelClass }}">Lugar de emisión {!! $asterisco !!}</label>
+                            <input type="text" wire:model="solicitud_lugar" maxlength="255" class="{{ $inputClass }}" placeholder="Ej.: Choluteca">
+                            <p class="{{ $hintClass }}">Aparece junto a la fecha de la carta.</p>
+                            @error('solicitud_lugar') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <p class="{{ $labelClass }}">Firma</p>
+                            <p class="text-sm text-gray-900 dark:text-gray-100">{{ auth()->user()?->empleado?->nombre_completo ?? 'Quien llena el formulario' }}</p>
+                            <p class="{{ $hintClass }}">{{ \App\Services\PpsServicioSocial\PpsDocumentoGenerator::cargoFirmante(auth()->user()?->empleado?->sexo) }}, como coordinador que registra la práctica.</p>
+                            <p class="{{ $hintClass }}">{{ $firmaRegistrada ? 'La carta lleva su firma registrada.' : 'No tiene firma registrada: la carta queda con el espacio para firmar a mano.' }}</p>
+                        </div>
                     </div>
-                    <div>
-                        <label class="{{ $labelClass }}">Cargo de quien firma {!! $asterisco !!}</label>
-                        <input type="text" wire:model="solicitud_firmante_cargo" maxlength="255" class="{{ $inputClass }}" placeholder="Ej.: Coordinador Académico">
-                        <p class="{{ $hintClass }}">La solicitud la firma {{ auth()->user()?->empleado?->nombre_completo ?? 'quien llena el formulario' }}.</p>
-                        @error('solicitud_firmante_cargo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                    </div>
-                </section>
 
-                <section class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                    <h3 class="{{ $sectionTitle }}">Contenido de la solicitud</h3>
-                    <dl class="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-                        <div><dt class="text-xs text-gray-500">Dirigida a</dt><dd class="text-gray-900 dark:text-gray-100">{{ trim($destinatario_tratamiento.' '.$destinatario_nombre) ?: 'Sin completar' }}</dd></div>
-                        <div><dt class="text-xs text-gray-500">Cargo e institución</dt><dd class="text-gray-900 dark:text-gray-100">{{ collect([$destinatario_cargo, $institucion_nombre])->filter()->implode(' · ') ?: 'Sin completar' }}</dd></div>
-                        <div><dt class="text-xs text-gray-500">Estudiante</dt><dd class="text-gray-900 dark:text-gray-100">{{ collect([$estudiante_nombre_completo, $numero_cuenta])->filter()->implode(' · ') ?: 'Sin completar' }}</dd></div>
-                        <div><dt class="text-xs text-gray-500">Carrera</dt><dd class="text-gray-900 dark:text-gray-100">{{ $carreras[$carrera_id] ?? 'Sin completar' }}</dd></div>
-                        <div><dt class="text-xs text-gray-500">Horas</dt><dd class="text-gray-900 dark:text-gray-100">{{ filled($total_horas) ? $total_horas.' horas' : 'Sin completar' }}</dd></div>
-                        <div><dt class="text-xs text-gray-500">Modalidad</dt><dd class="text-gray-900 dark:text-gray-100">{{ $modalidadOpciones[$modalidadElegida] ?? 'Sin completar' }}</dd></div>
-                    </dl>
-                    <p class="{{ $hintClass }} mt-3">Para corregir estos datos vuelva a los pasos 1 a 3.</p>
-                </section>
-
-                <section>
-                    <div class="flex flex-wrap items-center gap-3">
+                    <div class="mt-4 flex flex-wrap items-center gap-3">
                         <button type="button" wire:click="generarSolicitud" wire:loading.attr="disabled" wire:target="generarSolicitud"
                             class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
                             <span wire:loading.remove wire:target="generarSolicitud">{{ $solicitudesGeneradas->isEmpty() ? 'Generar solicitud' : 'Generar nueva versión' }}</span>
@@ -469,25 +441,30 @@
                     @error('solicitud') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
 
                     @if($solicitudesGeneradas->isNotEmpty())
-                        <ul class="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200 dark:divide-gray-700 dark:border-gray-700">
+                        @php $solicitudVisible = $solicitudesGeneradas->firstWhere('id', $solicitudVisibleId) ?? $solicitudesGeneradas->first(); @endphp
+                        <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
+                            <span class="text-gray-500 dark:text-gray-400">Versiones:</span>
                             @foreach($solicitudesGeneradas as $documento)
-                                <li wire:key="solicitud-{{ $documento->id }}" class="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
-                                    <span class="text-gray-900 dark:text-gray-100">Solicitud de práctica · v{{ $documento->version }}
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $documento->generado_en?->format('d/m/Y H:i') }}</span>
-                                    </span>
-                                    <a href="{{ route('pps-servicio-social.documento-generado', $documento) }}" class="text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">Descargar PDF</a>
-                                </li>
+                                <button type="button" wire:key="version-solicitud-{{ $documento->id }}" wire:click="$set('solicitudVisibleId', {{ $documento->id }})"
+                                    class="rounded-full px-3 py-1 font-medium {{ $documento->id === $solicitudVisible->id ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700' }}">
+                                    v{{ $documento->version }} · {{ $documento->generado_en?->format('d/m/Y H:i') }}
+                                </button>
                             @endforeach
-                        </ul>
+                        </div>
+                        {{-- Visor del navegador, como el del FORM-DVUS-018: permite ver, imprimir y descargar. --}}
+                        <iframe wire:key="visor-solicitud-{{ $solicitudVisible->id }}"
+                            src="{{ route('pps-servicio-social.documento-generado', ['documento' => $solicitudVisible, 'ver' => 1]) }}"
+                            title="Solicitud de práctica v{{ $solicitudVisible->version }}"
+                            class="mt-3 block min-h-[85vh] w-full rounded-lg border border-gray-200 bg-white dark:border-gray-700"></iframe>
                     @endif
                 </section>
             </div>
         @endif
 
-        {{-- ══════════════ PASO 5: Fechas y alcance (ítem 10 y V) ══════════════ --}}
-        @if($currentStep === 5)
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 5: Fechas y alcance</h2>
-            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Según la respuesta de la institución: cuándo se realiza la práctica y qué hará el estudiante.</p>
+        {{-- ══════════════ PASO 3: Respuesta de la institución (ítems 10 y 11, V) ══════════════ --}}
+        @if($currentStep === 3)
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 3: Respuesta de la institución</h2>
+            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Complete con lo que respondió la institución a la solicitud: fechas, funciones del puesto y jefe inmediato.</p>
 
             <div class="space-y-8">
                 <section>
@@ -541,12 +518,49 @@
                         @error('resumen_responsabilidades') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
                 </section>
+
+                <section>
+                    <h3 class="{{ $sectionTitle }}">Jefe inmediato (jefe directo de la PPS / SS)</h3>
+                    <p class="{{ $hintClass }} mb-3">Persona de la institución que supervisa al estudiante.</p>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div class="md:col-span-2">
+                            <label class="{{ $labelClass }}">Nombre completo {!! $asterisco !!}</label>
+                            <input type="text" wire:model="jefe_directo_nombre" class="{{ $inputClass }}">
+                            @error('jefe_directo_nombre') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Número de celular {!! $asterisco !!}</label>
+                            <input type="tel" wire:model="jefe_directo_celular" class="{{ $inputClass }}">
+                            @error('jefe_directo_celular') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Correo electrónico {!! $asterisco !!}</label>
+                            <input type="email" wire:model="jefe_directo_correo" class="{{ $inputClass }}">
+                            @error('jefe_directo_correo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Cargo {!! $asterisco !!}</label>
+                            <input type="text" wire:model="jefe_directo_cargo" class="{{ $inputClass }}">
+                            @error('jefe_directo_cargo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Grado académico {!! $asterisco !!}</label>
+                            <select wire:model="jefe_directo_grado" class="{{ $inputClass }}">
+                                <option value="">Seleccione...</option>
+                                @foreach($this::GRADO_ACADEMICO_JEFE_DIRECTO_OPCIONES as $grado)
+                                    <option value="{{ $grado }}">{{ $grado }}</option>
+                                @endforeach
+                            </select>
+                            @error('jefe_directo_grado') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                </section>
             </div>
         @endif
 
-        {{-- ══════════════ PASO 6: Ubicación y jornada (ítem 12 y IV) ══════════════ --}}
-        @if($currentStep === 6)
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 6: Ubicación y jornada</h2>
+        {{-- ══════════════ PASO 4: Ubicación y jornada (ítem 12 y IV) ══════════════ --}}
+        @if($currentStep === 4)
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 4: Ubicación y jornada</h2>
             <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Dónde y cómo se realiza la práctica. Se piden solo los datos de la modalidad elegida.</p>
 
             <div class="space-y-8">
@@ -564,12 +578,12 @@
                         @error('territorio_ejecucion') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
                     <p class="text-sm text-gray-600 dark:text-gray-300">Modalidad: <strong>{{ $modalidadOpciones[$modalidadElegida] ?? 'sin elegir' }}</strong>
-                        <button type="button" wire:click="goToStep(3)" class="ml-1 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">Cambiar en el paso 3</button>
+                        <button type="button" wire:click="goToStep(2)" class="ml-1 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">Cambiar en el paso 2</button>
                     </p>
                 </section>
 
                 @if($modalidadElegida === '')
-                    <p class="rounded-md border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500 dark:border-gray-600">Elija la modalidad en el paso 3 para completar la ubicación de la práctica.</p>
+                    <p class="rounded-md border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500 dark:border-gray-600">Elija la modalidad en el paso 2 para completar la ubicación de la práctica.</p>
                 @endif
 
                 @if($aplicaPresencial)
@@ -707,15 +721,15 @@
             </div>
         @endif
 
-        {{-- ══════════════ PASO 7: Instrumento, documentos y jefe directo (VI, 11 y IX) ══════════════ --}}
-        @if($currentStep === 7)
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 7: Instrumento y jefe directo</h2>
-            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Cómo se formaliza la práctica con {{ $institucion_nombre ?: 'la institución' }} y quién supervisa al estudiante en ella.</p>
+        {{-- ══════════════ PASO 5: Formalización y docente supervisor (VI, IX y VII) ══════════════ --}}
+        @if($currentStep === 5)
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 5: Formalización y supervisor</h2>
+            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Cómo se formaliza la práctica con {{ $institucion_nombre ?: 'la institución' }} y qué docente de la UNAH la supervisa.</p>
 
             <div class="space-y-8">
                 <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div class="md:col-span-2">
-                        <h3 class="{{ $sectionTitle }}">Datos de esta práctica</h3>
+                        <h3 class="{{ $sectionTitle }}">Formalización de la práctica</h3>
                     </div>
                     <div class="md:col-span-2">
                         <label class="{{ $labelClass }}">Tipo de instrumento que formaliza la PPS / SS {!! $asterisco !!}</label>
@@ -800,160 +814,122 @@
                 </section>
 
                 <section>
-                    <h3 class="{{ $sectionTitle }}">Jefe directo de la PPS / SS</h3>
-                    <p class="{{ $hintClass }} mb-3">Persona de la institución que supervisa al estudiante.</p>
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div class="md:col-span-2">
-                            <label class="{{ $labelClass }}">Nombre completo {!! $asterisco !!}</label>
-                            <input type="text" wire:model="jefe_directo_nombre" class="{{ $inputClass }}">
-                            @error('jefe_directo_nombre') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                    <h3 class="{{ $sectionTitle }}">Docente supervisor(a) de la PPS / SS</h3>
+                    <p class="{{ $hintClass }} mb-3">Busque al docente de la UNAH que supervisa la práctica; sus datos se completan desde su expediente.</p>
+                    @if(!$docente_supervisor_id)
+                        <div class="max-w-2xl">
+                            <label class="{{ $labelClass }}">Buscar docente {!! $asterisco !!}</label>
+                            <input type="search" wire:model.live.debounce.300ms="docenteBusqueda" placeholder="Escriba el nombre o el número de empleado..." class="{{ $inputClass }}">
+                            @if(filled($docente_supervisor_nombre))
+                                <p class="mt-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">El supervisor guardado ({{ $docente_supervisor_nombre }}) no está vinculado a un empleado del sistema: búsquelo y selecciónelo.</p>
+                            @endif
+                            @error('docente_supervisor_id') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+
+                            @if(mb_strlen(trim($docenteBusqueda)) >= 2)
+                                <div class="mt-2 divide-y divide-gray-100 overflow-hidden rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-700">
+                                    @forelse($docentesEncontrados as $docente)
+                                        <div wire:key="docente-{{ $docente->id }}" class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                                            <div class="min-w-0">
+                                                <p class="truncate font-medium text-gray-900 dark:text-white">{{ $docente->nombre_completo }}</p>
+                                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">
+                                                    {{ $docente->numero_empleado ? 'N.º '.$docente->numero_empleado : 'Sin número de empleado' }}
+                                                    @if($docente->departamento_academico) · {{ $docente->departamento_academico->nombre }} @endif
+                                                </p>
+                                            </div>
+                                            <button type="button" wire:click="seleccionarDocente({{ $docente->id }})" class="shrink-0 rounded bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700">Seleccionar</button>
+                                        </div>
+                                    @empty
+                                        <p class="px-3 py-4 text-center text-sm text-gray-500">No se encontraron docentes con ese nombre o número.</p>
+                                    @endforelse
+                                </div>
+                            @else
+                                <p class="{{ $hintClass }}">Escriba al menos dos letras o números.</p>
+                            @endif
                         </div>
-                        <div>
-                            <label class="{{ $labelClass }}">Número de celular {!! $asterisco !!}</label>
-                            <input type="tel" wire:model="jefe_directo_celular" class="{{ $inputClass }}">
-                            @error('jefe_directo_celular') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="{{ $labelClass }}">Correo electrónico {!! $asterisco !!}</label>
-                            <input type="email" wire:model="jefe_directo_correo" class="{{ $inputClass }}">
-                            @error('jefe_directo_correo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="{{ $labelClass }}">Cargo {!! $asterisco !!}</label>
-                            <input type="text" wire:model="jefe_directo_cargo" class="{{ $inputClass }}">
-                            @error('jefe_directo_cargo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="{{ $labelClass }}">Grado académico {!! $asterisco !!}</label>
-                            <select wire:model="jefe_directo_grado" class="{{ $inputClass }}">
-                                <option value="">Seleccione...</option>
-                                @foreach($this::GRADO_ACADEMICO_JEFE_DIRECTO_OPCIONES as $grado)
-                                    <option value="{{ $grado }}">{{ $grado }}</option>
+                    @else
+                        <div class="rounded-lg border border-green-200 p-4 dark:border-green-900">
+                            <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                                <p class="text-base font-semibold text-gray-900 dark:text-white">{{ $docente_supervisor_nombre }}</p>
+                                <button type="button" wire:click="cambiarDocente" class="text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">Cambiar docente</button>
+                            </div>
+                            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                @foreach([
+                                    'docente_numero_empleado' => 'Número de empleado',
+                                    'docente_celular' => 'Número de celular',
+                                    'docente_correo' => 'Correo electrónico',
+                                    'docente_categoria' => 'Categoría',
+                                    'docente_departamento' => 'Departamento al que pertenece',
+                                ] as $campo => $etiqueta)
+                                    @php
+                                        $delSistema = in_array($campo, $docenteCamposDelSistema, true);
+                                        $catalogo = ['docente_categoria' => $categoriasDocente, 'docente_departamento' => $departamentosDocente][$campo] ?? null;
+                                    @endphp
+                                    <div>
+                                        <label class="{{ $labelClass }}">{{ $etiqueta }} {!! $delSistema ? '' : $asterisco !!}</label>
+                                        @if($catalogo !== null && ! $delSistema)
+                                            <x-forms.searchable-select wire:model.live="{{ $campo }}" :options="$catalogo" empty-value=""
+                                                :placeholder="$campo === 'docente_categoria' ? 'Buscar o seleccionar categoría...' : 'Buscar o seleccionar departamento...'" />
+                                            <p class="{{ $hintClass }}">El expediente del docente no tiene este dato; elíjalo.</p>
+                                        @else
+                                            <input type="{{ $campo === 'docente_correo' ? 'email' : 'text' }}" wire:model="{{ $campo }}" @readonly($delSistema) class="{{ $delSistema ? $readonlyClass : $inputClass }}">
+                                            @unless($delSistema)<p class="{{ $hintClass }}">El expediente del docente no tiene este dato; escríbalo.</p>@endunless
+                                        @endif
+                                        @error($campo) <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                                    </div>
                                 @endforeach
-                            </select>
-                            @error('jefe_directo_grado') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                                <div>
+                                    <label class="{{ $labelClass }}">Jornada laboral {!! $asterisco !!}</label>
+                                    <select wire:model="docente_jornada" class="{{ $inputClass }}">
+                                        <option value="">Seleccione...</option>
+                                        @foreach($jornadasLaborales as $valor => $etiqueta)
+                                            <option value="{{ $valor }}">{{ $etiqueta }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('docente_jornada') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="{{ $labelClass }}">Ubicación del cubículo en la UNAH {!! $asterisco !!}</label>
+                                    <input type="text" wire:model="docente_cubiculo" class="{{ $inputClass }}" placeholder="Ej.: Edificio F1, segundo piso, cubículo 204">
+                                    @error('docente_cubiculo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    @endif
                 </section>
             </div>
         @endif
 
-        {{-- ══════════════ PASO 8: Docente supervisor (VII) ══════════════ --}}
-        @if($currentStep === 8)
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 8: Docente supervisor(a) de la PPS / SS</h2>
-            <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Busque al docente de la UNAH que supervisa la práctica; sus datos se completan desde su expediente.</p>
-
-            @if(!$docente_supervisor_id)
-                <div class="max-w-2xl">
-                    <label class="{{ $labelClass }}">Buscar docente {!! $asterisco !!}</label>
-                    <input type="search" wire:model.live.debounce.300ms="docenteBusqueda" placeholder="Escriba el nombre o el número de empleado..." class="{{ $inputClass }}">
-                    @if(filled($docente_supervisor_nombre))
-                        <p class="mt-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">El supervisor guardado ({{ $docente_supervisor_nombre }}) no está vinculado a un empleado del sistema: búsquelo y selecciónelo.</p>
-                    @endif
-                    @error('docente_supervisor_id') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-
-                    @if(mb_strlen(trim($docenteBusqueda)) >= 2)
-                        <div class="mt-2 divide-y divide-gray-100 overflow-hidden rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-700">
-                            @forelse($docentesEncontrados as $docente)
-                                <div wire:key="docente-{{ $docente->id }}" class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                                    <div class="min-w-0">
-                                        <p class="truncate font-medium text-gray-900 dark:text-white">{{ $docente->nombre_completo }}</p>
-                                        <p class="truncate text-xs text-gray-500 dark:text-gray-400">
-                                            {{ $docente->numero_empleado ? 'N.º '.$docente->numero_empleado : 'Sin número de empleado' }}
-                                            @if($docente->departamento_academico) · {{ $docente->departamento_academico->nombre }} @endif
-                                        </p>
-                                    </div>
-                                    <button type="button" wire:click="seleccionarDocente({{ $docente->id }})" class="shrink-0 rounded bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700">Seleccionar</button>
-                                </div>
-                            @empty
-                                <p class="px-3 py-4 text-center text-sm text-gray-500">No se encontraron docentes con ese nombre o número.</p>
-                            @endforelse
-                        </div>
-                    @else
-                        <p class="{{ $hintClass }}">Escriba al menos dos letras o números.</p>
-                    @endif
-                </div>
-            @else
-                <div class="rounded-lg border border-green-200 p-4 dark:border-green-900">
-                    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-                        <p class="text-base font-semibold text-gray-900 dark:text-white">{{ $docente_supervisor_nombre }}</p>
-                        <button type="button" wire:click="cambiarDocente" class="text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">Cambiar docente</button>
-                    </div>
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        @foreach([
-                            'docente_numero_empleado' => 'Número de empleado',
-                            'docente_celular' => 'Número de celular',
-                            'docente_correo' => 'Correo electrónico',
-                            'docente_categoria' => 'Categoría',
-                            'docente_departamento' => 'Departamento al que pertenece',
-                        ] as $campo => $etiqueta)
-                            @php $delSistema = in_array($campo, $docenteCamposDelSistema, true); @endphp
-                            <div>
-                                <label class="{{ $labelClass }}">{{ $etiqueta }} {!! $delSistema ? '' : $asterisco !!}</label>
-                                <input type="{{ $campo === 'docente_correo' ? 'email' : 'text' }}" wire:model="{{ $campo }}" @readonly($delSistema) class="{{ $delSistema ? $readonlyClass : $inputClass }}">
-                                @unless($delSistema)<p class="{{ $hintClass }}">El expediente del docente no tiene este dato; escríbalo.</p>@endunless
-                                @error($campo) <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                            </div>
-                        @endforeach
-                        <div>
-                            <label class="{{ $labelClass }}">Jornada laboral {!! $asterisco !!}</label>
-                            <select wire:model="docente_jornada" class="{{ $inputClass }}">
-                                <option value="">Seleccione...</option>
-                                @foreach($jornadasLaborales as $valor => $etiqueta)
-                                    <option value="{{ $valor }}">{{ $etiqueta }}</option>
-                                @endforeach
-                            </select>
-                            @error('docente_jornada') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="{{ $labelClass }}">Ubicación del cubículo en la UNAH {!! $asterisco !!}</label>
-                            <input type="text" wire:model="docente_cubiculo" class="{{ $inputClass }}" placeholder="Ej.: Edificio F1, segundo piso, cubículo 204">
-                            @error('docente_cubiculo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-                </div>
-            @endif
-        @endif
-
-        {{-- ══════════════ PASO 9: Revisión y envío ══════════════ --}}
-        @if($currentStep === 9)
+        {{-- ══════════════ PASO 6: Revisión y envío ══════════════ --}}
+        @if($currentStep === 6)
             @php
                 $unir = fn (array $partes, string $separador = ', ') => collect($partes)->filter(fn ($parte) => filled($parte))->implode($separador);
                 $fecha = fn (?string $valor) => filled($valor) ? \Illuminate\Support\Carbon::parse($valor)->format('d/m/Y') : null;
                 $departamentoLugar = $usaCatalogoDepartamentos ? ($departamentos[$departamento_id] ?? null) : $departamento_provincia;
                 $municipioLugar = $usaCatalogoDepartamentos ? ($municipios[$municipio_id] ?? null) : $municipio_texto;
                 $resumen = [
-                    1 => ['titulo' => 'Información general', 'datos' => [
+                    1 => ['titulo' => 'Estudiante y práctica', 'datos' => [
                         'Facultad / centro' => $facultadesCentros[$facultad_centro_id] ?? null,
                         'Carrera' => $carreras[$carrera_id] ?? null,
                         'Tipo de práctica' => $tipoPpsOpciones[$tipo_pps_ss] ?? $tipo_pps_ss,
                         'Total de horas' => $total_horas,
+                        'Estudiante' => $unir([$estudiante_nombre_completo, $numero_cuenta], ' · '),
+                        'Contacto' => $unir([$estudiante_celular, $estudiante_correo_institucional, $estudiante_correo_personal], ' · '),
                     ]],
-                    2 => ['titulo' => 'Estudiante', 'datos' => [
-                        'Número de cuenta' => $numero_cuenta,
-                        'Nombre' => $estudiante_nombre_completo,
-                        'Celular' => $estudiante_celular,
-                        'Correos' => $unir([$estudiante_correo_institucional, $estudiante_correo_personal], ' · '),
-                    ]],
-                    3 => ['titulo' => 'Institución, destinatario y modalidad', 'datos' => [
+                    2 => ['titulo' => 'Institución y solicitud', 'datos' => [
                         'Institución' => $pps_institucion_id ? $institucion_nombre : null,
-                        'Destinatario' => $unir([$destinatario_tratamiento, $destinatario_nombre], ' '),
-                        'Cargo' => $destinatario_cargo,
+                        'Dirigida a' => $unir([$unir([$destinatario_tratamiento, $destinatario_nombre], ' '), $destinatario_cargo], ' · '),
                         'Modalidad' => $modalidadOpciones[$modalidadElegida] ?? null,
+                        'Solicitud' => $this->solicitudGenerada() ? $unir(['Generada', $solicitud_lugar], ' · ') : null,
                     ]],
-                    4 => ['titulo' => 'Solicitud de práctica', 'datos' => [
-                        'Lugar de emisión' => $solicitud_lugar,
-                        'Firma' => $unir([auth()->user()?->empleado?->nombre_completo, $solicitud_firmante_cargo], ' · '),
-                        'Generada' => $this->solicitudGenerada() ? 'Sí' : null,
-                    ]],
-                    5 => ['titulo' => 'Fechas y alcance', 'datos' => [
+                    3 => ['titulo' => 'Respuesta de la institución', 'datos' => [
                         'Ejecución' => $unir([$fecha($fecha_inicio), $fecha($fecha_finalizacion)], ' al '),
                         'Tipo de PPS' => \Illuminate\Support\Str::limit($descripcion_tipo_pps, 160),
-                        'Desglose de horas' => $descripcion_horas_tipo_pps_ss,
                         'Departamento o área' => $area_realizacion,
                         'Responsabilidades' => \Illuminate\Support\Str::limit($resumen_responsabilidades, 200),
+                        'Jefe inmediato' => $unir([$jefe_directo_nombre, $jefe_directo_cargo], ' · '),
+                        'Contacto del jefe' => $unir([$jefe_directo_celular, $jefe_directo_correo], ' · '),
                     ]],
-                    6 => ['titulo' => 'Ubicación y jornada', 'datos' => array_filter([
+                    4 => ['titulo' => 'Ubicación y jornada', 'datos' => array_filter([
                         'Territorio' => $territorio_ejecucion,
                         'Lugar' => $aplicaPresencial ? $unir([$caserio, $aldea_ciudad, $municipioLugar, $departamentoLugar, $nacional ? 'Honduras' : $pais]) : false,
                         'Sede principal' => $aplicaTeletrabajo ? $unir([$aldea_ciudad_sede_principal, $municipio_sede_principal, $departamento_provincia_sede_principal, $nacional ? 'Honduras' : $pais_sede_principal]) : false,
@@ -962,28 +938,21 @@
                             $aplicaTeletrabajo && filled($horas_teletrabajo) ? $horas_teletrabajo.' de teletrabajo' : null,
                         ], ' · '),
                     ], fn ($dato) => $dato !== false)],
-                    7 => ['titulo' => 'Instrumento y jefe directo', 'datos' => [
+                    5 => ['titulo' => 'Formalización y supervisor', 'datos' => [
                         'Instrumento' => $instrumentoOpciones[$tipo_instrumento] ?? null,
                         'Documentos' => $unir([
                             $this->tieneCartaFormalizacion() ? 'Carta de formalización ✓' : null,
                             $this->tieneConvenioMarco() ? 'Convenio marco ✓' : null,
                         ], ' · '),
                         'Compromisos' => \Illuminate\Support\Str::limit($institucion_compromisos, 160),
-                        'Jefe directo' => $unir([$jefe_directo_nombre, $jefe_directo_cargo], ' · '),
-                        'Contacto del jefe' => $unir([$jefe_directo_celular, $jefe_directo_correo], ' · '),
-                    ]],
-                    8 => ['titulo' => 'Docente supervisor', 'datos' => [
-                        'Nombre' => $docente_supervisor_id ? $docente_supervisor_nombre : null,
-                        'N.º de empleado' => $docente_numero_empleado,
-                        'Contacto' => $unir([$docente_celular, $docente_correo], ' · '),
-                        'Categoría y departamento' => $unir([$docente_categoria, $docente_departamento], ' · '),
-                        'Jornada' => $docente_jornada,
-                        'Cubículo' => $docente_cubiculo,
+                        'Docente supervisor' => $docente_supervisor_id ? $unir([$docente_supervisor_nombre, $docente_numero_empleado], ' · ') : null,
+                        'Contacto del docente' => $unir([$docente_celular, $docente_correo], ' · '),
+                        'Jornada y cubículo' => $unir([$docente_jornada, $docente_cubiculo], ' · '),
                     ]],
                 ];
             @endphp
 
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 9: Revisión y envío</h2>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 6: Revisión y envío</h2>
             <p class="mt-1 mb-5 text-sm text-gray-500 dark:text-gray-400">Revise la información antes de enviarla a firmar. Con «Editar» vuelve al paso correspondiente.</p>
 
             @if($this->isStepComplete($totalSteps))

@@ -23,17 +23,20 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Mockery;
 use Spatie\Permission\Models\Role;
+use Tests\Support\SimulaLibreOffice;
 use Tests\TestCase;
 
 class PpsServicioSocialWorkflowTest extends TestCase
 {
     use DatabaseTransactions;
+    use SimulaLibreOffice;
 
     protected function setUp(): void
     {
         parent::setUp();
         Mail::fake();
         Storage::fake('local');
+        $this->simularLibreOffice();
     }
 
     public function test_creador_puede_eliminar_su_borrador_pps_y_se_registra_la_auditoria(): void
@@ -119,14 +122,17 @@ class PpsServicioSocialWorkflowTest extends TestCase
     {
         Livewire::test(\App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial::class)
             ->set('autoguardadoActivo', false)
-            ->set('currentStep', 2)
+            ->set('facultad_centro_id', \App\Models\UnidadAcademica\FacultadCentro::query()->value('id'))
+            ->set('carrera_id', \App\Models\UnidadAcademica\Carrera::query()->value('id'))
+            ->set('tipo_pps_ss', 'Practica Profesional Supervisada')
+            ->set('total_horas', '800')
             ->set('numero_cuenta', '20249999')
             ->set('estudiante_nombre_completo', 'Estudiante capturado manualmente')
             ->set('estudiante_celular', '99999999')
             ->set('estudiante_correo_institucional', 'manual@unah.edu.hn')
             ->set('estudiante_correo_personal', 'manual@example.com')
             ->call('nextStep')
-            ->assertSet('currentStep', 3)
+            ->assertSet('currentStep', 2)
             ->assertHasNoErrors();
     }
 
@@ -265,6 +271,17 @@ class PpsServicioSocialWorkflowTest extends TestCase
         $this->assertSame(PpsDocumentoGenerator::SOLICITUD, $documento->tipo);
         $this->assertSame(1, $documento->version);
         Storage::disk('local')->assertExists($documento->archivo);
+        $this->assertStringStartsWith('%PDF-', Storage::disk('local')->get($documento->archivo));
+
+        // El visor del formulario lo pide en línea; el enlace normal lo descarga.
+        $this->actingAs($ctx['usuario']);
+        request()->query->set('ver', '1');
+        $enLinea = app(\App\Http\Controllers\Proyectos\Vinculacion\PpsDocumentoGeneradoController::class)($documento);
+        $this->assertStringStartsWith('inline;', $enLinea->headers->get('Content-Disposition'));
+        $this->assertSame('application/pdf', $enLinea->headers->get('Content-Type'));
+        request()->query->remove('ver');
+        $descarga = app(\App\Http\Controllers\Proyectos\Vinculacion\PpsDocumentoGeneradoController::class)($documento);
+        $this->assertStringStartsWith('attachment;', $descarga->headers->get('Content-Disposition'));
 
         // Al enviar a revisión no se genera otra versión si ya existe.
         app(PpsServicioSocialWorkflowService::class)->enviarARevision($ctx['registro'], $ctx['usuario']->id);
@@ -274,24 +291,42 @@ class PpsServicioSocialWorkflowTest extends TestCase
     public function test_la_solicitud_se_redacta_para_el_destinatario_y_la_firma_quien_llena_el_formulario(): void
     {
         $ctx = $this->contexto();
-        $ctx['registro']->update(['solicitud_firmante_cargo' => 'Coordinador Académico']);
-        $html = view('pdf.pps-servicio-social.generado', [
-            'pps' => $ctx['registro']->fresh(),
-            'tipo' => PpsDocumentoGenerator::SOLICITUD,
-            'formData' => \App\Support\PpsServicioSocial\FormDvus014Data::from($ctx['registro']->fresh()),
-            'firmante' => ['nombre' => $ctx['empleado']->nombre_completo, 'cargo' => 'Coordinador Académico', 'src' => null],
-        ])->render();
+        // La carta sale de la plantilla de Word: se revisa el DOCX ya llenado que convierte LibreOffice.
+        $docx = sys_get_temp_dir().'/solicitud-'.uniqid().'.docx';
+        copy(config('documents.solicitud_practica_pps_template'), $docx);
+        app(\App\Services\PpsServicioSocial\PpsSolicitudPracticaDocumento::class)->llenar($docx, $ctx['registro']->fresh(), [
+            'nombre' => $ctx['empleado']->nombre_completo,
+            'cargo' => PpsDocumentoGenerator::cargoFirmante($ctx['empleado']->sexo),
+            'firma' => PpsDocumentoGenerator::imagenFirma($ctx['empleado']->fresh('firma')),
+        ]);
+        $zip = new \ZipArchive;
+        $zip->open($docx);
+        $texto = html_entity_decode(strip_tags(str_replace('</w:p>', "\n", (string) $zip->getFromName('word/document.xml'))));
+        $pie = html_entity_decode(strip_tags(str_replace('</w:p>', "\n", (string) $zip->getFromName('word/footer1.xml'))));
+        $encabezado = (string) $zip->getFromName('word/header2.xml');
+        $firmada = str_contains((string) $zip->getFromName('word/document.xml'), '<w:drawing>');
+        $zip->close();
+        unlink($docx);
 
-        $this->assertStringContainsString('LICENCIADA<br>', $html);
-        $this->assertStringContainsString('MARÍA HELENA MEJÍA', $html);
-        $this->assertStringContainsString('COORDINADORA DE RECLUTAMIENTO', $html);
-        $this->assertStringContainsString('Estimada Licenciada:', $html);
-        $this->assertStringContainsString('Choluteca,', $html);
-        $this->assertStringContainsString('la práctica profesional supervisada de <strong>120 horas</strong>', $html);
-        $this->assertStringContainsString('válida solo en modalidad <strong>presencial</strong>', $html);
-        $this->assertStringContainsString('máximo 40 horas semanales', $html);
-        $this->assertStringContainsString($ctx['empleado']->nombre_completo, $html);
-        $this->assertStringContainsString('Coordinador Académico', $html);
+        $this->assertStringNotContainsString('{{', $texto.$pie);
+        // La firma registrada del coordinador (la del contexto) va sobre su nombre.
+        $this->assertTrue($firmada);
+        // Pie con el lema y la línea del campus; sin el número de página del FORM-DVUS-018.
+        $this->assertStringContainsString('“La Educación es la Primera Necesidad de La República”', $pie);
+        $this->assertStringContainsString('Universidad Nacional Autónoma de Honduras | CU | Tegucigalpa M.D.C., Honduras C.A. | www.unah.edu.hn', $pie);
+        $this->assertStringNotContainsString('PAGE', $encabezado);
+        foreach ([
+            "LICENCIADA\nMARÍA HELENA MEJÍA\nCOORDINADORA DE RECLUTAMIENTO\nEMPRESA TEST S.A.\nPresente",
+            'Estimada Licenciada:',
+            'Choluteca, ',
+            'desea realizar la práctica profesional supervisada de 120 horas en su institución',
+            'válida solo en modalidad presencial.',
+            'NOMBRE DEL ALUMNO: ESTUDIANTE TEST',
+            'máximo 40 horas semanales',
+            $ctx['empleado']->nombre_completo."\nCoordinador Académico\nTest Carrera, Facultad de Test",
+        ] as $esperado) {
+            $this->assertStringContainsString($esperado, $texto);
+        }
     }
 
     public function test_solicitud_se_bloquea_con_mensaje_si_falta_un_dato(): void
@@ -442,6 +477,29 @@ class PpsServicioSocialWorkflowTest extends TestCase
             ->get();
         $this->assertCount(2, $firmas);
         $this->assertSame([1, 2], $firmas->pluck('orden_revision')->all());
+    }
+
+    public function test_la_fecha_de_registro_es_la_del_primer_envio_y_no_cambia_al_reenviar(): void
+    {
+        $ctx = $this->contexto();
+        $service = app(PpsServicioSocialWorkflowService::class);
+
+        // Mientras es borrador el formulario no tiene fecha de registro.
+        $this->assertNull($ctx['registro']->fecha_registro);
+        $this->assertNull(\App\Support\PpsServicioSocial\FormDvus014Data::from($ctx['registro'])['fields']['fecha_registro']);
+
+        $this->travelTo(now()->setDate(2026, 3, 2));
+        $registro = $service->enviarARevision($ctx['registro'], $ctx['usuario']->id);
+        $this->assertSame('2026-03-02', $registro->fecha_registro->format('Y-m-d'));
+
+        $registro = $service->rechazar($registro, 'Corrija.', $ctx['usuario']->id);
+        $registro = $service->iniciarSubsanacion($registro, $ctx['usuario']->id);
+        $this->travelTo(now()->setDate(2026, 3, 20));
+        $reenviado = $service->enviarARevision($registro, $ctx['usuario']->id);
+
+        $this->assertSame('2026-03-20', $reenviado->fecha_envio->format('Y-m-d'));
+        $this->assertSame('2026-03-02', $reenviado->fecha_registro->format('Y-m-d'));
+        $this->assertSame('2026-03-02', \App\Support\PpsServicioSocial\FormDvus014Data::from($reenviado)['fields']['fecha_registro']->format('Y-m-d'));
     }
 
     public function test_reenvio_desde_segunda_etapa_no_recrea_la_primera_y_regresa_al_revisor(): void

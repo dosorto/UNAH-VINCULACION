@@ -3,6 +3,8 @@
     'placeholder' => 'Buscar o seleccionar...',
     'emptyText' => 'Sin resultados.',
     'disabled' => false,
+    // Valor al quitar la selección: null para ids; '' para campos de texto.
+    'emptyValue' => null,
 ])
 
 @php
@@ -53,7 +55,7 @@
             this.close();
         },
         clear() {
-            this.selected = null;
+            this.selected = @js($emptyValue);
             this.close();
         },
     }"

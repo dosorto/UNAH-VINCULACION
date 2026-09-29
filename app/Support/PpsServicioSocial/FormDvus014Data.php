@@ -90,7 +90,8 @@ class FormDvus014Data
         $fields = [
             'id' => $registro->id,
             'codigo_registro' => $registro->codigo_registro,
-            'fecha_registro' => $registro->created_at ?: $registro->fecha_envio,
+            // Vacía mientras el formulario es borrador: se registra al enviarlo a revisión.
+            'fecha_registro' => $registro->fecha_registro,
             'fecha_revision' => $registro->fecha_revision,
             'facultad_centro' => $facultadCentro,
             'carrera' => $carrera,
@@ -137,7 +138,6 @@ class FormDvus014Data
             'destinatario_nombre' => self::clean($registro->destinatario_nombre),
             'destinatario_cargo' => self::clean($registro->destinatario_cargo),
             'solicitud_lugar' => self::clean($registro->solicitud_lugar),
-            'solicitud_firmante_cargo' => self::clean($registro->solicitud_firmante_cargo),
             'nombre_jefe_directo' => self::clean($registro->nombre_jefe_directo),
             'celular_jefe_directo' => self::clean($registro->celular_jefe_directo),
             'correo_jefe_directo' => self::clean($registro->correo_jefe_directo),

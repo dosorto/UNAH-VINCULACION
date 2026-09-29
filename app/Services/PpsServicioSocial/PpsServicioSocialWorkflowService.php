@@ -116,6 +116,8 @@ class PpsServicioSocialWorkflowService
             $registro->forceFill([
                 'etapa_actual_id' => $primeraFirma->flujo_aprobacion_etapa_id,
                 'fecha_envio' => now(),
+                // La fecha de registro es la del primer envío: el formulario quedó terminado.
+                'fecha_registro' => $registro->fecha_registro ?? now(),
                 'enviado_por' => $userId,
                 'updated_by' => $userId,
                 // La observación original permanece en estado_proyecto como
