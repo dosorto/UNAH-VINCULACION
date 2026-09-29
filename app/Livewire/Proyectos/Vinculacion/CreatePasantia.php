@@ -103,7 +103,7 @@ class CreatePasantia extends Component
     public const PASOS = [
         1 => 'Estudiante', 2 => 'Información de la pasantía', 3 => 'Experiencia',
         4 => 'Institución', 5 => 'Contacto directo', 6 => 'Supervisor',
-        7 => 'Firmas', 8 => 'Adjuntos',
+        7 => 'Adjuntos',
     ];
 
     public function mount(?int $id = null): void
@@ -203,7 +203,7 @@ class CreatePasantia extends Component
             $this->validate($reglas, [], $this->atributos());
         }
 
-        if ($this->pasoActual === 8) {
+        if ($this->pasoActual === count(self::PASOS)) {
             $this->abrirModalEnviar();
 
             return;
@@ -211,7 +211,7 @@ class CreatePasantia extends Component
 
         $this->guardarBorrador(false);
 
-        $this->pasoActual = min(8, $this->pasoActual + 1);
+        $this->pasoActual = min(count(self::PASOS), $this->pasoActual + 1);
     }
 
     public function abrirModalEnviar(): void
@@ -464,7 +464,7 @@ class CreatePasantia extends Component
 
     public function irAPaso(int $paso): void
     {
-        $paso = max(1, min(8, $paso));
+        $paso = max(1, min(count(self::PASOS), $paso));
         $this->resetErrorBag();
 
         if ($this->bloquearNavegacionPasos && $paso > $this->pasoActual) {
@@ -484,7 +484,7 @@ class CreatePasantia extends Component
 
     public function isStepComplete(int $paso): bool
     {
-        if (in_array($paso, [7, 8], true)) {
+        if ($paso === 7) {
             return true;
         }
 
@@ -546,11 +546,8 @@ class CreatePasantia extends Component
             'otorga_creditos' => 'Indique si otorga créditos académicos.',
             'modalidad_ejecucion' => 'Seleccione la modalidad de ejecución.',
             'cantidad_creditos' => 'Ingrese la cantidad de créditos académicos.',
-            'descripcion_experiencia' => 'Ingrese la descripción de la experiencia.',
-            'descripcion_cargo' => 'Ingrese la descripción del cargo.',
             'resumen_responsabilidades' => 'Ingrese las responsabilidades y tareas.',
             'area_departamento' => 'Ingrese el área o departamento.',
-            'area_conocimiento' => 'Ingrese el área de conocimiento.',
             'descripcion_conocimientos_teoricos' => 'Ingrese los conocimientos teóricos.',
             'habilidades_desarrollar' => 'Ingrese las habilidades por desarrollar.',
             'pasantia_remunerada' => 'Indique si la pasantía es remunerada.',
@@ -601,7 +598,7 @@ class CreatePasantia extends Component
         return match ($paso) {
             1 => ['facultad_centro', 'escuela_departamento', 'carrera', 'numero_cuenta', 'nombre_estudiante', 'celular_estudiante', 'correo_institucional'],
             2 => ['tipo_pasantia', 'fecha_inicio', 'fecha_finalizacion', 'duracion_semanas', 'total_horas', 'horas_semanales', 'pasantia_obligatoria', 'otorga_creditos', 'modalidad_ejecucion'],
-            3 => ['descripcion_experiencia', 'descripcion_cargo', 'resumen_responsabilidades', 'area_departamento', 'area_conocimiento', 'descripcion_conocimientos_teoricos', 'habilidades_desarrollar', 'pasantia_remunerada'],
+            3 => ['resumen_responsabilidades', 'area_departamento', 'descripcion_conocimientos_teoricos', 'habilidades_desarrollar', 'pasantia_remunerada'],
             4 => ['nombre_institucion', 'direccion_institucion', 'ciudad_institucion', 'pais_institucion', 'representante_legal', 'telefono_representante', 'correo_rrhh', 'tipo_institucion', 'sector_institucion', 'compromisos_institucion'],
             5 => ['nombre_contacto_directo', 'celular_contacto_directo', 'correo_contacto_directo', 'cargo_contacto_directo', 'grado_academico_contacto_directo', 'tipo_instrumento'],
             6 => ['nombre_docente_supervisor', 'numero_empleado_docente', 'celular_docente', 'correo_docente', 'categoria_docente', 'departamento_docente', 'jornada_laboral_docente', 'ubicacion_cubiculo_docente'],
@@ -774,6 +771,11 @@ class CreatePasantia extends Component
 
     protected function normalizarPayload(array $payload): array
     {
+        // Las firmas solo se registran desde el flujo, nunca desde el formulario.
+        foreach (['nombre_firma_coordinador', 'firma_coordinador', 'nombre_firma_supervisor', 'firma_supervisor', 'nombre_firma_estudiante', 'firma_estudiante'] as $campoFirma) {
+            unset($payload[$campoFirma]);
+        }
+
         if ((array_key_exists('pasantia_remunerada', $payload) || array_key_exists('monto_remuneracion', $payload))
             && ! $this->campoEsSi($this->form['pasantia_remunerada'] ?? null)) {
             $payload['monto_remuneracion'] = null;
@@ -1045,19 +1047,6 @@ class CreatePasantia extends Component
             $this->addError('form.nombre_asignatura', 'El valor cargado no corresponde al nombre de la asignatura. Ingréselo nuevamente.');
         }
 
-        if ($this->valorLleno($datos['descripcion_experiencia'] ?? null)
-            && $this->esEtiquetaDeCampo((string) $datos['descripcion_experiencia'])) {
-            $datos['descripcion_experiencia'] = null;
-            $correcciones['descripcion_experiencia'] = null;
-            $this->addError('form.descripcion_experiencia', 'El valor cargado es una etiqueta del formulario. Ingrese la descripción de la experiencia.');
-        }
-
-        if ($this->valorLleno($datos['descripcion_cargo'] ?? null)
-            && $this->esEtiquetaDeCampo((string) $datos['descripcion_cargo'])) {
-            $datos['descripcion_cargo'] = null;
-            $correcciones['descripcion_cargo'] = null;
-            $this->addError('form.descripcion_cargo', 'El valor cargado es una etiqueta del formulario. Ingrese la descripción del cargo.');
-        }
 
         if ($this->valorLleno($datos['resumen_responsabilidades'] ?? null)
             && $this->esEtiquetaDeCampo((string) $datos['resumen_responsabilidades'])) {
@@ -1085,13 +1074,6 @@ class CreatePasantia extends Component
             $datos['area_departamento'] = null;
             $correcciones['area_departamento'] = null;
             $this->addError('form.area_departamento', 'El valor cargado es una etiqueta del formulario. Ingrese el área o departamento.');
-        }
-
-        if ($this->valorLleno($datos['area_conocimiento'] ?? null)
-            && $this->esEtiquetaDeCampo((string) $datos['area_conocimiento'])) {
-            $datos['area_conocimiento'] = null;
-            $correcciones['area_conocimiento'] = null;
-            $this->addError('form.area_conocimiento', 'El valor cargado es una etiqueta del formulario. Ingrese el área de conocimiento.');
         }
 
         if (! $this->enteroHidratadoValido($datos['duracion_semanas'] ?? null, 0, 520)) {
@@ -1349,11 +1331,8 @@ class CreatePasantia extends Component
                 'form.otorga_creditos' => ['nullable', Rule::in(['Sí', 'No'])],
             ],
             3 => [
-                'form.descripcion_experiencia' => ['nullable', 'string', $this->reglaTextoNoEtiquetaNiCorreo()],
-                'form.descripcion_cargo' => ['nullable', 'string', $this->reglaTextoNoEtiquetaNiCorreo()],
                 'form.resumen_responsabilidades' => ['nullable', 'string', $this->reglaTextoNoEtiquetaNiCorreo()],
                 'form.area_departamento' => ['nullable', 'string', 'max:255', $this->reglaTextoNoEtiquetaNiCorreo()],
-                'form.area_conocimiento' => ['nullable', 'string', 'max:255', $this->reglaTextoNoEtiquetaNiCorreo()],
                 'form.asignaturas' => ['nullable', 'array'],
                 'form.asignaturas.*.codigo' => ['nullable', 'string', 'max:100'],
                 'form.asignaturas.*.nombre' => ['required', 'string', 'max:255'],
@@ -1394,8 +1373,7 @@ class CreatePasantia extends Component
                 'form.jornada_laboral_docente' => ['nullable', 'string', 'max:255'],
                 'form.ubicacion_cubiculo_docente' => ['nullable', 'string', 'max:255'],
             ],
-            7 => [],
-            8 => [
+            7 => [
                 'form.adjunta_carta_formalizacion' => ['nullable', Rule::in(['Sí', 'No'])],
                 'form.adjunta_convenio_marco' => ['nullable', Rule::in(['Sí', 'No'])],
                 'cartaFormalizacionArchivo' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],

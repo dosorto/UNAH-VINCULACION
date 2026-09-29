@@ -1,7 +1,7 @@
 <div class="md:col-span-2" x-data="{ abierto: false }">
     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h4 class="text-sm font-medium text-gray-700 dark:text-gray-200">Asignaturas que se aplicarán en la pasantía</h4>
-        <button type="button" x-on:click="abierto = true" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">Seleccionar asignaturas</button>
+        <button type="button" x-on:click="abierto = true" class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">Seleccionar asignaturas</button>
     </div>
     <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <table class="w-full text-left text-sm">

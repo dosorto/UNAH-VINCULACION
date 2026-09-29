@@ -127,6 +127,7 @@ class ShowPasantia extends Component
             'movimientos' => $this->registro->historialEstados,
             'anexos' => $this->anexosRegistrados(),
             'secciones' => $this->datosDetalle(),
+            'etapasVisuales' => $this->etapasVisuales(),
         ]);
     }
 
@@ -144,12 +145,26 @@ class ShowPasantia extends Component
         return 'inicio';
     }
 
+    private function etapasVisuales(): array
+    {
+        $firmas = $this->registro->firmasDeEtapa()->where('estado_revision', '!=', 'Anulado')
+            ->orderByDesc('revision_ciclo')->orderByDesc('id')->get();
+        $creador = $firmas->first(fn ($firma) => $firma->flujo_aprobacion_etapa_id === null);
+        $items = [['nombre' => 'Coordinador de carrera', 'estado' => $creador?->estado_revision ?? 'Pendiente']];
+        $flujo = $this->registro->resolveFlujoAprobacion();
+        foreach ($flujo ? $this->registro->etapasActivasDelFlujo($flujo) : [] as $etapa) {
+            $firma = $firmas->firstWhere('flujo_aprobacion_etapa_id', $etapa->id);
+            $items[] = ['nombre' => $etapa->nombre, 'estado' => $firma?->estado_revision ?? 'Pendiente'];
+        }
+        return $items;
+    }
+
     private function anexosRegistrados(): array
     {
         return collect([
-            ['titulo' => 'Carta de formalización', 'path' => $this->registro->archivo_carta_formalizacion, 'marcado' => (bool) $this->registro->adjunta_carta_formalizacion],
-            ['titulo' => 'Convenio marco', 'path' => $this->registro->archivo_convenio_marco, 'marcado' => (bool) $this->registro->adjunta_convenio_marco],
-        ])->filter(fn (array $a) => filled($a['path']) || $a['marcado'])->map(function (array $a): array { $path = filled($a['path']) ? ltrim((string) $a['path'], '/') : null; $exists = $path ? Storage::disk('public')->exists($path) : false; return $a + ['archivo' => $path ? basename($path) : null, 'exists' => $exists, 'url' => $exists ? Storage::disk('public')->url($path) : null]; })->values()->all();
+            ['tipo' => 'carta', 'titulo' => 'Carta de formalización', 'path' => $this->registro->archivo_carta_formalizacion, 'marcado' => (bool) $this->registro->adjunta_carta_formalizacion],
+            ['tipo' => 'convenio', 'titulo' => 'Convenio marco', 'path' => $this->registro->archivo_convenio_marco, 'marcado' => (bool) $this->registro->adjunta_convenio_marco],
+        ])->filter(fn (array $a) => filled($a['path']) || $a['marcado'])->map(function (array $a): array { $path = filled($a['path']) ? ltrim((string) $a['path'], '/') : null; $exists = $path ? Storage::disk('public')->exists($path) : false; return $a + ['archivo' => $path ? basename($path) : null, 'exists' => $exists, 'url' => $exists ? route('pasantias.anexo', [$this->registro->id, $a['tipo']]) : null]; })->values()->all();
     }
 
     /**
@@ -183,15 +198,16 @@ class ShowPasantia extends Component
                 ['etiqueta' => 'Modalidad de ejecución', 'campo' => 'modalidad_ejecucion', 'valor' => $this->registro->modalidad_ejecucion],
             ],
             'III. Descripción de la experiencia y resultados' => [
-                ['etiqueta' => 'Descripción de la experiencia y resultados', 'campo' => 'descripcion_experiencia', 'valor' => $this->registro->descripcion_experiencia],
-                ['etiqueta' => 'Descripción del cargo', 'campo' => 'descripcion_cargo', 'valor' => $this->registro->descripcion_cargo],
+                ['etiqueta' => 'a) Descripción del cargo', 'encabezado' => true],
                 ['etiqueta' => 'Resumen de responsabilidades y tareas', 'campo' => 'resumen_responsabilidades', 'valor' => $this->registro->resumen_responsabilidades],
                 ['etiqueta' => 'Nombre del departamento o área', 'campo' => 'area_departamento', 'valor' => $this->registro->area_departamento],
-                ['etiqueta' => 'Área de conocimiento que se aplicará', 'campo' => 'area_conocimiento', 'valor' => $this->registro->area_conocimiento],
+                ['etiqueta' => 'b) Área de conocimiento que se aplicará', 'encabezado' => true],
                 ['etiqueta' => 'Código de asignatura', 'campo' => 'codigo_asignatura', 'valor' => $this->registro->codigo_asignatura],
                 ['etiqueta' => 'Nombre de asignatura', 'campo' => 'nombre_asignatura', 'valor' => $this->registro->nombre_asignatura],
                 ['etiqueta' => 'Conocimientos teóricos', 'campo' => 'descripcion_conocimientos_teoricos', 'valor' => $this->registro->descripcion_conocimientos_teoricos],
+                ['etiqueta' => 'c) Habilidades que se desarrollarán', 'encabezado' => true],
                 ['etiqueta' => 'Habilidades por desarrollar', 'campo' => 'habilidades_desarrollar', 'valor' => $this->registro->habilidades_desarrollar],
+                ['etiqueta' => 'd) Compensación', 'encabezado' => true],
                 ['etiqueta' => 'Pasantía remunerada', 'campo' => 'pasantia_remunerada', 'valor' => $this->registro->pasantia_remunerada],
                 ['etiqueta' => 'Monto de la remuneración', 'campo' => 'monto_remuneracion', 'valor' => $this->registro->monto_remuneracion],
             ],

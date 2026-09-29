@@ -23,7 +23,7 @@ class PasantiaLivewireTest extends TestCase
 
     public function test_siguiente_exige_campos_obligatorios_en_cada_seccion(): void
     {
-        foreach ([1 => 'numero_cuenta', 2 => 'tipo_pasantia', 3 => 'descripcion_cargo',
+        foreach ([1 => 'numero_cuenta', 2 => 'tipo_pasantia', 3 => 'resumen_responsabilidades',
             4 => 'nombre_institucion', 5 => 'nombre_contacto_directo', 6 => 'numero_empleado_docente'] as $paso => $campo) {
             Livewire::test(CreatePasantia::class)
                 ->set('pasoActual', $paso)
@@ -334,7 +334,7 @@ class PasantiaLivewireTest extends TestCase
         $this->assertSame('Adjuntos', CreatePasantia::PASOS[8]);
 
         Livewire::test(CreatePasantia::class)
-            ->call('irAPaso', 8)
+            ->call('irAPaso', 7)
             ->assertSet('pasoActual', 1);
     }
 
@@ -398,7 +398,7 @@ class PasantiaLivewireTest extends TestCase
     public function test_bloquea_salto_a_paso_posterior_y_muestra_errores_del_anterior(): void
     {
         Livewire::test(CreatePasantia::class)
-            ->call('irAPaso', 8)
+            ->call('irAPaso', 7)
             ->assertSet('pasoActual', 1)
             ->assertHasErrors([
                 'form.facultad_centro',
@@ -408,18 +408,10 @@ class PasantiaLivewireTest extends TestCase
             ]);
     }
 
-    public function test_puede_avanzar_desde_firmas_sin_reglas_de_validacion(): void
-    {
-        Livewire::test(CreatePasantia::class)
-            ->set('pasoActual', 7)
-            ->call('siguiente')
-            ->assertSet('pasoActual', 8);
-    }
-
     public function test_el_ultimo_paso_valida_completitud_antes_de_abrir_el_envio(): void
     {
         $componente = Livewire::test(CreatePasantia::class)
-            ->set('pasoActual', 8)
+            ->set('pasoActual', 7)
             ->call('siguiente');
 
         $this->assertNotNull($componente->get('registroId'));
@@ -622,8 +614,8 @@ class PasantiaLivewireTest extends TestCase
             ->assertSet('form.celular_estudiante', null)
             ->assertSet('form.horas_semanales', null)
             ->assertSet('form.nombre_asignatura', null)
-            ->assertSet('form.descripcion_experiencia', null)
-            ->assertSet('form.area_conocimiento', null)
+            ->assertSet('form.descripcion_experiencia', 'Descripción de la experiencia y resultados')
+            ->assertSet('form.area_conocimiento', 'Representante legal')
             ->assertSet('form.nombre_institucion', null)
             ->assertSet('form.ciudad_institucion', null)
             ->assertSet('form.representante_legal', null)
@@ -633,8 +625,6 @@ class PasantiaLivewireTest extends TestCase
                 'form.celular_estudiante',
                 'form.horas_semanales',
                 'form.nombre_asignatura',
-                'form.descripcion_experiencia',
-                'form.area_conocimiento',
                 'form.nombre_institucion',
                 'form.ciudad_institucion',
                 'form.representante_legal',
@@ -646,8 +636,8 @@ class PasantiaLivewireTest extends TestCase
         $this->assertNull($registro->celular_estudiante);
         $this->assertNull($registro->horas_semanales);
         $this->assertNull($registro->nombre_asignatura);
-        $this->assertNull($registro->descripcion_experiencia);
-        $this->assertNull($registro->area_conocimiento);
+        $this->assertSame('Descripción de la experiencia y resultados', $registro->descripcion_experiencia);
+        $this->assertSame('Representante legal', $registro->area_conocimiento);
         $this->assertNull($registro->nombre_institucion);
         $this->assertNull($registro->ciudad_institucion);
         $this->assertNull($registro->representante_legal);

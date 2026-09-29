@@ -7,6 +7,69 @@ use Tests\TestCase;
 
 class PasantiaStepValidationTest extends TestCase
 {
+    public function test_attachments_are_the_last_step_and_form_cannot_replace_signatures(): void
+    {
+        $this->assertCount(7, CreatePasantia::PASOS);
+        $this->assertSame('Adjuntos', CreatePasantia::PASOS[7]);
+        $this->assertNotContains('Firmas', CreatePasantia::PASOS);
+        $component = new class extends CreatePasantia
+        {
+            public function payloadFor(array $payload): array
+            {
+                return $this->normalizarPayload($payload);
+            }
+            public function attachmentsRules(): array
+            {
+                return $this->reglasPaso(7);
+            }
+        };
+        $component->mount();
+        $this->assertArrayHasKey('cartaFormalizacionArchivo', $component->attachmentsRules());
+        $this->assertSame(['nombre_estudiante' => 'Ana'], $component->payloadFor([
+            'nombre_estudiante' => 'Ana',
+            'nombre_firma_coordinador' => 'Otro firmante',
+            'firma_coordinador' => 'otra.png',
+            'firma_supervisor' => 'otra.png',
+            'firma_estudiante' => 'otra.png',
+        ]));
+    }
+
+    public function test_experience_headings_are_not_required_fields_or_pdf_values(): void
+    {
+        $component = new class extends CreatePasantia
+        {
+            public function experienceRules(): array
+            {
+                return $this->reglasPasoCompleto(3);
+            }
+        };
+        $component->mount();
+        $component->form = array_replace($component->form, [
+            'resumen_responsabilidades' => 'Desarrollar aplicaciones y documentar procesos.',
+            'area_departamento' => 'Tecnología',
+            'descripcion_conocimientos_teoricos' => 'Programación y bases de datos.',
+            'habilidades_desarrollar' => 'Análisis y comunicación.',
+            'pasantia_remunerada' => 'No',
+        ]);
+        $this->assertTrue(validator(['form' => $component->form], $component->experienceRules())->passes());
+
+        $registro = new \App\Models\Pasantia([
+            'descripcion_experiencia' => 'LEGACY-EXPERIENCIA',
+            'descripcion_cargo' => 'LEGACY-CARGO',
+            'area_conocimiento' => 'LEGACY-AREA',
+        ]);
+        $html = view('pdf.pasantias.form-013', [
+            'registro' => $registro,
+            'secciones' => app(\App\Services\Pasantias\PasantiaPdfGenerator::class)->seccionesFormulario(),
+        ])->render();
+        foreach (['LEGACY-EXPERIENCIA', 'LEGACY-CARGO', 'LEGACY-AREA'] as $value) {
+            $this->assertStringNotContainsString($value, $html);
+        }
+        foreach (['a) Descripción del cargo', 'b) Área de conocimiento que se aplicará', 'c) Habilidades que se desarrollarán', 'd) Compensación'] as $heading) {
+            $this->assertStringContainsString('<th colspan="2">'.$heading.'</th>', $html);
+        }
+    }
+
     public function test_unpaid_internship_clears_amount_in_form_and_autosave_payload(): void
     {
         $component = new class extends CreatePasantia

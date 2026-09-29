@@ -58,12 +58,11 @@
             $secciones = [
                 1 => [['fecha_registro','Fecha de registro','date'],['facultad_centro','Facultad / centro','text'],['escuela_departamento','Escuela / departamento académico','text'],['carrera','Carrera','text'],['numero_cuenta','Número de cuenta','text'],['nombre_estudiante','Nombre completo del estudiante','text'],['celular_estudiante','Número de celular','text'],['correo_institucional','Correo institucional','email'],['correo_personal','Correo personal','email']],
                 2 => [['tipo_pasantia','Tipo de pasantía','text'],['fecha_inicio','Fecha de inicio','date'],['fecha_finalizacion','Fecha de finalización','date'],['duracion_semanas','Duración en semanas','number'],['total_horas','Total de horas programadas','number'],['horas_semanales','Promedio de horas semanales','number'],['cantidad_creditos','Cantidad de créditos académicos','number'],['modalidad_ejecucion','Modalidad de ejecución','text'],['pasantia_obligatoria','Pasantía obligatoria (Sí/No)','text'],['otorga_creditos','Otorgamiento de créditos (Sí/No)','text']],
-                3 => [['descripcion_experiencia','Descripción de la experiencia y resultados','textarea'],['descripcion_cargo','Descripción del cargo','textarea'],['resumen_responsabilidades','Responsabilidades y tareas','textarea'],['area_departamento','Departamento o área','text'],['area_conocimiento','Área de conocimiento','text'],['codigo_asignatura','Código de asignatura','text'],['nombre_asignatura','Nombre de asignatura','text'],['descripcion_conocimientos_teoricos','Conocimientos teóricos','textarea'],['habilidades_desarrollar','Habilidades a desarrollar','textarea'],['pasantia_remunerada','Pasantía remunerada (Sí/No)','text'],['monto_remuneracion','Monto de remuneración','number']],
+                3 => [['resumen_responsabilidades','Responsabilidades y tareas','textarea'],['area_departamento','Departamento o área','text'],['codigo_asignatura','Código de asignatura','text'],['nombre_asignatura','Nombre de asignatura','text'],['descripcion_conocimientos_teoricos','Conocimientos teóricos','textarea'],['habilidades_desarrollar','Habilidades a desarrollar','textarea'],['pasantia_remunerada','Pasantía remunerada (Sí/No)','text'],['monto_remuneracion','Monto de remuneración','number']],
                 4 => [['nombre_institucion','Nombre de la institución / organización','text'],['direccion_institucion','Dirección de la sede principal','textarea'],['ciudad_institucion','Ciudad','text'],['pais_institucion','País','text'],['representante_legal','Representante legal','text'],['telefono_representante','Teléfono','text'],['correo_rrhh','Correo de recursos humanos','email'],['tipo_institucion','Tipo de institución','text'],['sector_institucion','Sector','text'],['compromisos_institucion','Compromisos institucionales','textarea']],
                 5 => [['nombre_contacto_directo','Nombre del contacto directo','text'],['celular_contacto_directo','Celular del contacto','text'],['correo_contacto_directo','Correo del contacto','email'],['cargo_contacto_directo','Cargo','text'],['grado_academico_contacto_directo','Grado académico','text'],['tipo_instrumento','Instrumento de formalización','text']],
-                6 => [['nombre_docente_supervisor','Nombre del docente supervisor','text'],['numero_empleado_docente','Número de empleado','text'],['celular_docente','Celular','text'],['correo_docente','Correo electrónico','email'],['categoria_docente','Categoría','text'],['departamento_docente','Departamento','text'],['jornada_laboral_docente','Jornada laboral','text'],['ubicacion_cubiculo_docente','Ubicación del cubículo','text']],
-                7 => [['nombre_firma_coordinador','Nombre del coordinador','text'],['firma_coordinador','Ruta de firma del coordinador','text'],['nombre_firma_supervisor','Nombre del supervisor','text'],['firma_supervisor','Ruta de firma del supervisor','text'],['nombre_firma_estudiante','Nombre del estudiante firmante','text'],['firma_estudiante','Ruta de firma del estudiante','text']],
-                8 => [['adjunta_carta_formalizacion','Adjunta carta de formalización (Sí/No)','text'],['archivo_carta_formalizacion','Archivo de carta','text'],['adjunta_convenio_marco','Adjunta convenio marco (Sí/No)','text'],['archivo_convenio_marco','Archivo de convenio','text']],
+                6 => [['numero_empleado_docente','Número de empleado','text'],['nombre_docente_supervisor','Nombre del docente supervisor','text'],['celular_docente','Celular','text'],['correo_docente','Correo electrónico','email'],['categoria_docente','Categoría','text'],['departamento_docente','Departamento','text'],['jornada_laboral_docente','Jornada laboral','text'],['ubicacion_cubiculo_docente','Ubicación del cubículo','text']],
+                7 => [['adjunta_carta_formalizacion','Adjunta carta de formalización (Sí/No)','text'],['archivo_carta_formalizacion','Archivo de carta','text'],['adjunta_convenio_marco','Adjunta convenio marco (Sí/No)','text'],['archivo_convenio_marco','Archivo de convenio','text']],
             ];
         @endphp
         <p class="mb-3 text-sm text-gray-500">Los campos con * son obligatorios para avanzar. Puede guardar un borrador incompleto.</p>
@@ -71,10 +70,6 @@
         <div wire:key="pasantia-paso-{{ $pasoActual }}" class="grid grid-cols-1 gap-4 md:grid-cols-2">
         @if($pasoActual === 3)
             @include('livewire.proyectos.vinculacion.partials.pasantia-experiencia')
-        @elseif($pasoActual === 7)
-            <div class="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 p-5 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
-                Las firmas se asignan y registran mediante el flujo de revisión. No deben editarse manualmente en este formulario.
-            </div>
         @else
         @foreach($secciones[$pasoActual] as $indice => [$campo, $etiqueta, $tipo])
                 <div wire:key="pasantia-paso-{{ $pasoActual }}-campo-{{ $campo }}" class="block min-w-0 {{ $tipo === 'textarea' ? 'md:col-span-2' : '' }}">
@@ -132,7 +127,7 @@
                     <span wire:loading.remove wire:target="guardarBorrador">Guardar borrador</span>
                     <span wire:loading wire:target="guardarBorrador">Guardando...</span>
                 </button>
-                @if($pasoActual < 8)
+                @if($pasoActual < count($pasos))
                     <button type="button" wire:click="siguiente" wire:loading.attr="disabled" wire:target="siguiente" class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
                         <span wire:loading.remove wire:target="siguiente">Siguiente &rarr;</span>
                         <span wire:loading wire:target="siguiente">Guardando...</span>
