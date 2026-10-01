@@ -6,6 +6,8 @@
     'label' => 'Seleccionar opción',
     'placeholder' => null,
     'emptyText' => 'No se encontraron opciones.',
+    // Valor al quitar la selección: null para ids; '' para propiedades de texto (no aceptan null).
+    'emptyValue' => null,
 ])
 
 @php
@@ -72,7 +74,7 @@
             this.$nextTick(() => this.$refs.list?.querySelectorAll('[role=option]')[this.active]?.scrollIntoView({ block: 'nearest' }));
         },
         choose(value) {
-            this.selected = value || null;
+            this.selected = value || @js($emptyValue);
             this.close();
         },
     }"

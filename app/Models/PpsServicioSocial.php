@@ -33,6 +33,7 @@ class PpsServicioSocial extends Model
         'flujo_aprobacion_id',
         'etapa_actual_id',
         'fecha_envio',
+        'fecha_registro',
         'fecha_revision',
         'facultad_centro',
         'carrera',
@@ -79,7 +80,6 @@ class PpsServicioSocial extends Model
         'destinatario_nombre',
         'destinatario_cargo',
         'solicitud_lugar',
-        'solicitud_firmante_cargo',
         'nombre_jefe_directo',
         'celular_jefe_directo',
         'correo_jefe_directo',
@@ -110,6 +110,7 @@ class PpsServicioSocial extends Model
         'fecha_inicio' => 'date',
         'fecha_finalizacion' => 'date',
         'fecha_envio' => 'datetime',
+        'fecha_registro' => 'datetime',
         'fecha_revision' => 'datetime',
         'total_horas' => 'integer',
         'horas_presenciales' => 'integer',
@@ -307,18 +308,34 @@ class PpsServicioSocial extends Model
         return true;
     }
 
-    public function puedeDescargarPdf(?int $userId, ?object $user = null): bool
+    /**
+     * Quién puede ver el registro y sus documentos (la ficha FORM-DVUS-014, las cartas generadas
+     * y los anexos): la pantalla de detalle los muestra en el visor de PDF. Lo pueden consultar
+     * el creador, el revisor de la etapa y los roles de historial y revisión final.
+     */
+    public function puedeConsultarse(?int $userId, ?object $user = null): bool
     {
-        // El PDF es una representación del expediente y puede consultarse
-        // durante revisión/subsanación, igual que FORM-DVUS-001. La
-        // autorización sigue limitada al creador o a un revisor permitido.
+        $activeRole = $user?->activeRole;
+
+        if (
+            $activeRole?->hasPermissionTo('proyectos.historial')
+            || $activeRole?->hasPermissionTo('proyectos.revision-final')
+            || in_array($activeRole?->name, ['admin', 'Director/Enlace'], true)
+        ) {
+            return true;
+        }
+
         return $this->perteneceAlUsuario($userId)
             || $this->usuarioPuedeRevisar($user);
     }
 
+    /** Al enviar se generan la solicitud (si falta) y la autorización: se exige lo de ambas. */
     public function camposFaltantesParaEnvio(): array
     {
-        return array_values(PpsDocumentoRequirements::missing($this, PpsDocumentoRequirements::SOLICITUD, false));
+        return array_values(array_merge(
+            PpsDocumentoRequirements::missing($this, PpsDocumentoRequirements::SOLICITUD),
+            PpsDocumentoRequirements::missing($this, PpsDocumentoRequirements::AUTORIZACION),
+        ));
     }
 
     public function usuarioPuedeRevisar(?object $user): bool

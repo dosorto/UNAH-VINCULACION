@@ -28,26 +28,6 @@
     $coordinadorNombre = trim((string) ($coordinador['nombre'] ?? '')) ?: 'Coordinador(a) de la carrera';
     $coordinadorCargo = trim((string) ($coordinadorFirma?->etapa_nombre ?? '')) ?: 'Coordinador(a) de la carrera';
     $lugar = $valor($esPasantia ? 'ciudad_institucion' : 'municipio') ?: $valor('departamento') ?: $centro;
-
-    // Solicitud de PPS/SS: va dirigida a quien indica el formulario y la firma quien lo llena.
-    $firmante = $firmante ?? null;
-    $esSolicitudPps = ! $esPasantia && $tipo === 'solicitud_practica';
-    if ($esSolicitudPps) {
-        $lugar = $valor('solicitud_lugar') ?: $lugar;
-        $tratamiento = $valor('destinatario_tratamiento');
-        $practica = \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($valor('tipo_pps_ss'))), 'servicio')
-            ? 'el servicio social'
-            : 'la práctica profesional supervisada';
-        $modalidadSolicitud = match ($modalidad) {
-            '100% presencial' => 'presencial',
-            'Híbrida' => 'híbrida (presencial y teletrabajo)',
-            'Teletrabajo' => 'de teletrabajo',
-            default => mb_strtolower($modalidad),
-        };
-        $coordinadorNombre = trim((string) ($firmante['nombre'] ?? '')) ?: $coordinadorNombre;
-        $coordinadorCargo = trim((string) ($firmante['cargo'] ?? '')) ?: $coordinadorCargo;
-        $coordinador = ['src' => $firmante['src'] ?? null];
-    }
 @endphp
 <!doctype html>
 <html lang="es">
@@ -77,18 +57,9 @@
         .signature-line { border-top: .7pt solid #111827; margin: 8mm auto 2mm; width: 70mm; }
         .footer { bottom: -15mm; color: #001b44; font-size: 7.5pt; left: 0; position: fixed; right: 0; text-align: center; }
         .footer-rule { border-top: .5pt solid #001b44; margin-bottom: 2mm; }
-        /* La solicitud de práctica debe caber en una hoja, con la firma. */
-        .solicitud .year { margin-bottom: 3mm; }
-        .solicitud h1 { margin-bottom: 3mm; }
-        .solicitud .date, .solicitud .recipient { margin-bottom: 4mm; }
-        .solicitud p { margin-bottom: 3mm; }
-        .solicitud .note { margin-top: 3mm; }
-        .solicitud .signature { margin-top: 4mm; }
-        .solicitud .signature img { height: 15mm; }
-        .solicitud .signature-line { margin-top: 12mm; }
     </style>
 </head>
-<body class="{{ $esSolicitudPps ? 'solicitud' : '' }}">
+<body>
     <img class="watermark" src="file://{{ public_path('assets/pdf/common/sol_gris.png') }}" alt="">
     <div class="header">
         <img class="accent" src="file://{{ public_path('assets/pdf/common/rectangulo_amarillo.png') }}" alt="">
@@ -102,34 +73,14 @@
     <h1>{{ $tipo === 'solicitud_practica' ? 'SOLICITUD DE '.($esPasantia ? 'PASANTÍA' : 'PRÁCTICA') : 'AUTORIZACIÓN DE '.($esPasantia ? 'PASANTÍA' : 'PPS') }}</h1>
     <div class="date">{{ $lugar }}, {{ $fechaEnEspanol($fechaGeneracion) }}</div>
 
-    @if($esSolicitudPps)
-        <div class="recipient">
-            <strong>
-                {{ mb_strtoupper($tratamiento) }}<br>
-                {{ mb_strtoupper($valor('destinatario_nombre')) }}<br>
-                {{ mb_strtoupper($valor('destinatario_cargo')) }}<br>
-                {{ mb_strtoupper($institucion) }}<br>
-                Presente
-            </strong>
-        </div>
-    @else
-        <div class="recipient">
-            <strong>{{ $destinatario }}</strong><br>
-            {{ $cargoDestinatario }}<br>
-            {{ $institucion }}<br>
-            Presente
-        </div>
-    @endif
+    <div class="recipient">
+        <strong>{{ $destinatario }}</strong><br>
+        {{ $cargoDestinatario }}<br>
+        {{ $institucion }}<br>
+        Presente
+    </div>
 
-    @if($esSolicitudPps)
-        <p><strong>{{ \App\Support\PpsServicioSocial\TratamientoDestinatario::saludo($tratamiento) }}:</strong></p>
-        <p>Reciba de esta Coordinación muestras de respeto y consideración.</p>
-        <p>Por este medio tengo el agrado de dirigirme a Usted, con el objetivo de manifestarle que un estudiante por egresar de la Carrera de <strong>{{ $carrera }}</strong> de la Universidad Nacional Autónoma de Honduras desea realizar {{ $practica }} de <strong>{{ (int) $valor('total_horas') }} horas</strong> en su institución, la cual será válida solo en modalidad <strong>{{ $modalidadSolicitud }}</strong>.</p>
-        <p>NOMBRE DEL ALUMNO: <strong>{{ mb_strtoupper($valor('nombre_estudiante')) }}</strong><br>NÚMERO DE CUENTA: <strong>{{ $valor('numero_cuenta') }}</strong></p>
-        <p>De ser favorecido el estudiante, agradeceré envíe por escrito el perfil del puesto a desempeñar, las funciones que desarrollará, fecha tentativa de inicio de la práctica, horario de trabajo (máximo 40 horas semanales y 8 horas diarias sin contabilizar el tiempo de almuerzo) y el nombre del Jefe Inmediato que se le asignará al practicante.</p>
-        <p class="note">Observación: Esta solicitud no indica autorización de práctica, posteriormente se realiza un análisis de las funciones del puesto para autorizar la práctica y la fecha oficial de comienzo.</p>
-        <p>Atentamente,</p>
-    @elseif($tipo === 'solicitud_practica')
+    @if($tipo === 'solicitud_practica')
         <p><strong>Estimado(a) señor(a):</strong></p>
         <p>Reciba de esta Coordinación muestras de respeto y consideración.</p>
         <p>Por este medio tengo el agrado de dirigirme a Usted, con el objetivo de manifestarle que un estudiante por egresar de la Carrera de <strong>{{ $carrera }}</strong> de la Universidad Nacional Autónoma de Honduras desea realizar la {{ $esPasantia ? 'pasantía' : 'práctica profesional supervisada' }} de <strong>{{ $valor('total_horas') }} horas</strong> en su institución, la cual será válida en modalidad <strong>{{ $modalidad }}</strong>.</p>

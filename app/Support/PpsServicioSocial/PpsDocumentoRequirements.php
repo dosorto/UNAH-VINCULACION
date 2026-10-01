@@ -23,7 +23,7 @@ final class PpsDocumentoRequirements
     /**
      * @return array<string, string>
      */
-    public static function missing(PpsServicioSocial $registro, string $tipo, bool $requireCoordinator = true): array
+    public static function missing(PpsServicioSocial $registro, string $tipo): array
     {
         $fields = FormDvus014Data::from($registro)['fields'];
         $required = match ($tipo) {
@@ -53,22 +53,12 @@ final class PpsDocumentoRequirements
             default => throw new RuntimeException('Tipo de documento PPS/SS no válido.'),
         };
 
+        // Ambas cartas las firma quien llena el formulario (PpsDocumentoGenerator), no una etapa del flujo.
         $missing = [];
 
         foreach ($required as $field => $label) {
             if (self::isBlank($fields[$field] ?? null, $field)) {
                 $missing[$field] = $label;
-            }
-        }
-
-        // La solicitud la firma quien llena el formulario; la autorización, el coordinador del flujo.
-        if ($requireCoordinator && $tipo === self::AUTORIZACION) {
-            $coordinador = FormDvus014Data::coordinadorFirma($registro);
-
-            if (! $coordinador || self::isBlank($coordinador->empleado?->nombre_completo)) {
-                $missing['coordinador_responsable'] = 'coordinador responsable con nombre disponible';
-            } elseif (! FormDvus014Data::firmaDisponible($coordinador->empleado)) {
-                $missing['coordinador_firma'] = 'firma disponible del coordinador responsable';
             }
         }
 

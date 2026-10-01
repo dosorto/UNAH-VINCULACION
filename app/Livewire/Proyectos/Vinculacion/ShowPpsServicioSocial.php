@@ -2,10 +2,11 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
+use App\Models\PpsDocumentoGenerado;
 use App\Models\PpsServicioSocial;
+use App\Services\PpsServicioSocial\PpsDocumentoGenerator;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
 use App\Support\Notification;
-use App\Support\PpsServicioSocial\FormDvus014Data;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -23,7 +24,7 @@ class ShowPpsServicioSocial extends Component
     {
         $registro = PpsServicioSocial::with(['flujoAprobacion', 'etapaActual'])->findOrFail($id);
 
-        abort_unless($this->canViewRecord($registro), 403);
+        abort_unless($registro->puedeConsultarse(auth()->id(), auth()->user()), 403);
 
         $this->registro = $registro;
     }
@@ -99,7 +100,7 @@ class ShowPpsServicioSocial extends Component
 
         Notification::make()
             ->title('Registro enviado')
-            ->body('El FORM-DVUS-014 fue enviado a revisión correctamente.')
+            ->body('El FORM-DVUS-014 fue enviado a revisión y se generó la autorización de PPS.')
             ->success()
             ->send();
     }
@@ -304,23 +305,6 @@ class ShowPpsServicioSocial extends Component
         $this->redirectRoute('pps-servicio-social.edit', ['id' => $this->registro->id]);
     }
 
-    private function canViewRecord(PpsServicioSocial $registro): bool
-    {
-        $user = auth()->user();
-        $activeRole = $user?->activeRole;
-
-        if (
-            $activeRole?->hasPermissionTo('proyectos.historial')
-            || $activeRole?->hasPermissionTo('proyectos.revision-final')
-            || in_array($activeRole?->name, ['admin', 'Director/Enlace'], true)
-        ) {
-            return true;
-        }
-
-        return $registro->perteneceAlUsuario(auth()->id())
-            || $registro->usuarioPuedeRevisar($user);
-    }
-
     public function eliminarBorrador(): void
     {
         $this->registro->refresh();
@@ -342,14 +326,15 @@ class ShowPpsServicioSocial extends Component
         $this->registro->loadMissing([
             'flujoAprobacion',
             'etapaActual',
+            'documentosGenerados',
             'historialEstados' => fn ($query) => $query->with(['empleado', 'tipoestado'])->orderByDesc('created_at'),
         ]);
 
         return view('livewire.proyectos.vinculacion.show-pps-servicio-social', [
             'historialRouteName' => $this->historialRouteName(),
-            'anexos' => $this->anexosRegistrados(),
+            'documentos' => $this->documentos(),
+            'etapasVisuales' => $this->etapasVisuales(),
             'movimientos' => $this->registro->historialEstados,
-            'formData' => FormDvus014Data::from($this->registro, false),
         ]);
     }
 
@@ -372,44 +357,111 @@ class ShowPpsServicioSocial extends Component
         return 'inicio';
     }
 
-    private function anexosRegistrados(): array
+    /**
+     * Pestañas del visor: la ficha y sus adjuntos en el orden del proceso (solicitud, respuesta de
+     * la institución, convenio y autorización). Cada una se muestra en el visor de PDF.
+     *
+     * @return list<array{clave: string, titulo: string, ver_url: ?string, descargar_url: ?string, detalle: ?string, versiones: list<array{version: int, url: string}>}>
+     */
+    private function documentos(): array
     {
-        return collect([
-            [
-                'tipo' => 'carta-formalizacion',
-                'titulo' => 'Carta de formalización',
-                'path' => $this->registro->archivo_carta_formalizacion,
-                'marcado' => (bool) $this->registro->adjunta_carta_formalizacion,
-            ],
-            [
-                'tipo' => 'convenio-marco',
-                'titulo' => 'Convenio marco',
-                'path' => $this->registro->archivo_convenio_marco,
-                'marcado' => (bool) $this->registro->adjunta_convenio_marco,
-            ],
-        ])
-            ->filter(fn (array $anexo): bool => filled($anexo['path']) || $anexo['marcado'])
-            ->map(function (array $anexo): array {
-                $path = filled($anexo['path']) ? $this->normalizePublicPath((string) $anexo['path']) : null;
-                $exists = $path ? Storage::disk('public')->exists($path) : false;
+        $ficha = [
+            'clave' => 'ficha',
+            'titulo' => 'Ficha FORM-DVUS-014',
+            // La marca de tiempo renueva el visor cuando cambian los datos del registro.
+            'ver_url' => route('pps-servicio-social.pdf', ['id' => $this->registro->id, 'ver' => 1, 'v' => $this->registro->updated_at?->timestamp]),
+            'descargar_url' => route('pps-servicio-social.pdf', $this->registro->id),
+            'detalle' => null,
+            'versiones' => [],
+        ];
 
-                return [
-                    'tipo' => $anexo['tipo'],
-                    'titulo' => $anexo['titulo'],
-                    'archivo' => $path ? basename($path) : null,
-                    'marcado' => $anexo['marcado'],
-                    'exists' => $exists,
-                    'view_url' => $exists ? route('pps-servicio-social.anexo', [
-                        'id' => $this->registro->id,
-                        'tipo' => $anexo['tipo'],
-                    ]) : null,
-                    'download_url' => $exists ? route('pps-servicio-social.anexo', [
-                        'id' => $this->registro->id,
-                        'tipo' => $anexo['tipo'],
-                        'download' => 1,
-                    ]) : null,
-                ];
-            })
+        $adjuntos = array_filter([
+            $this->documentoGenerado(PpsDocumentoGenerator::SOLICITUD, 'Solicitud de práctica'),
+            $this->anexo('carta-formalizacion', 'Carta de formalización', $this->registro->archivo_carta_formalizacion, (bool) $this->registro->adjunta_carta_formalizacion),
+            $this->anexo('convenio-marco', 'Convenio marco', $this->registro->archivo_convenio_marco, (bool) $this->registro->adjunta_convenio_marco),
+            $this->documentoGenerado(PpsDocumentoGenerator::AUTORIZACION, 'Autorización de PPS'),
+        ]);
+
+        return [$ficha, ...array_values($adjuntos)];
+    }
+
+    /** Última versión de una carta generada; las anteriores quedan para descargar. */
+    private function documentoGenerado(string $tipo, string $titulo): ?array
+    {
+        $versiones = $this->registro->documentosGenerados
+            ->where('tipo', $tipo)
+            ->sortByDesc('version')
+            ->values();
+        $ultima = $versiones->first();
+
+        if (! $ultima instanceof PpsDocumentoGenerado) {
+            return null;
+        }
+
+        return [
+            'clave' => $tipo,
+            'titulo' => $titulo,
+            'ver_url' => route('pps-servicio-social.documento-generado', ['documento' => $ultima->id, 'ver' => 1]),
+            'descargar_url' => route('pps-servicio-social.documento-generado', $ultima->id),
+            'detalle' => 'Versión '.$ultima->version.($ultima->generado_en ? ' · generada el '.$ultima->generado_en->format('d/m/Y H:i') : ''),
+            'versiones' => $versiones->slice(1)
+                ->map(fn (PpsDocumentoGenerado $documento): array => [
+                    'version' => (int) $documento->version,
+                    'url' => route('pps-servicio-social.documento-generado', $documento->id),
+                ])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /** Anexo subido en el formulario; si está marcado pero sin archivo, la pestaña lo indica. */
+    private function anexo(string $tipo, string $titulo, ?string $path, bool $marcado): ?array
+    {
+        if (blank($path) && ! $marcado) {
+            return null;
+        }
+
+        $path = filled($path) ? $this->normalizePublicPath((string) $path) : null;
+        $existe = $path !== null && Storage::disk('public')->exists($path);
+
+        return [
+            'clave' => $tipo,
+            'titulo' => $titulo,
+            'ver_url' => $existe ? route('pps-servicio-social.anexo', ['id' => $this->registro->id, 'tipo' => $tipo]) : null,
+            'descargar_url' => $existe ? route('pps-servicio-social.anexo', ['id' => $this->registro->id, 'tipo' => $tipo, 'download' => 1]) : null,
+            'detalle' => $path ? basename($path) : null,
+            'versiones' => [],
+        ];
+    }
+
+    /**
+     * Etapas del flujo con el estado de su firma más reciente, para los pasos del encabezado.
+     *
+     * @return list<array{nombre: string, estado: string, actual: bool}>
+     */
+    private function etapasVisuales(): array
+    {
+        $flujo = $this->registro->resolveFlujoAprobacion();
+
+        if (! $flujo) {
+            return [];
+        }
+
+        $firmas = $this->registro->firmasDeEtapa()
+            ->where('flujo_aprobacion_id', $flujo->id)
+            ->where('estado_revision', '!=', 'Anulado')
+            ->orderByDesc('revision_ciclo')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('flujo_aprobacion_etapa_id');
+        $enRevision = in_array($this->registro->estado, ['enviado', 'en_revision'], true);
+
+        return $this->registro->etapasActivasDelFlujo($flujo)
+            ->map(fn ($etapa): array => [
+                'nombre' => (string) $etapa->nombre,
+                'estado' => (string) ($firmas->get($etapa->id)?->first()?->estado_revision ?? 'Pendiente'),
+                'actual' => $enRevision && (int) $etapa->id === (int) $this->registro->etapa_actual_id,
+            ])
             ->values()
             ->all();
     }

@@ -20,10 +20,10 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
     public function mount(int $id): void
     {
-        $this->bloquearNavegacionPasos = false;
-
         $registro = PpsServicioSocial::findOrFail($id);
         $this->registro = $registro;
+        // Quien edita su borrador no salta pasos incompletos; el revisor corrige un registro ya enviado.
+        $this->bloquearNavegacionPasos = ! $this->esEdicionRevisor($registro);
         $this->registroId = $registro->id;
         $this->registroGuardado = true;
 
@@ -308,7 +308,6 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->destinatario_nombre = $registro->destinatario_nombre ?? '';
         $this->destinatario_cargo = $registro->destinatario_cargo ?? '';
         $this->solicitud_lugar = $registro->solicitud_lugar ?? '';
-        $this->solicitud_firmante_cargo = $registro->solicitud_firmante_cargo ?? '';
         if ($this->institucion_nacionalidad === 'Nacional') {
             $this->institucion_pais = '';
         }

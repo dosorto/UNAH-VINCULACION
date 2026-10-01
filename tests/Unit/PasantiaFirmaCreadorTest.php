@@ -67,7 +67,8 @@ class PasantiaFirmaCreadorTest extends TestCase
         $this->assertSame('Aprobado', $firma->estado_revision);
         $this->assertNull($firma->flujo_aprobacion_etapa_id);
         $this->assertEquals(10, $firma->firma_id);
-        $this->assertEquals(11, $firma->sello_id);
+        // La firma de quien registra nunca lleva sello, aunque el empleado tenga uno.
+        $this->assertNull($firma->sello_id);
         $this->assertSame('firmas/coordinador.png', $registro->fresh()->firma_coordinador);
         $this->assertNotNull($firma->fecha_firma);
 

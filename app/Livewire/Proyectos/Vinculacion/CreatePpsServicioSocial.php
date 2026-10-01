@@ -6,11 +6,13 @@ use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Municipio;
 use App\Models\Demografia\Pais;
 use App\Models\JornadaLaboral;
+use App\Models\Personal\CategoriaEmpleado;
 use App\Models\Personal\Empleado;
 use App\Models\PpsDocumentoGenerado;
 use App\Models\PpsInstitucion;
 use App\Models\PpsServicioSocial;
 use App\Models\UnidadAcademica\Carrera;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
 use App\Services\Integraciones\IntegracionApiService;
@@ -31,12 +33,11 @@ use Livewire\WithFileUploads;
 /**
  * FORM-DVUS-014: registro de Práctica Profesional Supervisada o Servicio Social.
  *
- * Los pasos siguen el trámite: primero lo que necesita la SOLICITUD DE PRÁCTICA (información
- * general con el total de horas, estudiante, institución con su destinatario y modalidad), luego
- * se genera la solicitud para la empresa y, con su respuesta, se completa lo demás: fechas y
- * alcance (V), ubicación y jornada (12 y IV), instrumento, documentos y jefe directo (VI, 11 y
- * IX), docente supervisor (VII) y revisión y envío. Cada paso exige los campos del formato; el
- * borrador puede guardarse incompleto.
+ * Seis pasos que siguen el trámite: estudiante y práctica (I, II, 9 y 10); institución y
+ * SOLICITUD DE PRÁCTICA (VI y 12), donde se genera la carta para la empresa; respuesta de la
+ * institución: fechas, funciones y jefe inmediato (10, V y 11); ubicación y jornada (12 y IV);
+ * formalización y docente supervisor (VI, IX y VII); y revisión y envío. Cada paso exige sus
+ * campos y no se avanza sin completarlo; el borrador puede guardarse incompleto.
  */
 class CreatePpsServicioSocial extends Component
 {
@@ -52,21 +53,18 @@ class CreatePpsServicioSocial extends Component
     ];
 
     public const PASOS = [
-        1 => 'Información general',
-        2 => 'Estudiante',
-        3 => 'Institución y destinatario',
-        4 => 'Solicitud de práctica',
-        5 => 'Fechas y alcance',
-        6 => 'Ubicación y jornada',
-        7 => 'Instrumento y jefe directo',
-        8 => 'Supervisor',
-        9 => 'Revisión y envío',
+        1 => 'Estudiante y práctica',
+        2 => 'Institución y solicitud',
+        3 => 'Respuesta de la institución',
+        4 => 'Ubicación y jornada',
+        5 => 'Formalización y supervisor',
+        6 => 'Revisión y envío',
     ];
 
-    public const PASO_INSTITUCION = 3;
-    public const PASO_SOLICITUD = 4;
-    public const PASO_UBICACION = 6;
-    public const PASO_SUPERVISOR = 8;
+    public const PASO_INSTITUCION = 2;
+    public const PASO_SOLICITUD = 2;
+    public const PASO_UBICACION = 4;
+    public const PASO_SUPERVISOR = 5;
 
     /** Jornada con la que se estiman las horas planificadas: 8 horas de lunes a viernes. */
     public const HORAS_POR_DIA_PLANIFICADO = 8;
@@ -95,7 +93,7 @@ class CreatePpsServicioSocial extends Component
     ];
 
     public int $currentStep = 1;
-    public int $totalSteps = 9;
+    public int $totalSteps = 6;
     public bool $bloquearNavegacionPasos = true;
     public bool $registroGuardado = false;
     public ?int $registroId = null;
@@ -108,14 +106,14 @@ class CreatePpsServicioSocial extends Component
     public array $modalEtapas = [];
     public array $modalDestinatarios = [];
 
-    // Paso 1: Información general
+    // Paso 1: Estudiante y práctica (unidad académica, tipo y total de horas)
     public ?int $facultad_centro_id = null;
     public ?int $carrera_id = null;
     public string $tipo_pps_ss = '';
     public string $fecha_inicio = '';
     public string $fecha_finalizacion = '';
 
-    // Paso 2: Datos del estudiante
+    // Paso 1: Datos del estudiante
     public string $numero_cuenta = '';
     public string $estudiante_nombre_completo = '';
     public string $estudiante_celular = '';
@@ -123,7 +121,7 @@ class CreatePpsServicioSocial extends Component
     public string $estudiante_correo_personal = '';
     public bool $estudianteConsultado = false;
 
-    // Pasos 3 (modalidad) y 6: Ubicación y jornada
+    // Pasos 2 (modalidad) y 4: Ubicación y jornada
     public string $territorio_ejecucion = 'Nacional';
     public string $modalidad_ejecucion = '';
     public string $region = '';
@@ -149,14 +147,14 @@ class CreatePpsServicioSocial extends Component
     public string $horas_presenciales = '';
     public string $horas_teletrabajo = '';
 
-    // Paso 5: Fechas y alcance de la PPS / Servicio Social (el total de horas va en el paso 1)
+    // Paso 3: Respuesta de la institución: fechas y alcance (el total de horas va en el paso 1)
     public string $descripcion_tipo_pps = '';
     public string $descripcion_horas_tipo_pps_ss = '';
     public string $total_horas = '';
     public string $area_realizacion = '';
     public string $resumen_responsabilidades = '';
 
-    // Paso 3: Institución (del catálogo) y destinatario; paso 7: instrumento y jefe directo
+    // Paso 2: Institución (del catálogo) y destinatario; paso 3: jefe directo; paso 5: instrumento
     public ?int $pps_institucion_id = null;
     public $institucionBuscadaId = null;
     // null: aún no elige; 'existente': datos del catálogo, solo lectura; 'nueva': se crea en el catálogo.
@@ -176,9 +174,10 @@ class CreatePpsServicioSocial extends Component
     public string $destinatario_tratamiento = '';
     public string $destinatario_nombre = '';
     public string $destinatario_cargo = '';
-    // Solicitud de práctica: lugar de emisión y cargo de quien la firma (quien llena el formulario).
+    // Solicitud de práctica: lugar de emisión. La firma el coordinador que llena el formulario.
     public string $solicitud_lugar = '';
-    public string $solicitud_firmante_cargo = '';
+    // Versión de la solicitud que muestra el visor; sin elegir, la más reciente.
+    public ?int $solicitudVisibleId = null;
     public string $tipo_instrumento = '';
     public string $jefe_directo_nombre = '';
     public string $jefe_directo_celular = '';
@@ -186,7 +185,7 @@ class CreatePpsServicioSocial extends Component
     public string $jefe_directo_cargo = '';
     public string $jefe_directo_grado = '';
 
-    // Paso 8: Docente supervisor
+    // Paso 5: Docente supervisor
     public ?int $docente_supervisor_id = null;
     public string $docenteBusqueda = '';
     #[Locked]
@@ -470,7 +469,7 @@ class CreatePpsServicioSocial extends Component
         $this->autoGuardarCampoTerritorialManual();
     }
 
-    // ─── Institución (paso 3) ──────────────────────────────────────────────────
+    // ─── Institución (paso 2) ──────────────────────────────────────────────────
 
     public function usarInstitucionSeleccionada(): void
     {
@@ -557,7 +556,7 @@ class CreatePpsServicioSocial extends Component
         return $reglas;
     }
 
-    // ─── Docente supervisor (paso 8) ───────────────────────────────────────────
+    // ─── Docente supervisor (paso 5) ───────────────────────────────────────────
 
     public function seleccionarDocente(int $empleadoId): void
     {
@@ -625,7 +624,7 @@ class CreatePpsServicioSocial extends Component
             ->all();
     }
 
-    // ─── Documentos adjuntos (paso 7) ──────────────────────────────────────────
+    // ─── Documentos adjuntos (paso 5) ──────────────────────────────────────────
 
     public function updatedCartaFormalizacionArchivo(): void
     {
@@ -753,10 +752,10 @@ class CreatePpsServicioSocial extends Component
             ->exists();
     }
 
-    /** Al llegar al paso, propone el lugar y el cargo con que firmó su última solicitud. */
+    /** Al llegar al paso, propone el lugar de emisión de su última solicitud. */
     protected function prepararPasoSolicitud(): void
     {
-        if ($this->currentStep !== self::PASO_SOLICITUD) {
+        if ($this->currentStep !== self::PASO_SOLICITUD || filled($this->solicitud_lugar)) {
             return;
         }
 
@@ -765,16 +764,9 @@ class CreatePpsServicioSocial extends Component
             ->when($this->registroId, fn ($query) => $query->whereKeyNot($this->registroId))
             ->whereNotNull('solicitud_lugar')
             ->latest('id')
-            ->first(['solicitud_lugar', 'solicitud_firmante_cargo']);
+            ->value('solicitud_lugar');
 
-        if (blank($this->solicitud_lugar)) {
-            $this->solicitud_lugar = (string) ($anterior?->solicitud_lugar ?: $this->lugarDelCentro());
-        }
-
-        if (blank($this->solicitud_firmante_cargo)) {
-            $this->solicitud_firmante_cargo = (string) ($anterior?->solicitud_firmante_cargo
-                ?: PpsDocumentoGenerator::cargoFirmantePorDefecto(auth()->user()?->empleado?->sexo));
-        }
+        $this->solicitud_lugar = (string) ($anterior ?: $this->lugarDelCentro());
     }
 
     /** «UNAH Campus Choluteca» → «Choluteca»; Ciudad Universitaria → Tegucigalpa. */
@@ -824,6 +816,7 @@ class CreatePpsServicioSocial extends Component
         }
 
         $this->estadoAutoGuardado = 'guardado';
+        $this->solicitudVisibleId = null;
         Notification::make()
             ->title('Solicitud generada')
             ->body('Descárguela y envíela a la institución. Con su respuesta complete los siguientes pasos.')
@@ -1113,7 +1106,6 @@ class CreatePpsServicioSocial extends Component
             'destinatario_nombre' => $this->destinatario_nombre ?: null,
             'destinatario_cargo' => $this->destinatario_cargo ?: null,
             'solicitud_lugar' => $this->solicitud_lugar ?: null,
-            'solicitud_firmante_cargo' => $this->solicitud_firmante_cargo ?: null,
             'institucion_nacionalidad' => $this->institucion_nacionalidad ?: null,
             'institucion_pais' => $this->institucion_nacionalidad === 'Nacional' ? 'Honduras' : ($this->institucion_pais ?: null),
             'compromisos_institucion' => $this->institucion_compromisos ?: null,
@@ -1232,44 +1224,37 @@ class CreatePpsServicioSocial extends Component
                 'carrera_id' => ['required', 'integer', 'exists:carrera,id'],
                 'tipo_pps_ss' => ['required', 'string', Rule::in($this->tipoPpsValoresPermitidos())],
                 'total_horas' => ['required', 'integer', 'min:1'],
-            ],
-            2 => [
                 'numero_cuenta' => ['required', 'string', 'max:50', 'regex:/^\d+$/'],
                 'estudiante_nombre_completo' => $texto(),
                 'estudiante_celular' => $texto(30),
                 'estudiante_correo_institucional' => ['required', 'email', 'max:255'],
                 'estudiante_correo_personal' => ['required', 'email', 'max:255'],
             ],
-            3 => [
+            2 => [
                 'pps_institucion_id' => ['required', 'integer', Rule::exists('pps_instituciones', 'id')->whereNull('deleted_at')],
                 'destinatario_tratamiento' => ['required', 'string', Rule::in(TratamientoDestinatario::opciones())],
                 'destinatario_nombre' => $texto(),
                 'destinatario_cargo' => $texto(),
                 'modalidad_ejecucion' => ['required', 'string', Rule::in($this->modalidadValoresPermitidos())],
-            ],
-            4 => [
                 'solicitud_lugar' => $texto(),
-                'solicitud_firmante_cargo' => $texto(),
             ],
-            5 => [
+            3 => [
                 'fecha_inicio' => ['required', 'date'],
                 'fecha_finalizacion' => ['required', 'date', 'after_or_equal:fecha_inicio'],
                 'descripcion_tipo_pps' => $texto(5000),
                 'descripcion_horas_tipo_pps_ss' => ['nullable', 'string', 'max:500'],
                 'area_realizacion' => $texto(),
                 'resumen_responsabilidades' => $texto(5000),
-            ],
-            6 => $this->rulesUbicacion(),
-            7 => array_merge([
-                'institucion_compromisos' => $texto(5000),
-                'tipo_instrumento' => ['required', 'string', Rule::in(array_keys($this->instrumentoOpciones))],
                 'jefe_directo_nombre' => $texto(),
                 'jefe_directo_celular' => $texto(30),
                 'jefe_directo_correo' => ['required', 'email', 'max:255'],
                 'jefe_directo_cargo' => $texto(),
                 'jefe_directo_grado' => ['required', 'string', Rule::in(self::GRADO_ACADEMICO_JEFE_DIRECTO_OPCIONES)],
-            ], $this->rulesArchivos(true)),
-            8 => [
+            ],
+            4 => $this->rulesUbicacion(),
+            5 => array_merge([
+                'institucion_compromisos' => $texto(5000),
+                'tipo_instrumento' => ['required', 'string', Rule::in(array_keys($this->instrumentoOpciones))],
                 'docente_supervisor_id' => ['required', 'integer', Rule::exists((new Empleado)->getTable(), 'id')],
                 'docente_supervisor_nombre' => $texto(),
                 'docente_numero_empleado' => $texto(50),
@@ -1279,7 +1264,7 @@ class CreatePpsServicioSocial extends Component
                 'docente_departamento' => $texto(),
                 'docente_jornada' => ['required', 'string', Rule::in($this->jornadasLaboralesValidas())],
                 'docente_cubiculo' => $texto(),
-            ],
+            ], $this->rulesArchivos(true)),
             default => [],
         };
     }
@@ -1664,6 +1649,15 @@ class CreatePpsServicioSocial extends Component
             'municipios' => $municipios,
             'departamentosSede' => $departamentosSede,
             'tratamientos' => TratamientoDestinatario::opciones(),
+            // Catálogos para completar lo que falta en el expediente del docente supervisor.
+            'categoriasDocente' => $this->currentStep === self::PASO_SUPERVISOR && $this->docente_supervisor_id
+                ? CategoriaEmpleado::orderBy('nombre')->pluck('nombre', 'nombre')
+                : collect(),
+            'departamentosDocente' => $this->currentStep === self::PASO_SUPERVISOR && $this->docente_supervisor_id
+                ? DepartamentoAcademico::query()->distinct()->orderBy('nombre')->pluck('nombre', 'nombre')
+                : collect(),
+            'firmaRegistrada' => $this->currentStep === self::PASO_SOLICITUD
+                && filled(PpsDocumentoGenerator::imagenFirma(auth()->user()?->empleado)),
             'solicitudesGeneradas' => $this->currentStep === self::PASO_SOLICITUD && $this->registroId
                 ? PpsDocumentoGenerado::query()
                     ->where('pps_servicio_social_id', $this->registroId)

@@ -14,16 +14,18 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use Tests\Support\SimulaLibreOffice;
 use Tests\TestCase;
 
 /**
- * FORM-DVUS-014 en nueve pasos: primero lo que necesita la solicitud de práctica, luego se genera
- * y después lo demás. Cada paso exige sus campos, la institución sale de su catálogo y el
- * supervisor se elige entre los docentes.
+ * FORM-DVUS-014 en seis pasos: estudiante y práctica, institución y solicitud de práctica (que se
+ * genera ahí), respuesta de la institución, ubicación, formalización y supervisor, y revisión.
+ * Cada paso exige sus campos y no se salta un paso incompleto, tampoco al editar el borrador.
  */
 class FormDvus014FormularioTest extends TestCase
 {
     use DatabaseTransactions;
+    use SimulaLibreOffice;
 
     private function formulario()
     {
@@ -51,20 +53,22 @@ class FormDvus014FormularioTest extends TestCase
     public function test_primero_se_pide_lo_de_la_solicitud_y_despues_lo_demas(): void
     {
         $this->assertSame([
-            1 => 'Información general', 2 => 'Estudiante', 3 => 'Institución y destinatario',
-            4 => 'Solicitud de práctica', 5 => 'Fechas y alcance', 6 => 'Ubicación y jornada',
-            7 => 'Instrumento y jefe directo', 8 => 'Supervisor', 9 => 'Revisión y envío',
+            1 => 'Estudiante y práctica', 2 => 'Institución y solicitud', 3 => 'Respuesta de la institución',
+            4 => 'Ubicación y jornada', 5 => 'Formalización y supervisor', 6 => 'Revisión y envío',
         ], CreatePpsServicioSocial::PASOS);
 
         $this->formulario()
-            ->assertSet('totalSteps', 9)
-            ->assertSee('Paso 1: Información general')
-            ->assertSee('Solicitud de práctica');
+            ->assertSet('totalSteps', 6)
+            ->assertSee('Paso 1: Estudiante y práctica')
+            ->assertSee('Institución y solicitud')
+            // La fecha de registro no se captura: se fija al enviar el formulario terminado.
+            ->assertDontSee('Fecha de registro');
     }
 
-    public function test_la_solicitud_se_genera_en_el_paso_4_y_sin_ella_no_se_avanza(): void
+    public function test_la_solicitud_se_genera_en_el_paso_2_y_sin_ella_no_se_avanza(): void
     {
         Storage::fake('local');
+        $this->simularLibreOffice();
         $usuario = User::factory()->create();
         Empleado::create([
             'nombre_completo' => 'Coordinadora de Prueba', 'numero_empleado' => '55667788',
@@ -89,23 +93,28 @@ class FormDvus014FormularioTest extends TestCase
             ->set('destinatario_nombre', 'María Helena Mejía')
             ->set('destinatario_cargo', 'Coordinadora de Reclutamiento')
             ->set('modalidad_ejecucion', 'Presencial')
-            // Con lo necesario para la carta completo se llega a la solicitud, que propone lugar y cargo.
-            ->call('goToStep', 4)
-            ->assertSet('currentStep', 4)
-            ->assertSet('solicitud_firmante_cargo', 'Coordinadora Académica')
+            // Con el paso 1 completo se llega al paso 2, que propone el lugar; firma la coordinadora que llena el formulario.
+            ->call('goToStep', 2)
+            ->assertSet('currentStep', 2)
             ->assertSee('Coordinadora de Prueba')
+            ->assertSee('Coordinadora Académica')
             ->assertSee('Generar solicitud');
         $this->assertNotSame('', $formulario->get('solicitud_lugar'));
 
         // Sin generar la solicitud no se continúa.
-        $formulario->call('nextStep')->assertHasErrors('solicitud')->assertSet('currentStep', 4);
+        $formulario->call('nextStep')->assertHasErrors('solicitud')->assertSet('currentStep', 2);
 
         $formulario->call('generarSolicitud')
             ->assertHasNoErrors()
-            ->assertSee('Solicitud de práctica · v1')
+            // Se muestra en el visor, no como descarga.
+            ->assertSee('v1 ·')
+            ->assertSeeHtml('<iframe')
+            ->assertSeeHtml('ver=1')
+            ->assertDontSee('Descargar PDF')
             ->assertSee('Generar nueva versión')
             ->call('nextStep')
-            ->assertSet('currentStep', 5);
+            ->assertSet('currentStep', 3)
+            ->assertSee('Paso 3: Respuesta de la institución');
 
         $registro = PpsServicioSocial::where('created_by', $usuario->id)->latest('id')->firstOrFail();
         $this->assertSame('María Helena Mejía', $registro->destinatario_nombre);
@@ -116,7 +125,7 @@ class FormDvus014FormularioTest extends TestCase
     public function test_la_solicitud_no_se_genera_si_faltan_datos_de_los_pasos_anteriores(): void
     {
         $this->formulario()
-            ->set('currentStep', 4)
+            ->set('currentStep', 2)
             ->call('generarSolicitud')
             ->assertHasErrors(['facultad_centro_id', 'total_horas'])
             ->assertSet('currentStep', 1);
@@ -126,13 +135,16 @@ class FormDvus014FormularioTest extends TestCase
     {
         $formulario = $this->formulario();
         $formulario->call('nextStep')
-            ->assertHasErrors(['facultad_centro_id', 'carrera_id', 'tipo_pps_ss', 'total_horas'])
+            ->assertHasErrors(['facultad_centro_id', 'carrera_id', 'tipo_pps_ss', 'total_horas', 'numero_cuenta', 'estudiante_nombre_completo'])
             ->assertHasNoErrors(['fecha_inicio', 'fecha_finalizacion'])
             ->assertSet('currentStep', 1);
         $this->assertFalse($formulario->instance()->isStepComplete(1));
 
-        // Las fechas llegan con la respuesta de la institución (paso 5).
-        $formulario->set('currentStep', 5)
+        // No se salta a un paso posterior mientras el actual esté incompleto.
+        $formulario->call('goToStep', 4)->assertSet('currentStep', 1);
+
+        // Las fechas llegan con la respuesta de la institución (paso 3).
+        $formulario->set('currentStep', 3)
             ->set('fecha_inicio', '2026-03-01')->set('fecha_finalizacion', '2026-02-01')
             ->call('nextStep')
             ->assertHasErrors(['fecha_finalizacion' => 'after_or_equal']);
@@ -157,7 +169,7 @@ class FormDvus014FormularioTest extends TestCase
         $this->assertNull($horas('2026-03-02', ''));
 
         $this->formulario()
-            ->set('currentStep', 5)
+            ->set('currentStep', 3)
             ->set('fecha_inicio', '2026-03-02')
             ->set('fecha_finalizacion', '2026-03-13')
             ->assertSee('Horas planificadas:')
@@ -167,7 +179,7 @@ class FormDvus014FormularioTest extends TestCase
 
     public function test_la_ubicacion_exige_solo_el_bloque_de_la_modalidad(): void
     {
-        $formulario = $this->formulario()->set('currentStep', 6)->set('territorio_ejecucion', 'Nacional');
+        $formulario = $this->formulario()->set('currentStep', 4)->set('territorio_ejecucion', 'Nacional');
 
         $formulario->set('modalidad_ejecucion', 'Presencial')->call('nextStep')
             ->assertHasErrors(['departamento_id', 'municipio_id', 'aldea_ciudad', 'caserio', 'horas_presenciales'])
@@ -186,7 +198,7 @@ class FormDvus014FormularioTest extends TestCase
     {
         // País sin departamentos en el catálogo: departamento y municipio se escriben.
         $sinDepartamentos = $this->pais('País Sin Departamentos de Prueba', 9991);
-        $formulario = $this->formulario()->set('currentStep', 6)
+        $formulario = $this->formulario()->set('currentStep', 4)
             ->set('modalidad_ejecucion', 'Presencial')
             ->set('territorio_ejecucion', 'Internacional')
             ->assertSee('Elija el país para ver sus departamentos y municipios.')
@@ -225,7 +237,7 @@ class FormDvus014FormularioTest extends TestCase
 
         $formulario = Livewire::actingAs($usuario)->test(CreatePpsServicioSocial::class)
             ->set('autoguardadoActivo', false)
-            ->set('currentStep', 6)
+            ->set('currentStep', 4)
             ->set('territorio_ejecucion', 'Internacional')
             ->set('modalidad_ejecucion', '100% virtual');
 
@@ -256,6 +268,24 @@ class FormDvus014FormularioTest extends TestCase
             ->assertSet('pais_sede_id', $pais->id)
             ->assertSet('departamento_sede_id', $departamento->id)
             ->assertSet('municipio_sede_id', $municipio->id);
+    }
+
+    public function test_al_editar_el_borrador_no_se_salta_un_paso_incompleto(): void
+    {
+        $usuario = User::factory()->create();
+        Livewire::actingAs($usuario)->test(CreatePpsServicioSocial::class)
+            ->set('autoguardadoActivo', false)
+            ->set('numero_cuenta', '20201000123')
+            ->call('guardarBorrador');
+        $registro = PpsServicioSocial::where('created_by', $usuario->id)->latest('id')->firstOrFail();
+
+        Livewire::actingAs($usuario)->test(EditPpsServicioSocial::class, ['id' => $registro->id])
+            ->assertSet('bloquearNavegacionPasos', true)
+            ->call('goToStep', 5)
+            ->assertSet('currentStep', 1)
+            ->assertHasErrors(['facultad_centro_id', 'total_horas'])
+            ->call('nextStep')
+            ->assertSet('currentStep', 1);
     }
 
     public function test_un_borrador_internacional_recupera_pais_departamento_y_municipio(): void
@@ -315,7 +345,7 @@ class FormDvus014FormularioTest extends TestCase
     public function test_la_institucion_se_elige_del_catalogo_y_sus_datos_no_se_editan(): void
     {
         $institucion = $this->institucion();
-        $formulario = $this->formulario()->set('currentStep', 3);
+        $formulario = $this->formulario()->set('currentStep', 2);
 
         $formulario->call('usarInstitucionSeleccionada')->assertHasErrors('institucionBuscadaId');
 
@@ -332,15 +362,17 @@ class FormDvus014FormularioTest extends TestCase
             ->assertHasErrors(['destinatario_tratamiento', 'destinatario_nombre', 'destinatario_cargo', 'modalidad_ejecucion'])
             ->assertHasNoErrors(['pps_institucion_id', 'institucion_compromisos', 'jefe_directo_nombre']);
 
-        // Los datos de la práctica (compromisos, instrumento y jefe directo) van después de la solicitud.
-        $formulario->set('currentStep', 7)->call('nextStep')
-            ->assertHasErrors(['institucion_compromisos', 'tipo_instrumento', 'jefe_directo_nombre', 'jefe_directo_correo', 'jefe_directo_grado']);
+        // El jefe inmediato llega con la respuesta de la institución; compromisos e instrumento al formalizar.
+        $formulario->set('currentStep', 3)->call('nextStep')
+            ->assertHasErrors(['jefe_directo_nombre', 'jefe_directo_correo', 'jefe_directo_grado']);
+        $formulario->set('currentStep', 5)->call('nextStep')
+            ->assertHasErrors(['institucion_compromisos', 'tipo_instrumento']);
     }
 
     public function test_crear_una_institucion_exige_todos_sus_datos_y_evita_duplicados(): void
     {
         $this->institucion('Alcaldía Municipal de Prueba');
-        $formulario = $this->formulario()->set('currentStep', 3)->call('crearInstitucionNueva')
+        $formulario = $this->formulario()->set('currentStep', 2)->call('crearInstitucionNueva')
             ->assertSet('modoInstitucion', 'nueva');
 
         $formulario->call('guardarInstitucionNueva')
@@ -375,7 +407,7 @@ class FormDvus014FormularioTest extends TestCase
             'celular' => '', 'sexo' => 'Femenino', 'user_id' => $usuario->id, 'tipo_empleado' => 'docente',
         ]);
 
-        $formulario = $this->formulario()->set('currentStep', 8);
+        $formulario = $this->formulario()->set('currentStep', 5);
         $formulario->call('nextStep')->assertHasErrors('docente_supervisor_id');
 
         $formulario->set('docenteBusqueda', '99887766')->assertSee('Docente Supervisor de Prueba')
@@ -388,12 +420,21 @@ class FormDvus014FormularioTest extends TestCase
         $this->assertContains('docente_numero_empleado', $campos);
         $this->assertNotContains('docente_celular', $campos);
         $formulario->call('nextStep')->assertHasErrors(['docente_celular', 'docente_jornada', 'docente_cubiculo']);
+
+        // Sin categoría ni departamento en el expediente, se eligen de sus catálogos con buscador.
+        $this->assertNotContains('docente_categoria', $campos);
+        $formulario->assertSeeHtml("entangle('docente_categoria')")
+            ->assertSeeHtml("entangle('docente_departamento')")
+            ->assertViewHas('categoriasDocente', fn ($opciones) => $opciones->isNotEmpty() && $opciones->keys()->all() === $opciones->values()->all())
+            ->assertViewHas('departamentosDocente', fn ($opciones) => $opciones->count() === $opciones->unique()->count());
+        $categoria = \App\Models\Personal\CategoriaEmpleado::query()->value('nombre');
+        $formulario->set('docente_categoria', $categoria)->call('nextStep')->assertHasNoErrors('docente_categoria');
     }
 
     public function test_los_documentos_se_cargan_con_el_instrumento_y_el_convenio_solo_si_es_convenio_marco(): void
     {
         Storage::fake('public');
-        $formulario = $this->formulario()->set('currentStep', 7)->set('tipo_instrumento', 'carta_intenciones')
+        $formulario = $this->formulario()->set('currentStep', 5)->set('tipo_instrumento', 'carta_intenciones')
             ->assertSee('Documentos adjuntos')
             ->assertSee('Carta de formalización de la PPS firmada por la contraparte');
 
@@ -421,7 +462,7 @@ class FormDvus014FormularioTest extends TestCase
 
         // En «crear» el primer documento ya crea el borrador con el archivo.
         Livewire::actingAs($usuario)->test(CreatePpsServicioSocial::class)
-            ->set('currentStep', 7)
+            ->set('currentStep', 5)
             ->set('carta_formalizacion_archivo', UploadedFile::fake()->create('Carta Formal Firmada.pdf', 10, 'application/pdf'))
             ->assertHasNoErrors()
             ->assertSet('carta_formalizacion_archivo', null);
@@ -437,7 +478,7 @@ class FormDvus014FormularioTest extends TestCase
         $enlace = route('pps-servicio-social.anexo', ['id' => $registro->id, 'tipo' => 'carta-formalizacion']);
         $edicion = Livewire::actingAs($usuario)->test(EditPpsServicioSocial::class, ['id' => $registro->id])
             ->assertSet('archivo_carta_formalizacion_actual', $ruta)
-            ->set('currentStep', 7)
+            ->set('currentStep', 5)
             ->assertSee('carta-formal-firmada.pdf')
             ->assertSeeHtml('href="'.$enlace.'"')
             ->assertDontSeeHtml('/storage/'.$ruta);
@@ -463,19 +504,19 @@ class FormDvus014FormularioTest extends TestCase
         $formulario = $this->formulario()
             ->set('numero_cuenta', '20201000123')
             ->set('estudiante_nombre_completo', 'María Fernanda López')
-            ->set('currentStep', 9)
-            ->assertSee('Paso 9: Revisión y envío')
+            ->set('currentStep', 6)
+            ->assertSee('Paso 6: Revisión y envío')
             ->assertSee('María Fernanda López')
             ->assertSee('Hay pasos incompletos')
             ->assertSee('Enviar a firmar');
 
-        $this->assertFalse($formulario->instance()->isStepComplete(9));
+        $this->assertFalse($formulario->instance()->isStepComplete(6));
 
         // «Editar» regresa al paso del bloque.
         $formulario->call('goToStep', 2)->assertSet('currentStep', 2);
 
         // Enviar revisa todo el formulario y se detiene en el primer paso incompleto.
-        $formulario->set('currentStep', 9)->call('abrirModalEnviar')->assertSet('currentStep', 1);
+        $formulario->set('currentStep', 6)->call('abrirModalEnviar')->assertSet('currentStep', 1);
     }
 
     public function test_un_borrador_anterior_al_catalogo_deja_su_institucion_lista_para_crearla(): void

@@ -22,6 +22,23 @@ class CargoFirma extends Model
         'estado_siguiente_id'
     ];
 
+    /**
+     * Regla única para todos los módulos que firman en firma_proyecto: la firma
+     * de quien registra o coordina (TipoCargoFirma::CARGOS_SIN_SELLO) no lleva
+     * sello; las firmas de etapas administrativas sí.
+     */
+    public static function admiteSello(?int $cargoFirmaId): bool
+    {
+        if (! $cargoFirmaId) {
+            return true;
+        }
+
+        return ! static::query()
+            ->whereKey($cargoFirmaId)
+            ->whereHas('tipoCargoFirma', fn ($query) => $query->whereIn('nombre', TipoCargoFirma::CARGOS_SIN_SELLO))
+            ->exists();
+    }
+
     // recuperar el tipo de cargo de firma asociado con este cargo de firma :)
     public function tipoCargoFirma()
     {

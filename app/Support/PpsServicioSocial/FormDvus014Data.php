@@ -3,12 +3,11 @@
 namespace App\Support\PpsServicioSocial;
 
 use App\Models\PpsServicioSocial;
-use App\Support\Fichas\FirmaImagen;
 use Illuminate\Support\Str;
 
 class FormDvus014Data
 {
-    public static function from(PpsServicioSocial $registro, bool $isPdf = true): array
+    public static function from(PpsServicioSocial $registro): array
     {
         $tipoPps = self::canonical($registro->tipo_pps_ss, [
             'Practica Profesional Supervisada' => [
@@ -90,7 +89,8 @@ class FormDvus014Data
         $fields = [
             'id' => $registro->id,
             'codigo_registro' => $registro->codigo_registro,
-            'fecha_registro' => $registro->created_at ?: $registro->fecha_envio,
+            // Vacía mientras el formulario es borrador: se registra al enviarlo a revisión.
+            'fecha_registro' => $registro->fecha_registro,
             'fecha_revision' => $registro->fecha_revision,
             'facultad_centro' => $facultadCentro,
             'carrera' => $carrera,
@@ -137,7 +137,6 @@ class FormDvus014Data
             'destinatario_nombre' => self::clean($registro->destinatario_nombre),
             'destinatario_cargo' => self::clean($registro->destinatario_cargo),
             'solicitud_lugar' => self::clean($registro->solicitud_lugar),
-            'solicitud_firmante_cargo' => self::clean($registro->solicitud_firmante_cargo),
             'nombre_jefe_directo' => self::clean($registro->nombre_jefe_directo),
             'celular_jefe_directo' => self::clean($registro->celular_jefe_directo),
             'correo_jefe_directo' => self::clean($registro->correo_jefe_directo),
@@ -159,7 +158,6 @@ class FormDvus014Data
 
         return [
             'fields' => $fields,
-            'firmas' => self::firmasParaPdf($registro, $isPdf),
             'checked' => [
                 'tipo_pps' => [
                     'pps' => $tipoPps === 'Practica Profesional Supervisada',
@@ -233,52 +231,6 @@ class FormDvus014Data
 
                 return Str::contains($texto, 'coordinador');
             });
-    }
-
-    public static function firmaDisponible(?object $empleado): bool
-    {
-        $ruta = trim((string) ($empleado?->firma?->ruta_storage ?? ''));
-
-        return $ruta !== '' && FirmaImagen::resolver($ruta, true) !== null;
-    }
-
-    /** Resuelve firmas del FORM-014 usando el mismo mecanismo seguro que los demás PDF. */
-    private static function firmasParaPdf(PpsServicioSocial $registro, bool $isPdf = true): array
-    {
-        $firmas = ['coordinador' => null, 'supervisor' => null, 'estudiante' => null];
-        $asignar = static function (string $tipo, $empleado) use (&$firmas, $isPdf): void {
-            if (! $empleado) {
-                return;
-            }
-
-            $firma = $empleado?->firma;
-            $ruta = trim((string) ($firma?->ruta_storage ?? ''));
-            $imagen = FirmaImagen::resolver($ruta, $isPdf);
-
-            $firmas[$tipo] = [
-                'nombre' => $empleado->nombre_completo,
-                'src' => $imagen['src'] ?? null,
-            ];
-        };
-
-        $coordinadorFirma = self::coordinadorFirma($registro);
-        $asignar('coordinador', $coordinadorFirma?->empleado);
-        $ciclo = (int) ($coordinadorFirma?->revision_ciclo ?: $registro->firmasDeEtapa->max('revision_ciclo'));
-
-        foreach ($registro->firmasDeEtapa
-            ->where('revision_ciclo', max(1, $ciclo))
-            ->sortBy('orden_revision') as $firma) {
-            $nombre = Str::lower((string) ($firma->etapa_nombre ?: $firma->flujoEtapa?->nombre));
-            if (Str::contains($nombre, ['supervisor', 'docente']) && $firma->id !== $coordinadorFirma?->id) {
-                $asignar('supervisor', $firma->empleado);
-            }
-        }
-
-        $estudiante = $registro->created_by
-            ? \App\Models\User::with('empleado.firma')->find($registro->created_by)?->empleado : null;
-        $asignar('estudiante', $estudiante);
-
-        return $firmas;
     }
 
     private static function fechaVisible(mixed $fecha): mixed

@@ -4,35 +4,36 @@ namespace App\Http\Controllers\Proyectos\Vinculacion;
 
 use App\Http\Controllers\Controller;
 use App\Models\PpsServicioSocial;
-use App\Support\PpsServicioSocial\FormDvus014Data;
-use Illuminate\Support\Facades\Log;
-use PDF;
+use App\Services\PpsServicioSocial\FormDvus014DocumentService;
 
 class PpsServicioSocialPdfController extends Controller
 {
-    public function __invoke(int $id)
+    /**
+     * Ficha FORM-DVUS-014 generada desde la plantilla de Word con LibreOffice. Con ?ver=1 se
+     * muestra en el visor del navegador; si no, se descarga.
+     */
+    public function __invoke(int $id, FormDvus014DocumentService $documentos)
     {
-        $registro = PpsServicioSocial::with(['flujoAprobacion', 'etapaActual'])->findOrFail($id);
+        $registro = PpsServicioSocial::findOrFail($id);
 
-        abort_unless($registro->puedeDescargarPdf(auth()->id(), auth()->user()), 403);
+        abort_unless($registro->puedeConsultarse(auth()->id(), auth()->user()), 403);
 
-        Log::info('Fechas PPS para PDF', [
-            'registro_id' => $registro->id,
-            'codigo_registro' => $registro->codigo_registro,
-            'fecha_inicio_raw' => $registro->fecha_inicio,
-            'fecha_finalizacion_raw' => $registro->fecha_finalizacion,
-            'fecha_inicio_formateada' => optional($registro->fecha_inicio)->format('d/m/Y'),
-            'fecha_finalizacion_formateada' => optional($registro->fecha_finalizacion)->format('d/m/Y'),
-        ]);
+        try {
+            $pdf = $documentos->generatePdf($registro);
+        } catch (\Throwable $e) {
+            report($e);
 
-        $pdf = PDF::loadView('pdf.pps-servicio-social.form-014', [
-            'registro' => $registro,
-            'formData' => FormDvus014Data::from($registro),
-        ])->setPaper('letter', 'portrait')
-            ->setOption('isHtml5ParserEnabled', true)
-            ->setOption('defaultFont', 'DejaVu Sans')
-            ->setOption('dpi', 96);
+            return response()->view('pdf.documento-no-disponible', [], 503);
+        }
 
-        return $pdf->download("FORM-DVUS-014-{$registro->id}.pdf");
+        $nombre = "FORM-DVUS-014-{$registro->id}.pdf";
+
+        return request()->boolean('ver')
+            ? response()->file($pdf, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="'.$nombre.'"',
+                'Cache-Control' => 'private, no-cache',
+            ])
+            : response()->download($pdf, $nombre, ['Content-Type' => 'application/pdf']);
     }
 }

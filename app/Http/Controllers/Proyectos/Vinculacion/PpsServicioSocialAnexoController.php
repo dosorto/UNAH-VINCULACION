@@ -4,16 +4,22 @@ namespace App\Http\Controllers\Proyectos\Vinculacion;
 
 use App\Http\Controllers\Controller;
 use App\Models\PpsServicioSocial;
+use App\Services\PpsServicioSocial\FormDvus014DocumentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class PpsServicioSocialAnexoController extends Controller
 {
-    public function __invoke(Request $request, int $id, string $tipo)
+    /**
+     * Muestra el anexo en el visor (los de Word, convertidos a PDF con LibreOffice) o, con
+     * ?download=1, descarga el archivo original.
+     */
+    public function __invoke(Request $request, int $id, string $tipo, FormDvus014DocumentService $documentos)
     {
         $registro = PpsServicioSocial::findOrFail($id);
 
-        abort_unless($this->canViewRecord($registro), 403);
+        abort_unless($registro->puedeConsultarse(auth()->id(), auth()->user()), 403);
 
         $path = match ($tipo) {
             'carta-formalizacion' => $registro->archivo_carta_formalizacion,
@@ -33,24 +39,24 @@ class PpsServicioSocialAnexoController extends Controller
             return Storage::disk('public')->download($path, $filename);
         }
 
-        return Storage::disk('public')->response($path, $filename);
-    }
+        if (in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), ['doc', 'docx'], true)) {
+            try {
+                $pdf = $documentos->attachmentPdf(Storage::disk('public')->path($path));
+            } catch (\Throwable $e) {
+                report($e);
 
-    private function canViewRecord(PpsServicioSocial $registro): bool
-    {
-        $user = auth()->user();
-        $activeRole = $user?->activeRole;
+                return response()->view('pdf.documento-no-disponible', [], 503);
+            }
 
-        if (
-            $activeRole?->hasPermissionTo('proyectos.historial')
-            || $activeRole?->hasPermissionTo('proyectos.revision-final')
-            || in_array($activeRole?->name, ['admin', 'Director/Enlace'], true)
-        ) {
-            return true;
+            return response()->file($pdf, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="'.(Str::slug(pathinfo($filename, PATHINFO_FILENAME)) ?: 'anexo').'.pdf"',
+                'Cache-Control' => 'private, no-cache',
+                'X-Content-Type-Options' => 'nosniff',
+            ]);
         }
 
-        return $registro->perteneceAlUsuario(auth()->id())
-            || $registro->usuarioPuedeRevisar($user);
+        return Storage::disk('public')->response($path, $filename, ['X-Content-Type-Options' => 'nosniff']);
     }
 
     private function normalizePublicPath(string $path): string

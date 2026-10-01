@@ -5,12 +5,16 @@ namespace App\Services;
 use App\Models\ENF\EnfAccion;
 use App\Services\Documents\DocxTemplateEditor;
 use App\Services\Documents\FormDvus018DataMapper;
+use App\Services\Documents\LibreOfficePdfConverter;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 
 class FormDvus018DocumentService
 {
-    public function __construct(private readonly FormDvus018DataMapper $mapper) {}
+    public function __construct(
+        private readonly FormDvus018DataMapper $mapper,
+        private readonly LibreOfficePdfConverter $converter = new LibreOfficePdfConverter,
+    ) {}
 
     public function generatePdf(EnfAccion $action): string
     {
@@ -87,40 +91,7 @@ class FormDvus018DocumentService
 
     private function convertToPdf(string $docxPath, string $outputDirectory): string
     {
-        $binary = $this->resolveExecutable(
-            (string) config('documents.libreoffice_binary'),
-            (array) config('documents.libreoffice_candidates', [])
-        );
-        if ($binary === null) {
-            throw new RuntimeException('LibreOffice no está disponible. Configure LIBREOFFICE_BINARY con la ruta de libreoffice o soffice.');
-        }
-
-        $profileDirectory = $outputDirectory.'/libreoffice-profile';
-        $this->ensureDirectory($profileDirectory);
-        $profileUri = 'file://'.str_replace('%2F', '/', rawurlencode($profileDirectory));
-        $process = new Process([
-            $binary,
-            '-env:UserInstallation='.$profileUri,
-            '--headless',
-            '--convert-to',
-            'pdf:writer_pdf_Export',
-            '--outdir',
-            $outputDirectory,
-            $docxPath,
-        ]);
-        $process->setTimeout(180);
-        $process->run();
-
-        if (! $process->isSuccessful()) {
-            throw new RuntimeException('LibreOffice no pudo convertir FORM-DVUS-018: '.trim($process->getErrorOutput() ?: $process->getOutput()));
-        }
-
-        $pdfPath = $outputDirectory.'/'.pathinfo($docxPath, PATHINFO_FILENAME).'.pdf';
-        if (! $this->isValidPdf($pdfPath)) {
-            throw new RuntimeException('LibreOffice finalizó sin crear un PDF válido de FORM-DVUS-018.');
-        }
-
-        return $pdfPath;
+        return $this->converter->convert($docxPath, $outputDirectory, 'FORM-DVUS-018');
     }
 
     private function validatePdf(string $pdfPath): void
@@ -143,16 +114,7 @@ class FormDvus018DocumentService
 
     private function isValidPdf(string $path): bool
     {
-        if (! is_file($path) || filesize($path) < 100) {
-            return false;
-        }
-        $handle = fopen($path, 'rb');
-        $signature = $handle ? fread($handle, 5) : false;
-        if (is_resource($handle)) {
-            fclose($handle);
-        }
-
-        return $signature === '%PDF-';
+        return $this->converter->isValidPdf($path);
     }
 
     private function assertReadableFile(string $path, string $message): void
@@ -171,13 +133,7 @@ class FormDvus018DocumentService
 
     private function resolveExecutable(string $configured, array $candidates): ?string
     {
-        foreach (array_unique(array_filter([$configured, ...$candidates])) as $candidate) {
-            if (is_string($candidate) && is_executable($candidate)) {
-                return $candidate;
-            }
-        }
-
-        return null;
+        return $this->converter->resolveExecutable($configured, $candidates);
     }
 
     private function removeDirectory(string $directory): void

@@ -21,7 +21,7 @@ class PasantiaDocumentController extends Controller
             $path = $service->generatePdf($registro);
         } catch (\Throwable $e) {
             report($e);
-            return response()->view('pdf.pasantias.unavailable', [], 503);
+            return response()->view('pdf.documento-no-disponible', [], 503);
         }
         $name = 'FORM-DVUS-013-'.$registro->id.'.pdf';
         return request()->boolean('inline')
@@ -41,7 +41,7 @@ class PasantiaDocumentController extends Controller
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         if (in_array($extension, ['doc', 'docx'], true)) {
             try { $path = $service->attachmentPdf($path); }
-            catch (\Throwable $e) { report($e); return response()->view('pdf.pasantias.unavailable', [], 503); }
+            catch (\Throwable $e) { report($e); return response()->view('pdf.documento-no-disponible', [], 503); }
         } else {
             abort_unless(in_array(mime_content_type($path), ['application/pdf', 'image/png', 'image/jpeg'], true), 415);
         }

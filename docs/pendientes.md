@@ -3,19 +3,122 @@
 Problemas detectados y aún sin resolver. Cada entrada indica dónde está, por
 qué importa y cómo resolverla. Al cerrar uno, bórralo de aquí en el mismo commit.
 
-Última revisión: 2026-09-23.
+Última revisión: 2026-10-01.
 
 ---
 
-## Bloquea el commit
+## Auditoría FORM-DVUS-001 (2026-10-01)
 
-### `.env.testing` modificado
-- **Qué:** está versionado y se cambió `DB_USERNAME=nexo` → `root` con contraseña
-  vacía para poder correr los tests en local.
-- **Riesgo:** si se commitea, cambia las credenciales de testing de todo el equipo.
-- **Resolver:** revertir (`git checkout .env.testing`) y crear el usuario `nexo`
-  en MySQL local, o sacar el archivo del control de versiones y dejar un
-  `.env.testing.example`.
+Lo hecho está en `docs/auditoria-form-dvus-001.md`. Falta:
+
+### Fusionar los roles `DIRECCION DIVUS` y `Director Vinculacion`
+- **Qué:** hay dos roles para la Dirección DVUS. `DIRECCION DIVUS` (con errata)
+  se creó a mano y no lo usa el código; el canónico es `Director Vinculacion`.
+  Quien busca «Dirección DVUS» en «Rol con acceso» no encuentra ninguno.
+- **Decidido:** conservar `Director Vinculacion` y migrar a él usuarios y
+  permisos del duplicado. No renombrar.
+- **Paso 1, antes de escribir la migración:** contar en producción, con SQL de
+  solo lectura, usuarios, permisos y referencias de cada rol. Las consultas
+  completas están en `docs/auditoria-form-dvus-001.md`; la principal es:
+
+  ```sql
+  SELECT r.id, r.name,
+         (SELECT COUNT(*) FROM model_has_roles m WHERE m.role_id = r.id AND m.model_type = 'App\\Models\\User') AS usuarios,
+         (SELECT COUNT(*) FROM role_has_permissions rp WHERE rp.role_id = r.id) AS permisos,
+         (SELECT COUNT(*) FROM users u WHERE u.active_role_id = r.id) AS usuarios_con_rol_activo
+  FROM roles r
+  WHERE r.name IN ('Director Vinculacion', 'DIRECCION DIVUS');
+  ```
+- **Paso 2, la migración** tiene que reapuntar, además de `model_has_roles` y
+  `role_has_permissions`:
+  - `users.active_role_id`;
+  - `flujos_aprobacion_etapas.rol_revisor_id`;
+  - `rol_requerido = 'DIRECCION DIVUS'` de las filas **pendientes** de
+    `firma_proyecto`, `enf_revisiones` y `programa_revisiones`. La autorización
+    compara ese nombre, y sin reapuntarlo esas firmas se quedan sin quién las
+    apruebe.
+
+  Las filas históricas se dejan intactas. Heredar los permisos del duplicado
+  solo si el equipo lo confirma.
+
+### Etapa `PASANTIAS_ETAPA_01` con cargo «Coordinador Proyecto»
+- **Qué:** la migración `2026_09_07_000001` le asignó el primer cargo con
+  descripción «Proyecto» por id, que es «Coordinador Proyecto».
+  `PasantiaWorkflowService.php:340-361` lo usa para derivar el rol revisor.
+  Con la regla «el coordinador no lleva sello», quien firme esa revisión ya no
+  guarda sello. Hoy no se nota: los PDF de Pasantías no dibujan sellos.
+- **Decidir:** si esa revisión es una etapa administrativa con sello, asignarle
+  un cargo administrativo y ajustar `PasantiaWorkflowService.php:345-361`.
+
+### Etapa DVUS del FORM-DVUS-001 con cargo `Revisor Vinculacion`
+- **Qué:** en la base local, la etapa «Director Vinculacion» tiene cargo
+  `Revisor Vinculacion`. La constancia de registro busca primero la firma con
+  cargo `Director Vinculacion` y, si no la encuentra, usa la de la última etapa
+  de inscripción.
+- **Por qué no se corrige desde la UI:** el selector de cargos no ofrece
+  `Director Vinculacion` (decisión: no se agrega), y una etapa REVISION creada
+  desde la UI recibe `Revisor Vinculacion`.
+- **Verificar en producción:**
+
+  ```sql
+  SELECT e.id, e.nombre, t.nombre AS cargo
+  FROM flujos_aprobacion_etapas e
+  JOIN cargo_firma c ON c.id = e.cargo_firma_id
+  JOIN tipo_cargo_firma t ON t.id = c.tipo_cargo_firma_id
+  WHERE e.nombre LIKE '%Director Vinculacion%';
+  ```
+
+### PDF canónico del INF-001 con sello del coordinador
+- **Qué:** `InformeFinalProyectoWorkflowService::enviarInformeFinal()` guarda un
+  PDF fijo al enviar. La vista y la descarga se generan al vuelo y ya salen sin
+  ese sello, pero un archivo guardado antes conserva el sello del coordinador si
+  ya había una firma aprobada con ese cargo.
+- **Verificar y regenerar solo esos documentos:**
+
+  ```sql
+  SELECT DISTINCT d.id, d.proyecto_id, d.documento_url
+  FROM proyecto_documento d
+  JOIN firma_proyecto fp ON fp.firmable_id = d.id AND fp.firmable_type LIKE '%DocumentoProyecto'
+  JOIN cargo_firma cf ON cf.id = fp.cargo_firma_id
+  JOIN tipo_cargo_firma t ON t.id = cf.tipo_cargo_firma_id
+  WHERE d.tipo_documento = 'Informe Final' AND t.nombre = 'Coordinador Proyecto'
+    AND fp.estado_revision = 'Aprobado' AND fp.sello_id IS NOT NULL;
+  ```
+
+### Proyectos que ya perdieron datos (#81 y otros)
+- **Qué:** los textos que se perdieron no se pueden recuperar: iban en un
+  `UPDATE` revertido y el formulario los descartó al redirigir. El docente tiene
+  que volver a capturarlos.
+- **Qué sí se puede recuperar:** el `laravel.log` de producción contiene la
+  sentencia que falló, con sus valores (por ejemplo, la contraparte).
+- **Detectar los proyectos afectados:**
+
+  ```sql
+  SELECT p.id, p.nombre_proyecto FROM proyecto p
+  WHERE (p.objetivo_general IS NULL OR p.objetivo_general = '')
+    AND EXISTS (SELECT 1 FROM actividades a WHERE a.proyecto_id = p.id)
+    AND p.deleted_at IS NULL;
+  ```
+
+### El borrador ya tiene una firma «Aprobado» del coordinador
+- **Dónde:** `EmpleadoProyecto::boot()`.
+- **Qué:** al registrar al coordinador se crea su firma ya aprobada, sin fecha.
+  Aunque guardar el borrador ya no firma, el PDF de un borrador muestra la
+  imagen de la firma; solo la marca de agua lo distingue.
+- **Evaluar:** crearla Pendiente hasta el envío. Revisar antes
+  `FichaActualizacion::puedeSerEliminada()` y el historial, que cuentan con esa
+  firma.
+
+### Menores
+- Por uniformidad, `AutoridadEmisoraConstanciaResolver.php:27` y
+  `AutoridadEmisoraConstanciaRegistroResolver.php:29` pueden leer el sello con
+  `FirmaProyecto::selloParaDocumento()`. No cambia el resultado: son cargos
+  administrativos.
+- Si ENF empieza a escribir firmas en `EnfFirma`, reutilizar
+  `CargoFirma::admiteSello()` (también tiene `cargo_firma_id`).
+- El texto de ayuda de Configuración → Flujos dice que una etapa de Revisión
+  «solo pasa a la siguiente etapa». En realidad `aprobarFirmaPorEtapa()` guarda
+  firma y sello en ambos tipos.
 
 ---
 
@@ -168,8 +271,17 @@ Ya fallaban antes de los cambios recientes.
 
 - **Migración nueva:** correr
   `2026_09_11_000001_widen_texto_libre_on_informe_final_proyectos` en cada entorno.
+- **Migraciones de la auditoría del FORM-DVUS-001:**
+  - `2026_10_01_000001_ampliar_textos_de_contrapartes_y_resultados`: TEXT en
+    compromisos, indicador y medio de verificación;
+  - `2026_10_01_000002_revocar_administrar_asignaturas_de_docente`.
+
+  En la base local de desarrollo también está pendiente
+  `2026_09_29_000001_add_tipo_firma_to_firma_proyecto_table`.
 - **Cargo «Coordinador Proyecto» retirado del selector de flujos:** comprobar
   en producción que ninguna etapa lo use; si alguna lo usa, migrarla antes.
+  Desde la auditoría del 2026-10-01, una etapa con ese cargo nunca guarda sello
+  (`CargoFirma::admiteSello`).
 
   ```sql
   SELECT COUNT(*) FROM flujos_aprobacion_etapas e
@@ -183,17 +295,27 @@ Ya fallaban antes de los cambios recientes.
   primero, 4 de 5 formularios desaparecen de la configuración de flujos y el
   INF-001 no abre; sin el segundo, ningún anexo pasa la validación del
   FORM-DVUS-001. Ver antes la advertencia de `PersonalSeeder`.
-- **Suite completa:** nunca terminó en Windows (supera los 600 s). Además de los
-  tres del INF-001, ya fallaban `PpsServicioSocialWorkflowTest`,
-  `NewUserOnboardingTest` y `HistorialProyectoWorkflowStageResubmissionIntegrationTest`.
-- **Dos fallos de ENF que llegaron con `origin/efrain`** (merge del 2026-09-16;
-  fallan igual sin los cambios del panel):
-  - `EnfWorkflowResumptionTest::test_informe_final_reanuda_desde_la_segunda_etapa`:
-    el mock de `Pdf::loadView()` devuelve un `Mockery` y el facade exige
-    `Barryvdh\DomPDF\PDF`.
-  - `EnfDocumentoArchivoTest::test_envio_final_guarda_el_archivo_del_paso_10_antes_de_iniciar_el_flujo`:
-    «No hay etapas configuradas para este proceso ENF»; al escenario le falta
-    el flujo de cierre.
+- **Suite completa:** en Windows nunca terminó (supera los 600 s). En macOS
+  termina en ~90 s. El 2026-10-01 fallaban 18 tests, los mismos con y sin los
+  cambios de la auditoría:
+  - `ProyectoVinculacionFormularioTest` (4): resultado sin plazo, beneficiario
+    vacío, `calcTotales` y catálogo de anexos. Están desactualizados; por
+    ejemplo, usan la propiedad `indigenas_mujeres`, que ya no existe.
+  - `FormDvus001PdfLayoutTest` (1): nota de documentos adjuntos.
+  - `FichaFirmaDelFirmanteRealTest` (2): `firmasParaFicha()`.
+  - `InformeFinalINF001Test` (3) e `InformeFinalInf001FormatoOficialTest` (2):
+    ver la sección del INF-001.
+  - `NewUserOnboardingTest` (2): inicio de sesión.
+  - `PasantiaLivewireTest` (2).
+  - `PpsServicioSocialWorkflowTest` (1).
+  - `EnfDocumentoArchivoTest` (1).
+
+  `HistorialProyectoWorkflowStageResubmissionIntegrationTest` y
+  `EnfWorkflowResumptionTest` ya pasan.
+- **Fallo de ENF que llegó con `origin/efrain`** (merge del 2026-09-16):
+  `EnfDocumentoArchivoTest::test_envio_final_guarda_el_archivo_del_paso_10_antes_de_iniciar_el_flujo`.
+  Error: «No hay etapas configuradas para este proceso ENF»; al escenario le
+  falta el flujo de cierre.
 
 ---
 

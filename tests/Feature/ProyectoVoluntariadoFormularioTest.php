@@ -138,6 +138,8 @@ class ProyectoVoluntariadoFormularioTest extends TestCase
         $component->removeResultadoProyecto(0);
         $this->assertCount(1, $component->resultadosProyecto);
         $this->assertSame('mediano_plazo', $component->resultadosProyecto[0]['plazo']);
+        // Sin sesión no se guarda nada, y el autoguardado lo informa en vez de fallar en silencio.
+        $this->assertSame('error', $component->estadoAutoGuardado);
     }
 
     public function test_una_fila_de_mediano_o_largo_plazo_incompleta_no_deja_avanzar(): void
