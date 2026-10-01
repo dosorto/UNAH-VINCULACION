@@ -144,7 +144,7 @@ class ProyectoVoluntariadoFormularioTest extends TestCase
 
     public function test_una_fila_de_mediano_o_largo_plazo_incompleta_no_deja_avanzar(): void
     {
-        $component = new CreateProyectoVinculacion;
+        $component = $this->componenteVoluntariado();
         $component->currentStep = 7;
         $component->addResultadoProyecto('mediano_plazo');
         $component->resultadosProyecto[0]['nombre_resultado'] = 'Solo el resultado';

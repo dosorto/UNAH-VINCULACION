@@ -2042,7 +2042,7 @@
             $unidad = $esVoluntariado ? 'programa' : 'proyecto';
             $textoLleno = fn ($valor) => trim((string) ($valor ?? '')) !== '';
             $resultadoCompleto = fn (array $resultado) => $textoLleno($resultado['nombre_resultado'] ?? null)
-                && $textoLleno($resultado['nombre_indicador'] ?? null)
+                && (!$esVoluntariado || $textoLleno($resultado['nombre_indicador'] ?? null))
                 && $textoLleno($resultado['nombre_medio_verificacion'] ?? null);
 
             // Lo que le falta a cada objetivo específico (null = completo), con la misma regla que marca el paso como completo.
@@ -2127,7 +2127,7 @@
             {{-- 2. Objetivos específicos, cada uno con sus resultados de corto plazo --}}
             <section id="marco-objetivos" class="scroll-mt-24">
                 <h4 class="text-sm font-semibold text-gray-900 dark:text-white">2. Objetivos específicos y sus resultados de corto plazo <span class="text-red-500">*</span></h4>
-                <p class="mt-0.5 mb-3 text-xs text-gray-500 dark:text-gray-400">Los objetivos deben estar relacionados con los resultados que se esperan obtener. Cada objetivo necesita al menos un resultado de corto plazo (producto) con su indicador y su medio de verificación.</p>
+                <p class="mt-0.5 mb-3 text-xs text-gray-500 dark:text-gray-400">Los objetivos deben estar relacionados con los resultados que se esperan obtener. Cada objetivo necesita al menos un resultado de corto plazo (producto) con {{ $esVoluntariado ? 'su indicador y su medio de verificación.' : 'su medio de verificación (indicador).' }}</p>
                 @error('objetivosEspecificos') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
 
                 <div class="space-y-3">
@@ -2177,8 +2177,8 @@
                                     <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ $esVoluntariado ? 'a) Resultados de corto plazo' : 'a) Resultados de corto plazo del proyecto' }} <span class="font-normal text-gray-500">(productos que se lograrán)</span> <span class="text-red-500">*</span></p>
                                     @error("objetivosEspecificos.{$oi}.resultados") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     @if(!empty($objetivo['resultados']))
-                                        <div class="mt-2 hidden gap-3 text-xs font-medium text-gray-500 dark:text-gray-400 md:grid md:grid-cols-[1.5rem_1fr_1fr_1fr_2rem]">
-                                            <span>#</span><span>Resultado <span class="text-red-500">*</span></span><span>Indicador <span class="text-red-500">*</span></span><span>Medio de verificación <span class="text-red-500">*</span></span><span></span>
+                                        <div class="mt-2 hidden gap-3 text-xs font-medium text-gray-500 dark:text-gray-400 md:grid {{ $esVoluntariado ? 'md:grid-cols-[1.5rem_1fr_1fr_1fr_2rem]' : 'md:grid-cols-[1.5rem_1fr_1fr_2rem]' }}">
+                                            <span>#</span><span>Resultado <span class="text-red-500">*</span></span>@if($esVoluntariado)<span>Indicador <span class="text-red-500">*</span></span>@endif<span>{{ $esVoluntariado ? 'Medio de verificación' : 'Medio de verificación (indicador)' }} <span class="text-red-500">*</span></span><span></span>
                                         </div>
                                         <div class="divide-y divide-gray-100 dark:divide-gray-800">
                                             @foreach($objetivo['resultados'] as $ri => $resultado)
@@ -2188,6 +2188,7 @@
                                                     'wireKey' => 'resultado-'.$objetivoKey.'-'.($resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri),
                                                     'quitar' => "removeResultado({$oi}, {$ri})",
                                                     'ejemplos' => $ejemplosCortoPlazo,
+                                                    'unificarVerificacion' => !$esVoluntariado,
                                                 ])
                                             @endforeach
                                         </div>
@@ -2220,8 +2221,8 @@
                             <p class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ $lista['titulo'] }} @if($esVoluntariado)<span class="text-red-500">*</span>@endif</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">{{ $lista['ayuda'] }}</p>
                             @if($filas->isNotEmpty())
-                                <div class="mt-2 hidden gap-3 text-xs font-medium text-gray-500 dark:text-gray-400 md:grid md:grid-cols-[1.5rem_1fr_1fr_1fr_2rem]">
-                                    <span>#</span><span>Resultado <span class="text-red-500">*</span></span><span>Indicador <span class="text-red-500">*</span></span><span>Medio de verificación <span class="text-red-500">*</span></span><span></span>
+                                <div class="mt-2 hidden gap-3 text-xs font-medium text-gray-500 dark:text-gray-400 md:grid {{ $esVoluntariado ? 'md:grid-cols-[1.5rem_1fr_1fr_1fr_2rem]' : 'md:grid-cols-[1.5rem_1fr_1fr_2rem]' }}">
+                                    <span>#</span><span>Resultado <span class="text-red-500">*</span></span>@if($esVoluntariado)<span>Indicador <span class="text-red-500">*</span></span>@endif<span>{{ $esVoluntariado ? 'Medio de verificación' : 'Medio de verificación (indicador)' }} <span class="text-red-500">*</span></span><span></span>
                                 </div>
                                 <div class="divide-y divide-gray-100 dark:divide-gray-800">
                                     @foreach($filas as $ri => $resultado)
@@ -2231,6 +2232,7 @@
                                             'wireKey' => 'resultado-proyecto-'.($resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri),
                                             'quitar' => "removeResultadoProyecto({$ri})",
                                             'ejemplos' => $lista['ejemplos'],
+                                            'unificarVerificacion' => !$esVoluntariado,
                                         ])
                                     @endforeach
                                 </div>

@@ -389,9 +389,24 @@ class ProyectoVinculacionFormularioTest extends TestCase
         }
     }
 
-    public function test_resultado_sin_indicador_falla(): void
+    public function test_resultado_sin_indicador_no_falla_en_form_001(): void
     {
-        $this->assertMarcoLogicoFallaConResultadoIncompleto('nombre_indicador');
+        $component = $this->formComponent();
+        $component->currentStep = 7;
+        $component->objetivo_general = 'Mejorar capacidades locales';
+        $component->objetivosEspecificos = [[
+            'descripcion' => 'Fortalecer la organización comunitaria',
+            'resultados' => [[
+                'nombre_resultado' => 'Comité formado',
+                'nombre_indicador' => '',
+                'nombre_medio_verificacion' => 'Acta de conformación',
+                'plazo' => 'corto_plazo',
+            ]],
+        ]];
+
+        $component->nextStep();
+
+        $this->assertSame(8, $component->currentStep);
     }
 
     public function test_resultado_sin_medio_de_verificacion_falla(): void
@@ -401,7 +416,32 @@ class ProyectoVinculacionFormularioTest extends TestCase
 
     public function test_resultado_sin_plazo_falla(): void
     {
-        $this->assertMarcoLogicoFallaConResultadoIncompleto('plazo');
+        $component = $this->formComponent();
+        $component->currentStep = 7;
+        $component->objetivo_general = 'Mejorar capacidades locales';
+        $component->objetivosEspecificos = [[
+            'descripcion' => 'Fortalecer la organización comunitaria',
+            'resultados' => [[
+                'nombre_resultado' => 'Comité formado',
+                'nombre_indicador' => '',
+                'nombre_medio_verificacion' => 'Acta de conformación',
+                'plazo' => 'corto_plazo',
+            ]],
+        ]];
+        $component->resultadosProyecto = [[
+            'nombre_resultado' => 'Organización fortalecida',
+            'nombre_indicador' => '',
+            'nombre_medio_verificacion' => 'Informe de seguimiento',
+            'plazo' => '',
+        ]];
+
+        try {
+            $component->nextStep();
+            $this->fail('El paso 7 avanzó con plazo vacío.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('resultadosProyecto.0.plazo', $exception->validator->errors()->toArray());
+            $this->assertSame(7, $component->currentStep);
+        }
     }
 
     public function test_beneficiario_vacio_se_convierte_en_cero(): void

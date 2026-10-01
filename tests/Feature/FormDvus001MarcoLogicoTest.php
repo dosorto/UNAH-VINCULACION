@@ -21,8 +21,8 @@ class FormDvus001MarcoLogicoTest extends TestCase
     {
         return [
             'id' => null, 'wire_key' => $nombre, 'nombre_resultado' => $nombre,
-            'nombre_indicador' => $completo ? "Indicador de {$nombre}" : '',
-            'nombre_medio_verificacion' => $completo ? "Medio de {$nombre}" : '',
+            'nombre_indicador' => '',
+            'nombre_medio_verificacion' => $completo ? "Medio de verificación (indicador) de {$nombre}" : '',
             'plazo' => $plazo,
         ];
     }
@@ -59,6 +59,8 @@ class FormDvus001MarcoLogicoTest extends TestCase
         // Todos los objetivos y todos sus campos están a la vista (sin maestro-detalle).
         $this->assertStringContainsString('wire:model.live.debounce.1000ms="objetivosEspecificos.0.descripcion"', $html);
         $this->assertStringContainsString('wire:model.live.debounce.1000ms="objetivosEspecificos.1.resultados.0.nombre_medio_verificacion"', $html);
+        $this->assertStringContainsString('Medio de verificación (indicador)', $html);
+        $this->assertStringNotContainsString('objetivosEspecificos.0.resultados.0.nombre_indicador', $html);
 
         // Resumen: el OE 2 tiene un resultado incompleto.
         $this->assertStringContainsString('2 objetivos específicos · 1 por completar', $html);
@@ -83,6 +85,7 @@ class FormDvus001MarcoLogicoTest extends TestCase
         $this->assertStringContainsString('b) Indicadores de mediano plazo', $html);
         $this->assertStringContainsString('c) Impacto que se desea generar', $html);
         $this->assertStringContainsString('Registre al menos uno de cada plazo.', $html);
+        $this->assertStringContainsString('objetivosEspecificos.0.resultados.0.nombre_indicador', $html);
     }
 
     public function test_agregar_un_objetivo_lo_enfoca_y_eliminar_conserva_al_menos_uno(): void

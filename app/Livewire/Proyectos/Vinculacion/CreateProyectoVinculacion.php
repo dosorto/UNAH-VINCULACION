@@ -440,6 +440,9 @@ class CreateProyectoVinculacion extends Component
                 $this->recordId = $proyecto->id;
                 $this->proyectoId = $proyecto->id;
                 $this->tipo_accion_id = $proyecto->tipo_accion_id ?: $this->tipo_accion_id;
+                // La hidratación del marco lógico depende del tipo de formulario.
+                // Debe resolverse antes de cargar resultados ya existentes.
+                $this->resolverEsVoluntariado();
                 $this->loadFromRecord($proyecto);
                 $this->actualizarEstadoAnexos($proyecto);
             }
@@ -647,8 +650,10 @@ class CreateProyectoVinculacion extends Component
                 'id' => $r->id,
                 'wire_key' => (string) Str::uuid(),
                 'nombre_resultado' => $r->nombre_resultado,
-                'nombre_indicador' => $r->nombre_indicador,
-                'nombre_medio_verificacion' => $r->nombre_medio_verificacion,
+                'nombre_indicador' => $this->esVoluntariado ? $r->nombre_indicador : '',
+                'nombre_medio_verificacion' => $this->esVoluntariado
+                    ? $r->nombre_medio_verificacion
+                    : $this->unificarMedioVerificacionIndicador($r->nombre_indicador, $r->nombre_medio_verificacion),
                 'plazo' => $this->normalizePlazo($r->plazo),
             ])->toArray(),
         ])->toArray();
@@ -656,8 +661,10 @@ class CreateProyectoVinculacion extends Component
             'id' => $r->id,
             'wire_key' => (string) Str::uuid(),
             'nombre_resultado' => $r->nombre_resultado,
-            'nombre_indicador' => $r->nombre_indicador,
-            'nombre_medio_verificacion' => $r->nombre_medio_verificacion,
+            'nombre_indicador' => $this->esVoluntariado ? $r->nombre_indicador : '',
+            'nombre_medio_verificacion' => $this->esVoluntariado
+                ? $r->nombre_medio_verificacion
+                : $this->unificarMedioVerificacionIndicador($r->nombre_indicador, $r->nombre_medio_verificacion),
             'plazo' => $this->normalizePlazo($r->plazo),
         ])->toArray();
 
@@ -924,20 +931,20 @@ class CreateProyectoVinculacion extends Component
                 'region' => 'required|string|max:255',
                 'pais' => 'required|array|min:1',
             ],
-            7 => [
+            7 => array_filter([
                 'objetivo_general' => 'required|string',
                 'objetivosEspecificos' => 'required|array|min:1',
                 'objetivosEspecificos.*.descripcion' => 'required|string',
                 'objetivosEspecificos.*.resultados' => 'required|array|min:1',
                 'objetivosEspecificos.*.resultados.*.nombre_resultado' => 'required|string',
-                'objetivosEspecificos.*.resultados.*.nombre_indicador' => 'required|string',
+                'objetivosEspecificos.*.resultados.*.nombre_indicador' => $this->esVoluntariado ? 'required|string' : null,
                 'objetivosEspecificos.*.resultados.*.nombre_medio_verificacion' => 'required|string',
                 'resultadosProyecto' => 'nullable|array',
                 'resultadosProyecto.*.nombre_resultado' => 'required|string',
-                'resultadosProyecto.*.nombre_indicador' => 'required|string',
+                'resultadosProyecto.*.nombre_indicador' => $this->esVoluntariado ? 'required|string' : null,
                 'resultadosProyecto.*.nombre_medio_verificacion' => 'required|string',
                 'resultadosProyecto.*.plazo' => 'required|in:' . implode(',', $this->plazoOpcionesProyecto),
-            ],
+            ]),
             default => [],
         };
     }
@@ -1253,20 +1260,34 @@ class CreateProyectoVinculacion extends Component
 
     private function rulesMarcoLogico(): array
     {
-        return [
+        return array_filter([
             'objetivo_general' => 'required|string',
             'objetivosEspecificos' => 'required|array|min:1',
             'objetivosEspecificos.*.descripcion' => 'required|string',
             'objetivosEspecificos.*.resultados' => 'required|array|min:1',
             'objetivosEspecificos.*.resultados.*.nombre_resultado' => 'required|string',
-            'objetivosEspecificos.*.resultados.*.nombre_indicador' => 'required|string',
+            'objetivosEspecificos.*.resultados.*.nombre_indicador' => $this->esVoluntariado ? 'required|string' : null,
             'objetivosEspecificos.*.resultados.*.nombre_medio_verificacion' => 'required|string',
             'resultadosProyecto' => 'nullable|array',
             'resultadosProyecto.*.nombre_resultado' => 'required|string',
-            'resultadosProyecto.*.nombre_indicador' => 'required|string',
+            'resultadosProyecto.*.nombre_indicador' => $this->esVoluntariado ? 'required|string' : null,
             'resultadosProyecto.*.nombre_medio_verificacion' => 'required|string',
             'resultadosProyecto.*.plazo' => 'required|in:' . implode(',', $this->plazoOpcionesProyecto),
-        ];
+        ]);
+    }
+
+    /**
+     * FORM-DVUS-001 define una sola columna: "Medio de verificación (indicador)".
+     * Los registros anteriores pueden tener ambos valores; al editarlos se muestran
+     * juntos para conservar la información antes de su siguiente guardado.
+     */
+    private function unificarMedioVerificacionIndicador(?string $indicador, ?string $medio): string
+    {
+        return collect([$indicador, $medio])
+            ->map(fn ($valor) => trim((string) $valor))
+            ->filter()
+            ->unique()
+            ->implode(' / ');
     }
 
     private function atributosMarcoLogico(): array
@@ -1284,16 +1305,20 @@ class CreateProyectoVinculacion extends Component
             foreach (($objetivo['resultados'] ?? []) as $ri => $resultado) {
                 $resultadoLabel = 'resultado R' . ($ri + 1) . ' del ' . $objetivoLabel;
                 $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_resultado"] = "nombre del {$resultadoLabel}";
-                $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_indicador"] = "indicador del {$resultadoLabel}";
-                $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_medio_verificacion"] = "medio de verificación del {$resultadoLabel}";
+                if ($this->esVoluntariado) {
+                    $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_indicador"] = "indicador del {$resultadoLabel}";
+                }
+                $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_medio_verificacion"] = ($this->esVoluntariado ? 'medio de verificación' : 'medio de verificación (indicador)') . " del {$resultadoLabel}";
             }
         }
 
         foreach ($this->resultadosProyecto as $ri => $resultado) {
             $resultadoLabel = 'resultado de mediano/largo plazo ' . ($ri + 1);
             $attributes["resultadosProyecto.$ri.nombre_resultado"] = "nombre del {$resultadoLabel}";
-            $attributes["resultadosProyecto.$ri.nombre_indicador"] = "indicador del {$resultadoLabel}";
-            $attributes["resultadosProyecto.$ri.nombre_medio_verificacion"] = "medio de verificación del {$resultadoLabel}";
+            if ($this->esVoluntariado) {
+                $attributes["resultadosProyecto.$ri.nombre_indicador"] = "indicador del {$resultadoLabel}";
+            }
+            $attributes["resultadosProyecto.$ri.nombre_medio_verificacion"] = ($this->esVoluntariado ? 'medio de verificación' : 'medio de verificación (indicador)') . " del {$resultadoLabel}";
             $attributes["resultadosProyecto.$ri.plazo"] = "plazo del {$resultadoLabel}";
         }
 
@@ -1313,7 +1338,9 @@ class CreateProyectoVinculacion extends Component
 
             foreach ($this->objetivosEspecificos[$oi]['resultados'] as $ri => $resultado) {
                 $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_resultado'] = trim((string) ($resultado['nombre_resultado'] ?? ''));
-                $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_indicador'] = trim((string) ($resultado['nombre_indicador'] ?? ''));
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_indicador'] = $this->esVoluntariado
+                    ? trim((string) ($resultado['nombre_indicador'] ?? ''))
+                    : '';
                 $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_medio_verificacion'] = trim((string) ($resultado['nombre_medio_verificacion'] ?? ''));
                 // Los resultados anidados en un objetivo específico son siempre de corto plazo.
                 $this->objetivosEspecificos[$oi]['resultados'][$ri]['plazo'] = 'corto_plazo';
@@ -1322,7 +1349,9 @@ class CreateProyectoVinculacion extends Component
 
         foreach ($this->resultadosProyecto as $ri => $resultado) {
             $this->resultadosProyecto[$ri]['nombre_resultado'] = trim((string) ($resultado['nombre_resultado'] ?? ''));
-            $this->resultadosProyecto[$ri]['nombre_indicador'] = trim((string) ($resultado['nombre_indicador'] ?? ''));
+            $this->resultadosProyecto[$ri]['nombre_indicador'] = $this->esVoluntariado
+                ? trim((string) ($resultado['nombre_indicador'] ?? ''))
+                : '';
             $this->resultadosProyecto[$ri]['nombre_medio_verificacion'] = trim((string) ($resultado['nombre_medio_verificacion'] ?? ''));
             $this->resultadosProyecto[$ri]['plazo'] = $this->normalizePlazo($resultado['plazo'] ?? '') ?: '';
         }
@@ -1346,7 +1375,7 @@ class CreateProyectoVinculacion extends Component
 
             foreach ($resultados as $resultado) {
                 if (trim((string) ($resultado['nombre_resultado'] ?? '')) === ''
-                    || trim((string) ($resultado['nombre_indicador'] ?? '')) === ''
+                    || ($this->esVoluntariado && trim((string) ($resultado['nombre_indicador'] ?? '')) === '')
                     || trim((string) ($resultado['nombre_medio_verificacion'] ?? '')) === '') {
                     return false;
                 }
@@ -1355,7 +1384,7 @@ class CreateProyectoVinculacion extends Component
 
         foreach ($this->resultadosProyecto as $resultado) {
             if (trim((string) ($resultado['nombre_resultado'] ?? '')) === ''
-                || trim((string) ($resultado['nombre_indicador'] ?? '')) === ''
+                || ($this->esVoluntariado && trim((string) ($resultado['nombre_indicador'] ?? '')) === '')
                 || trim((string) ($resultado['nombre_medio_verificacion'] ?? '')) === ''
                 || !$this->normalizePlazo($resultado['plazo'] ?? '')) {
                 return false;
@@ -2203,7 +2232,7 @@ class CreateProyectoVinculacion extends Component
 
                 $resultadoData = [
                     'nombre_resultado' => $rData['nombre_resultado'] ?: 'Resultado sin nombre',
-                    'nombre_indicador' => $rData['nombre_indicador'] ?? '',
+                    'nombre_indicador' => $this->esVoluntariado ? ($rData['nombre_indicador'] ?? '') : '',
                     'nombre_medio_verificacion' => $rData['nombre_medio_verificacion'] ?? '',
                     // Los resultados anidados en un objetivo específico son siempre de corto plazo.
                     'plazo' => 'corto_plazo',
@@ -2262,7 +2291,7 @@ class CreateProyectoVinculacion extends Component
 
             $resultadoData = [
                 'nombre_resultado' => $rData['nombre_resultado'] ?: 'Resultado sin nombre',
-                'nombre_indicador' => $rData['nombre_indicador'] ?? '',
+                'nombre_indicador' => $this->esVoluntariado ? ($rData['nombre_indicador'] ?? '') : '',
                 'nombre_medio_verificacion' => $rData['nombre_medio_verificacion'] ?? '',
                 'plazo' => $this->normalizePlazo($rData['plazo'] ?? '') ?: 'mediano_plazo',
                 'orden' => $ri + 1,
