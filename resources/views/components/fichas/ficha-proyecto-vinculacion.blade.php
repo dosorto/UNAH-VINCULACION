@@ -997,7 +997,10 @@
                                 ['N°', 1], ['Nombre Completo', 2], ['No. de empleado/a', 1],
                                 ['Correo electrónico', 2], ['Categoría', 1], ['Departamento al que pertenece', 1],
                             ];
-                            $integrantesEquipo015 = $proyecto->integrantes->reject(fn ($empleado) => $empleado->id === $coordinador?->id)->values();
+                            // Los voluntarios no van en el ítem 12: suman en el voluntariado personal (ítem 15).
+                            $integrantesEquipo015 = $proyecto->integrantes
+                                ->reject(fn ($empleado) => $empleado->id === $coordinador?->id || $empleado->pivot?->rol === 'Voluntario')
+                                ->values();
                         @endphp
                         <tr>
                             @foreach ($columnasEquipo015 as [$columnaEquipo, $spanEquipo])
@@ -1060,7 +1063,8 @@
                                 }
                             }
                         @endphp
-                        @forelse ($proyecto->integrantes as $integrante)
+                        {{-- Los voluntarios no van en el ítem 10: suman en el voluntariado personal (ítem 13). --}}
+                        @forelse ($proyecto->integrantes->reject(fn ($empleado) => $empleado->pivot?->rol === 'Voluntario')->values() as $integrante)
                             <tr>
                                 <td class="full-width" colspan="1" style="text-align:center; width:3%;">{{ $loop->iteration }}</td>
                                 <td class="full-width" colspan="1">

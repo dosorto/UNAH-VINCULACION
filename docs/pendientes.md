@@ -109,6 +109,13 @@ Lo hecho está en `docs/auditoria-form-dvus-001.md`. Falta:
   `FichaActualizacion::puedeSerEliminada()` y el historial, que cuentan con esa
   firma.
 
+### Voluntarios del equipo (paso 2)
+- **Horas:** si un voluntario es responsable de una actividad, sus horas siguen
+  sumando en «Horas de trabajo docentes» del aporte institucional
+  (`totalHorasTrabajoDocentes`). Decidir si deben excluirse.
+- **Ficha de actualización:** `EditProyectoActualizacion` agrega y da de baja
+  integrantes siempre como «Integrante»; no contempla el rol «Voluntario».
+
 ### Menores
 - Por uniformidad, `AutoridadEmisoraConstanciaResolver.php:27` y
   `AutoridadEmisoraConstanciaRegistroResolver.php:29` pueden leer el sello con
@@ -275,6 +282,10 @@ Ya fallaban antes de los cambios recientes.
   - `2026_10_01_000001_ampliar_textos_de_contrapartes_y_resultados`: TEXT en
     compromisos, indicador y medio de verificación;
   - `2026_10_01_000002_revocar_administrar_asignaturas_de_docente`.
+  - `2026_10_01_000003_agregar_rol_voluntario_a_empleado_proyecto`: agrega
+    `Voluntario` al rol del equipo. Los borradores en curso que tenían el
+    ítem 13 capturado a mano lo recalculan con el equipo la próxima vez que se
+    editan (queda en 0 hasta que el docente marque a sus voluntarios).
 
   En la base local de desarrollo también está pendiente
   `2026_09_29_000001_add_tipo_firma_to_firma_proyecto_table`.
