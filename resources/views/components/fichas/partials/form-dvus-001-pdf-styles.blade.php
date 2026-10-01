@@ -15,6 +15,10 @@
     .table_datos1 .full-width1, .table_datos1 .header, .table_datos2 .header, .table_datos3 .header, .table_datos4 .header, .table_datos5 .header, .table_datos6 .header, .table_datos7 .header { background: #002060 !important; color: #fff !important; font-style: normal !important; font-weight: 700 !important; text-align: center !important; vertical-align: middle !important; }
     .sub-header, .sub-header1, .sub-header2, .sub-header3, .sub-header4, .sub-headeri, .sub-headert { background: #edf0f4 !important; color: #111 !important; font-style: normal !important; font-weight: 600 !important; vertical-align: middle !important; }
     .pdf-text-block, input.input-field, textarea.input-field, textarea.input-field-multiline { background: transparent !important; border: 0 !important; box-shadow: none !important; box-sizing: border-box !important; display: block !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 6.85pt !important; line-height: 1.12 !important; margin: 0 !important; min-width: 0 !important; overflow: visible !important; overflow-wrap: break-word !important; padding: 0 !important; white-space: normal !important; width: 100% !important; word-break: normal !important; }
+    /* Ítem obligatorio vacío: marcador visible, distinto de cualquier respuesta. */
+    .pdf-campo-faltante { color: #b91c1c !important; font-style: italic !important; font-weight: bold !important; }
+    /* Proyecto aún en borrador: el PDF no es un documento válido aunque muestre firmas. */
+    .pdf-marca-borrador { position: fixed; top: 38%; left: 0; right: 0; text-align: center; font-size: 54pt; font-weight: bold; color: #dc2626; opacity: 0.13; transform: rotate(-30deg); z-index: 1000; }
 
     .date-cell { padding: 0 !important; }
     .date-inner-table, .execution-dates-table { border-collapse: collapse; margin: 0; table-layout: fixed; width: 100%; }

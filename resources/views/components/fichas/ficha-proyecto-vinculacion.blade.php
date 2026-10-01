@@ -398,6 +398,11 @@
 
             return nl2br(e($text));
         };
+        // Un ítem obligatorio vacío se marca de forma visible y uniforme, para que no
+        // se confunda con una respuesta del docente (antes: "Sin objetivo general…").
+        $renderPdfObligatorio = static fn ($value) => filled($value)
+            ? nl2br(e((string) $value))
+            : '<span class="pdf-campo-faltante">CAMPO OBLIGATORIO NO REGISTRADO</span>';
         $pdfCheck = static fn (bool $checked) => new \Illuminate\Support\HtmlString(
             '<span class="pdf-check'.($checked ? ' is-checked' : '').'">'.($checked ? 'X' : '&nbsp;').'</span>'
         );
@@ -484,6 +489,9 @@
 
     @if (!empty($isPdf))
         @include('components.fichas.partials.form-dvus-001-header', array_merge(['isPdf' => true], $encabezadoFicha))
+        @if (in_array($proyecto->estado?->tipoestado?->nombre, ['Borrador', 'Autoguardado'], true))
+            <div class="pdf-marca-borrador">BORRADOR — NO VÁLIDO</div>
+        @endif
     @endif
 
     <div class="{{ empty($isPdf) ? 'rounded-xl border border-gray-200 bg-white shadow-sm' : '' }}">
@@ -1670,7 +1678,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText(old('resumen', $proyecto->resumen)) !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfObligatorio(old('resumen', $proyecto->resumen)) !!}</div>
                                 @else
                                     <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
                                         placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
@@ -1691,7 +1699,7 @@
                                 de la UNAH en el proyecto a través de las funciones de docencia e investigación</td>
                             <td class="full-width" colspan="14">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->participacion_unah) !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->participacion_unah) !!}</div>
                                 @else
                                     <textarea disabled cols="30" rows="4" class="input-field"
                                         placeholder="Descripción de la participación de la UNAH">{{ $proyecto->participacion_unah ?? '' }}</textarea>
@@ -1703,7 +1711,7 @@
                                 de la entidad contraparte</td>
                             <td class="full-width" colspan="14">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->participacion_contraparte) !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->participacion_contraparte) !!}</div>
                                 @else
                                     <textarea disabled cols="30" rows="4" class="input-field"
                                         placeholder="Descripción de la participación de la entidad contraparte">{{ $proyecto->participacion_contraparte ?? '' }}</textarea>
@@ -1715,7 +1723,7 @@
                                 de la comunidad beneficiada</td>
                             <td class="full-width" colspan="14">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->participacion_comunidad) !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->participacion_comunidad) !!}</div>
                                 @else
                                     <textarea disabled cols="30" rows="4" class="input-field"
                                         placeholder="Descripción de la participación de la comunidad beneficiada">{{ $proyecto->participacion_comunidad ?? '' }}</textarea>
@@ -1730,7 +1738,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->definicion_problema) !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->definicion_problema) !!}</div>
                                 @else
                                     <textarea disabled cols="30" rows="6" class="input-field"
                                         placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? '' }}</textarea>
@@ -1744,7 +1752,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->objetivo_general, 'Sin objetivo general especificado') !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->objetivo_general) !!}</div>
                                 @else
                                     <textarea disabled cols="30" rows="4" class="input-field"
                                         placeholder="Objetivo general">{{ $proyecto->objetivo_general ?? '' }}</textarea>
@@ -1763,7 +1771,7 @@
                                         ->implode("\n");
                                 @endphp
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($objetivosEspecificosTexto, 'Sin objetivos específicos registrados') !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfObligatorio($objetivosEspecificosTexto) !!}</div>
                                 @else
                                     <textarea disabled cols="30" rows="6" class="input-field"
                                         placeholder="Objetivos específicos">{{ $objetivosEspecificosTexto }}</textarea>
@@ -1820,7 +1828,7 @@
                             <tr>
                                 <td class="full-width" colspan="19">
                                     @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText('Sin resultados de corto plazo registrados') !!}</div>
+                                        <div class="pdf-text-block">{!! $renderPdfObligatorio(null) !!}</div>
                                     @else
                                         <textarea disabled cols="30" rows="2" class="input-field">Sin resultados de corto plazo registrados</textarea>
                                     @endif
@@ -1862,7 +1870,7 @@
                             <tr>
                                 <td class="full-width" colspan="19">
                                     @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText('Sin resultados de mediano plazo registrados') !!}</div>
+                                        <div class="pdf-text-block">{!! ($esVoluntariado ? $renderPdfObligatorio(null) : $renderPdfText('Sin resultados de mediano plazo registrados')) !!}</div>
                                     @else
                                         <textarea disabled cols="30" rows="2" class="input-field">Sin resultados de mediano plazo registrados</textarea>
                                     @endif
@@ -1904,7 +1912,7 @@
                             <tr>
                                 <td class="full-width" colspan="19">
                                     @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText('Sin resultados de largo plazo registrados') !!}</div>
+                                        <div class="pdf-text-block">{!! ($esVoluntariado ? $renderPdfObligatorio(null) : $renderPdfText('Sin resultados de largo plazo registrados')) !!}</div>
                                     @else
                                         <textarea disabled cols="30" rows="2" class="input-field">Sin resultados de largo plazo registrados</textarea>
                                     @endif
@@ -1970,10 +1978,10 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->alineamiento_reforma, 'No hay información específica registrada para este campo') !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->alineamiento_reforma) !!}</div>
                                 @else
                                     <textarea disabled cols="30" rows="6" class="input-field"
-                                        placeholder="Alineamiento con la reforma">{{ $proyecto->alineamiento_reforma ?? 'No hay información específica registrada para este campo' }}</textarea>
+                                        placeholder="Alineamiento con la reforma">{{ $proyecto->alineamiento_reforma }}</textarea>
                                 @endif
                             </td>
                         </tr>
@@ -1985,7 +1993,7 @@
                                 <td class="sub-header" colspan="5" style="font-style:normal; font-weight:bold;">Descripción de los conocimientos teóricos que se aplicarán</td>
                                 <td class="full-width" colspan="14">
                                     @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($proyecto->experiencia_conocimientos_teoricos) !!}</div>
+                                        <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->experiencia_conocimientos_teoricos) !!}</div>
                                     @else
                                         <textarea disabled cols="30" rows="4" class="input-field">{{ $proyecto->experiencia_conocimientos_teoricos ?? '' }}</textarea>
                                     @endif
@@ -1995,7 +2003,7 @@
                                 <td class="sub-header" colspan="5" style="font-style:normal; font-weight:bold;">Descripción de las habilidades técnicas que se aplicarán</td>
                                 <td class="full-width" colspan="14">
                                     @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($proyecto->experiencia_habilidades_tecnicas) !!}</div>
+                                        <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->experiencia_habilidades_tecnicas) !!}</div>
                                     @else
                                         <textarea disabled cols="30" rows="4" class="input-field">{{ $proyecto->experiencia_habilidades_tecnicas ?? '' }}</textarea>
                                     @endif
@@ -2005,7 +2013,7 @@
                                 <td class="sub-header" colspan="5" style="font-style:normal; font-weight:bold;">Descripción de las competencias blandas que adquirirán los(as) estudiantes con esta experiencia</td>
                                 <td class="full-width" colspan="14">
                                     @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($proyecto->experiencia_competencias_blandas) !!}</div>
+                                        <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->experiencia_competencias_blandas) !!}</div>
                                     @else
                                         <textarea disabled cols="30" rows="4" class="input-field">{{ $proyecto->experiencia_competencias_blandas ?? '' }}</textarea>
                                     @endif
@@ -2018,7 +2026,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->metodologia) !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->metodologia) !!}</div>
                                 @else
                                     <textarea disabled cols="30" rows="6" class="input-field"
                                         placeholder="Metodología">{{ $proyecto->metodologia ?? '' }}</textarea>
@@ -2031,7 +2039,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->bibliografia) !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfObligatorio($proyecto->bibliografia) !!}</div>
                                 @else
                                     <textarea disabled cols="30" rows="6" class="input-field"
                                         placeholder="Bibliografía">{{ $proyecto->bibliografia ?? '' }}</textarea>

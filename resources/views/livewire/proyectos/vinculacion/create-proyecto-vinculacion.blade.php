@@ -73,6 +73,13 @@
     </div>
     @endif
 
+    @if(!empty($seccionesNoGuardadas))
+    <div role="alert" class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-700 dark:bg-red-900/20 dark:text-red-100">
+        <p class="font-semibold">Hay cambios que no se han guardado. Corrija lo indicado; el resto del formulario sí está guardado.</p>
+        <p class="mt-1">{{ $this->resumenSeccionesNoGuardadas() }}</p>
+    </div>
+    @endif
+
     {{-- Step progress --}}
     <div class="mb-6 bg-white dark:bg-gray-900 shadow rounded-lg p-4">
         <div class="flex items-center overflow-x-auto gap-0.5">
@@ -120,7 +127,7 @@
             {{-- Nombre --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del Proyecto <span class="text-red-500">*</span></label>
-                <input type="text" wire:model.live.debounce.1000ms="nombre_proyecto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                <input type="text" wire:model.live.debounce.1000ms="nombre_proyecto" maxlength="255" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 @error('nombre_proyecto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             {{-- Modalidad --}}
@@ -2260,8 +2267,8 @@
                             <tr class="border-t border-gray-200 dark:border-gray-700 {{ !($aporte['editable'] ?? true) ? 'bg-gray-50 dark:bg-gray-800/50' : '' }}">
                                 <td class="py-2 px-3 text-gray-700 dark:text-gray-300 text-xs">{{ $aporte['concepto_label'] ?? $aporte['concepto'] }}</td>
                                 <td class="py-2 px-3 text-gray-500 text-xs">{{ $aporte['unidad_label'] ?? $aporte['unidad'] }}</td>
-                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.cantidad" wire:change="updateAporteTotal({{ $i }})" min="0" @readonly(($aporte['concepto'] ?? '') === 'horas_trabajo_docentes') @disabled(!($aporte['editable']??true)) title="{{ ($aporte['concepto'] ?? '') === 'horas_trabajo_docentes' ? 'Calculado con las horas requeridas y responsables de todas las actividades' : '' }}" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 read-only:bg-gray-100 read-only:text-gray-600 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
-                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.costo_unitario" wire:change="updateAporteTotal({{ $i }})" min="0" step="0.01" @disabled(!($aporte['editable']??true)) class="w-28 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
+                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.cantidad" wire:change="updateAporteTotal({{ $i }})" min="0" max="99999999.99" @readonly(($aporte['concepto'] ?? '') === 'horas_trabajo_docentes') @disabled(!($aporte['editable']??true)) title="{{ ($aporte['concepto'] ?? '') === 'horas_trabajo_docentes' ? 'Calculado con las horas requeridas y responsables de todas las actividades' : '' }}" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 read-only:bg-gray-100 read-only:text-gray-600 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
+                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.costo_unitario" wire:change="updateAporteTotal({{ $i }})" min="0" max="99999999.99" step="0.01" @disabled(!($aporte['editable']??true)) class="w-28 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
                                 <td class="py-2 px-3 text-center font-medium text-gray-900 dark:text-white">L. {{ number_format($aporte['costo_total'] ?? 0, 2) }}</td>
                             </tr>
                             @endforeach

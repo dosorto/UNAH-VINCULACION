@@ -88,6 +88,29 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
         $this->assertAprobacionNoDisponible($firma->refresh(), $user);
     }
 
+    public function test_etapa_con_cargo_de_coordinador_aprueba_sin_guardar_sello(): void
+    {
+        // Como la etapa heredada "Coordinador Proyecto": quien firma es el coordinador.
+        $context = $this->crearContexto(1);
+        $tipoCoordinador = TipoCargoFirma::firstOrCreate(['nombre' => TipoCargoFirma::COORDINADOR_PROYECTO]);
+        $cargoCoordinador = CargoFirma::create([
+            'descripcion' => 'Proyecto',
+            'tipo_cargo_firma_id' => $tipoCoordinador->id,
+            'tipo_estado_id' => $context['estados'][0]->id,
+        ]);
+        $context['etapas'][0]->update(['cargo_firma_id' => $cargoCoordinador->id]);
+        [$user, $empleado, $role] = $this->crearUsuarioEmpleadoConRol('Rol coordinador');
+        $this->crearFirmaSello($empleado, 'firma');
+        $this->crearFirmaSello($empleado, 'sello');
+        $firmaActual = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0]->fresh(), $empleado, ['rol_requerido' => $role->name]);
+
+        $aprobada = $this->componenteAprobacion()->aprobarPorEtapa($firmaActual, $user);
+
+        $this->assertSame('Aprobado', $aprobada->estado_revision);
+        $this->assertSame($empleado->firma->id, $aprobada->firma_id);
+        $this->assertNull($aprobada->sello_id);
+    }
+
     public function test_permite_firma_y_sello_null_sin_modificar_identidad(): void
     {
         $context = $this->crearContexto();

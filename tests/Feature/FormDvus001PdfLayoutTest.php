@@ -110,17 +110,9 @@ class FormDvus001PdfLayoutTest extends TestCase
         $view = $this->viewSource('components.fichas.firmas-fijas-proyecto');
 
         $this->assertStringContainsString("\$firmaRegistro?->firma ?: \$firmaRegistro?->empleado?->firma", $view);
-        $this->assertStringContainsString("\$firmaRegistro?->sello ?: \$firmaRegistro?->empleado?->sello", $view);
-    }
-
-    public function test_firmas_dinamicas_usan_el_src_resuelto(): void
-    {
-        $view = $this->viewSource('components.fichas.firmas-dinamicas');
-
-        $this->assertStringContainsString("\$sello['src']", $view);
-        $this->assertStringContainsString("\$firmaImg['src']", $view);
-        $this->assertStringNotContainsString('src="{{ $sello }}"', $view);
-        $this->assertStringNotContainsString('src="{{ $firmaImg }}"', $view);
+        // El sello pasa por la regla central: la firma del coordinador nunca lo lleva.
+        $this->assertStringContainsString('$firmaRegistro?->selloParaDocumento(respaldoPerfil: true)', $view);
+        $this->assertStringNotContainsString("\$firmaRegistro?->sello ?: \$firmaRegistro?->empleado?->sello", $view);
     }
 
     private function viewSource(string $view): string

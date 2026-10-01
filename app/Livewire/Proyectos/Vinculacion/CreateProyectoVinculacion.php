@@ -55,6 +55,9 @@ class CreateProyectoVinculacion extends Component
     /** Tasa de los costos indirectos institucionales (3% sobre la sumatoria de conceptos a–e). */
     private const TASA_COSTOS_INDIRECTOS = 0.03;
 
+    /** Máximo que admiten las columnas DECIMAL(10,2) de aporte_institucional. */
+    private const MAXIMO_MONTO_APORTE = 99999999.99;
+
     public int $currentStep = 1;
     public ?int $recordId = null;
     public ?int $proyectoId = null;
@@ -62,6 +65,9 @@ class CreateProyectoVinculacion extends Component
     public string $estadoAutoGuardado = 'idle';
     public bool $autoguardadoActivo = true;
     private bool $autoGuardando = false;
+    // Secciones que el último autoguardado no pudo persistir: [clave => motivo].
+    #[Locked]
+    public array $seccionesNoGuardadas = [];
 
     // Step 1
     public string $nombre_proyecto = '';
@@ -1027,6 +1033,16 @@ class CreateProyectoVinculacion extends Component
             $this->addError('aporte_institucional', 'Registre al menos un aporte institucional para continuar.');
         }
 
+        if ($step === 8) {
+            foreach ($this->aporte_institucional as $i => $aporte) {
+                foreach (['cantidad', 'costo_unitario', 'costo_total'] as $campo) {
+                    if ((float) ($aporte[$campo] ?? 0) > self::MAXIMO_MONTO_APORTE) {
+                        $this->addError("aporte_institucional.$i.$campo", 'El valor excede el máximo permitido (99,999,999.99).');
+                    }
+                }
+            }
+        }
+
         return $this->getErrorBag()->isEmpty();
     }
 
@@ -1349,22 +1365,6 @@ class CreateProyectoVinculacion extends Component
         return true;
     }
 
-    protected function saveCurrentStep(): void
-    {
-        match ($this->currentStep) {
-            1 => $this->saveStep1(),
-            2 => $this->saveStep2(),
-            3 => $this->saveStep3(),
-            4 => $this->saveStep4(),
-            5 => $this->saveStep5(),
-            6 => $this->saveStep6(),
-            7 => $this->saveStep7(),
-            8 => $this->saveStep8(),
-            9 => $this->saveStep9(),
-            default => null,
-        };
-    }
-
     public function isStepComplete(int $step): bool
     {
         if (!$this->recordId) return false;
@@ -1474,8 +1474,10 @@ class CreateProyectoVinculacion extends Component
         }
 
         $empleado = auth()->user()->empleado;
+        // Un nombre demasiado largo no debe impedir crear el borrador; la sección
+        // "nombre" del autoguardado reporta el error para que el docente lo corrija.
         $nombreProyecto = trim($this->nombre_proyecto) !== ''
-            ? $this->nombre_proyecto
+            ? mb_substr($this->nombre_proyecto, 0, 255)
             : 'Borrador sin título';
 
         $record = Proyecto::create([
@@ -1609,31 +1611,51 @@ class CreateProyectoVinculacion extends Component
         }
     }
 
-    public function autoGuardarBorrador(): void
+    /**
+     * Guarda todo el formulario. Devuelve false si alguna sección no se pudo
+     * persistir; las demás secciones sí quedan guardadas (ver guardarBorradorParcial).
+     */
+    public function autoGuardarBorrador(): bool
     {
         if ($this->autoGuardando) {
-            return;
+            return $this->estadoAutoGuardado !== 'error';
+        }
+
+        if (! auth()->user()?->empleado) {
+            $this->seccionesNoGuardadas = ['general' => 'La sesión no tiene un empleado asociado; vuelva a iniciar sesión.'];
+            $this->estadoAutoGuardado = 'error';
+
+            return false;
         }
 
         try {
             $this->autoGuardando = true;
             $this->estadoAutoGuardado = 'guardando';
 
-            DB::transaction(function () {
+            $fallidas = DB::transaction(function (): array {
                 $record = $this->ensureRecord();
-                $this->guardarBorradorParcial($record);
-            });
 
-            $this->estadoAutoGuardado = 'guardado';
+                return $this->guardarBorradorParcial($record);
+            });
         } catch (\Throwable $e) {
-            report($e);
-            $this->estadoAutoGuardado = 'error';
+            $this->reportarErrorDeGuardado($e, 'general');
+            $fallidas = ['general' => $this->motivoErrorDeGuardado($e)];
         } finally {
             $this->autoGuardando = false;
         }
+
+        $this->seccionesNoGuardadas = $fallidas;
+        $this->estadoAutoGuardado = $fallidas === [] ? 'guardado' : 'error';
+
+        return $fallidas === [];
     }
 
-    private function guardarBorradorParcial(Proyecto $record): void
+    /**
+     * Cada sección se guarda en su propio savepoint: si una falla (p. ej. un texto
+     * que excede su columna), solo se revierte esa sección y el resto del borrador
+     * se conserva. Devuelve las secciones que fallaron: [clave => motivo].
+     */
+    private function guardarBorradorParcial(Proyecto $record): array
     {
         $this->cargarMetasPorOds();
         $this->limpiarRelacionesDependientes();
@@ -1641,8 +1663,116 @@ class CreateProyectoVinculacion extends Component
         $this->recalculateAporteInstitucional();
         $this->filtrarMunicipiosImpactoSeleccionados();
 
+        $secciones = [
+            'nombre' => fn () => $this->guardarNombreProyectoParcial($record),
+            'datos' => fn () => $this->guardarCamposProyectoParcial($record),
+            'clasificacion' => fn () => $this->guardarClasificacionParcial($record),
+            'equipo' => fn () => $this->guardarEquipoParcial($record),
+            'contrapartes' => fn () => $this->guardarContrapartesParcial($record),
+            'actividades' => fn () => $this->guardarActividadesParcial($record),
+            'marco_logico' => fn () => $this->guardarMarcoLogicoParcial($record),
+            'presupuesto' => fn () => $this->guardarPresupuestoParcial($record),
+            'espacios' => fn () => $this->guardarEspaciosInstitucionalesParcial($record),
+        ];
+
+        $fallidas = [];
+
+        foreach ($secciones as $seccion => $guardar) {
+            try {
+                DB::transaction($guardar);
+            } catch (\Throwable $e) {
+                // El modelo conserva el atributo rechazado como "sucio"; sin descartarlo,
+                // el siguiente $record->update() lo reintentaría y fallaría también.
+                $record->discardChanges();
+                $this->reportarErrorDeGuardado($e, $seccion, $record->id);
+                $fallidas[$seccion] = $this->motivoErrorDeGuardado($e);
+            }
+        }
+
+        return $fallidas;
+    }
+
+    private const SECCIONES_GUARDADO = [
+        'general' => 'Borrador',
+        'nombre' => 'Nombre del proyecto',
+        'datos' => 'Información general, beneficiarios y descripción del proyecto',
+        'clasificacion' => 'Unidades académicas, ODS y zona de impacto',
+        'equipo' => 'Equipo ejecutor y participación de estudiantes',
+        'contrapartes' => 'Entidades contraparte',
+        'actividades' => 'Cronograma de actividades',
+        'marco_logico' => 'Marco lógico (objetivos y resultados)',
+        'presupuesto' => 'Presupuesto',
+        'espacios' => 'Espacios institucionales',
+    ];
+
+    private const CAMPOS_ERROR_GUARDADO = [
+        'nombre_proyecto' => 'nombre del proyecto',
+        'descripcion_acuerdos' => 'compromisos de la contraparte',
+        'tipo_entidad' => 'tipo de entidad de la contraparte',
+        'tipo_documento' => 'tipo de instrumento de formalización',
+        'nombre_indicador' => 'indicador del resultado',
+        'nombre_medio_verificacion' => 'medio de verificación del resultado',
+        'cantidad' => 'cantidad del aporte institucional',
+        'costo_unitario' => 'costo unitario del aporte institucional',
+        'costo_total' => 'costo total del aporte institucional',
+        'total_aporte_institucional' => 'total del aporte institucional',
+    ];
+
+    private function reportarErrorDeGuardado(\Throwable $e, string $seccion, ?int $proyectoId = null): void
+    {
+        report(new RuntimeException(
+            sprintf('Autoguardado del proyecto #%s falló en la sección "%s": %s', $proyectoId ?? $this->recordId ?? 'nuevo', $seccion, $e->getMessage()),
+            0,
+            $e
+        ));
+    }
+
+    private function motivoErrorDeGuardado(\Throwable $e): string
+    {
+        if (! $e instanceof \Illuminate\Database\QueryException) {
+            return 'Ocurrió un error inesperado al guardar.';
+        }
+
+        $codigo = (int) ($e->errorInfo[1] ?? 0);
+        $campo = preg_match("/column '([^']+)'/", $e->getMessage(), $coincidencia)
+            ? (self::CAMPOS_ERROR_GUARDADO[$coincidencia[1]] ?? $coincidencia[1])
+            : null;
+
+        return match ($codigo) {
+            1406 => $campo ? "El texto de «{$campo}» es demasiado largo." : 'Un texto es demasiado largo.',
+            1264 => $campo ? "El valor de «{$campo}» excede el máximo permitido." : 'Un monto excede el máximo permitido.',
+            1265, 1366 => $campo ? "El valor de «{$campo}» no es válido." : 'Un valor no es válido.',
+            default => 'No se pudo guardar por un error de base de datos.',
+        };
+    }
+
+    /** Texto para avisar qué secciones no se guardaron y por qué. */
+    public function resumenSeccionesNoGuardadas(): string
+    {
+        return collect($this->seccionesNoGuardadas)
+            ->map(fn (string $motivo, string $seccion) => (self::SECCIONES_GUARDADO[$seccion] ?? $seccion) . ': ' . $motivo)
+            ->implode(' ');
+    }
+
+    private function notificarGuardadoFallido(string $accion): void
+    {
+        Notification::make()
+            ->title("No se pudo {$accion}")
+            ->body('No se guardó: ' . $this->resumenSeccionesNoGuardadas() . ' Corrija ese dato e intente de nuevo; el resto del formulario sí quedó guardado.')
+            ->danger()
+            ->send();
+    }
+
+    private function guardarNombreProyectoParcial(Proyecto $record): void
+    {
         $record->update([
             'nombre_proyecto' => trim($this->nombre_proyecto) !== '' ? $this->nombre_proyecto : 'Borrador sin título',
+        ]);
+    }
+
+    private function guardarCamposProyectoParcial(Proyecto $record): void
+    {
+        $record->update([
             'modalidad_id' => $this->nullableInt($this->modalidad_id),
             'fecha_inicio' => $this->dateOrNull($this->fecha_inicio),
             'fecha_finalizacion' => $this->dateOrNull($this->fecha_finalizacion),
@@ -1679,9 +1809,11 @@ class CreateProyectoVinculacion extends Component
             'experiencia_competencias_blandas' => $this->stringOrNull($this->experiencia_competencias_blandas),
             ...$this->voluntariadoParticipacionParaGuardar(),
             'objetivo_general' => $this->objetivo_general,
-            'total_aporte_institucional' => collect($this->aporte_institucional)->sum('costo_total'),
         ]);
+    }
 
+    private function guardarClasificacionParcial(Proyecto $record): void
+    {
         $record->categoria()->sync($this->ids($this->categoria));
         $record->ejes_prioritarios_unah()->sync($this->ids($this->ejes_prioritarios_unah));
         $record->facultades_centros()->sync($this->ids($this->facultades_centros));
@@ -1694,13 +1826,6 @@ class CreateProyectoVinculacion extends Component
         $record->ods()->sync($this->odsSyncConOrden());
         $record->departamento()->sync($this->ids($this->departamento_geo));
         $record->municipio()->sync($this->ids($this->municipio_geo));
-
-        $this->guardarEquipoParcial($record);
-        $this->guardarContrapartesParcial($record);
-        $this->guardarActividadesParcial($record);
-        $this->guardarMarcoLogicoParcial($record);
-        $this->guardarPresupuestoParcial($record);
-        $this->guardarEspaciosInstitucionalesParcial($record);
     }
 
     private function metodologiaSeguimientoNormalizada(): array
@@ -1917,7 +2042,9 @@ class CreateProyectoVinculacion extends Component
             $pivot = $record->entidad_contraparte_proyecto()->create([
                 'entidad_contraparte_id' => $catalogoId,
                 'nombre' => $item['nombre'] ?: 'Contraparte sin nombre',
-                'tipo_entidad' => $item['tipo_entidad'] ?? '',
+                // La columna es ENUM y el catálogo admite texto libre o NULL: un valor
+                // fuera del formato se guarda como NULL en vez de romper el guardado.
+                'tipo_entidad' => array_key_exists($item['tipo_entidad'] ?? '', EntidadContraparte::TIPOS) ? $item['tipo_entidad'] : null,
                 'nombre_contacto' => $item['nombre_contacto'] ?? '',
                 'cargo_contacto' => $item['cargo_contacto'] ?? '',
                 'telefono' => $item['telefono'] ?? '',
@@ -1940,7 +2067,7 @@ class CreateProyectoVinculacion extends Component
                 }
 
                 $instrumento = $pivot->instrumentoFormalizacion()->create([
-                    'tipo_documento' => $tipo,
+                    'tipo_documento' => $tipo !== '' ? $tipo : null,
                     'documento_url' => $documentoUrl,
                     'nombre_archivo' => $nombreArchivo,
                 ]);
@@ -2173,6 +2300,8 @@ class CreateProyectoVinculacion extends Component
                 'costo_total' => (float) ($item['costo_total'] ?? 0),
             ]);
         }
+
+        $record->update(['total_aporte_institucional' => collect($this->aporte_institucional)->sum('costo_total')]);
 
         $record->presupuesto()->updateOrCreate([], [
             'aporte_contraparte' => $this->montoNoNegativo($this->aporte_contraparte),
@@ -2424,49 +2553,6 @@ class CreateProyectoVinculacion extends Component
         }
     }
 
-    protected function saveStep1(): void
-    {
-        $this->cargarMetasPorOds();
-
-        $this->validate([
-            'nombre_proyecto' => 'required|string|max:255',
-            'modalidad_id' => 'required|integer',
-            'categoria' => 'required|array|min:1',
-            'ejes_prioritarios_unah' => 'required|array|size:1',
-            'facultades_centros' => 'required|array|min:1',
-            'facultades_centros.*' => 'integer|exists:centro_facultad,id',
-            'departamentos_academicos' => 'required|array|min:1',
-            'departamentos_academicos.*' => 'integer|exists:departamento_academico,id',
-            'carrera_no_aplica' => 'boolean',
-            'carreras' => 'required_if:carrera_no_aplica,false|array',
-            'carreras.*' => 'integer|exists:carrera,id',
-            'fecha_inicio' => 'required|date',
-            'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
-            'programa_pertenece' => 'required|string',
-            'lineas_investigacion_academica' => 'required|string',
-            'ods' => 'required|array|min:1|max:' . self::MAX_ODS,
-        ], [
-            'ods.max' => 'Puede seleccionar un máximo de 3 ODS.',
-        ]);
-        $record = $this->ensureRecord();
-        $record->update([
-            'nombre_proyecto' => $this->nombre_proyecto,
-            'modalidad_id' => $this->modalidad_id,
-            'fecha_inicio' => $this->fecha_inicio,
-            'fecha_finalizacion' => $this->fecha_finalizacion,
-            'programa_pertenece' => $this->programa_pertenece,
-            'lineas_investigacion_academica' => $this->lineas_investigacion_academica,
-            'carrera_no_aplica' => $this->carrera_no_aplica,
-        ]);
-        $record->categoria()->sync($this->categoria);
-        $record->ejes_prioritarios_unah()->sync($this->ejes_prioritarios_unah);
-        $record->facultades_centros()->sync($this->facultades_centros);
-        $record->departamentos_academicos()->sync($this->departamentos_academicos ?? []);
-        $record->carreras()->sync($this->carrera_no_aplica ? [] : ($this->carreras ?? []));
-        $record->ods()->sync($this->odsSyncConOrden());
-        Notification::make()->title('Paso I guardado')->success()->send();
-    }
-
     public function updatedOds($value = null, ?string $key = null): void
     {
         $odsSeleccionados = collect($this->ods)
@@ -2547,369 +2633,6 @@ class CreateProyectoVinculacion extends Component
             ->unique()
             ->values()
             ->toArray();
-    }
-
-    protected function saveStep2(): void
-    {
-        // Require at least one student group
-        $hasStudents = !empty($this->estudiante_proyecto) &&
-            collect($this->estudiante_proyecto)->contains(fn($e) => !empty($e['tipo_participacion_estudiante']));
-        if (!$hasStudents) {
-            $this->addError('estudiante_proyecto', 'Debe agregar al menos un grupo de participación de estudiantes.');
-            return;
-        }
-
-        $this->validate([
-            'empleado_proyecto.*.empleado_id' => 'nullable|exists:empleado,id',
-            'estudiante_proyecto.*.tipo_participacion_estudiante' => 'nullable|string',
-            'estudiante_proyecto.*.carrera_id' => 'nullable|exists:carrera,id',
-            'estudiante_proyecto.*.asignatura_id' => 'nullable|exists:asignaturas,id',
-            'estudiante_proyecto.*.periodo_academico_id' => 'nullable|string|max:50',
-            'estudiante_proyecto.*.cantidad_estudiantes_hombres' => 'nullable|integer|min:0',
-            'estudiante_proyecto.*.cantidad_estudiantes_mujeres' => 'nullable|integer|min:0',
-            'integrante_internacional_proyecto.*.integrante_internacional_id' => 'nullable|exists:integrante_internacional,id',
-        ]);
-
-        $hasInvalidStudentRows = false;
-        if (!$this->validarTotalesGruposEstudiantes()) {
-            $hasInvalidStudentRows = true;
-        }
-        if (!$this->validarIntegrantesInternacionalesParaFicha()) {
-            $hasInvalidStudentRows = true;
-        }
-
-        foreach ($this->estudiante_proyecto as $i => $item) {
-            $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '') ?: ($item['tipo_participacion_estudiante'] ?? '');
-            $this->estudiante_proyecto[$i]['tipo_participacion_estudiante'] = $tipo;
-
-            if ($tipo !== '' && !in_array($tipo, $this->tipoParticipacionEstudiantePermitidos, true)) {
-                $this->addError("estudiante_proyecto.$i.tipo_participacion_estudiante", 'Seleccione un tipo de participación válido.');
-                $hasInvalidStudentRows = true;
-                continue;
-            }
-
-            if ($this->isTipoParticipacionAsignatura($tipo)) {
-                if (empty($this->carreras)) {
-                    $this->addError("estudiante_proyecto.$i.carrera_id", 'Seleccione primero una carrera en Información General.');
-                    $hasInvalidStudentRows = true;
-                }
-                if (empty($item['asignatura_id'])) {
-                    $this->addError("estudiante_proyecto.$i.asignatura_id", 'Seleccione la asignatura.');
-                    $hasInvalidStudentRows = true;
-                } elseif (!$this->asignaturaPerteneceACarrerasSeleccionadas($item['asignatura_id'])) {
-                    $this->addError("estudiante_proyecto.$i.asignatura_id", 'La asignatura no corresponde a la carrera seleccionada.');
-                    $hasInvalidStudentRows = true;
-                }
-                if (empty($item['periodo_academico_id'])) {
-                    $this->addError("estudiante_proyecto.$i.periodo_academico_id", 'Seleccione el periodo académico.');
-                    $hasInvalidStudentRows = true;
-                }
-
-                $this->estudiante_proyecto[$i]['carrera_id'] = $this->carreraIdParaAsignatura($item['asignatura_id'] ?? null);
-            } else {
-                $this->estudiante_proyecto[$i]['carrera_id'] = null;
-                $this->estudiante_proyecto[$i]['asignatura_id'] = null;
-                $this->estudiante_proyecto[$i]['periodo_academico_id'] = null;
-            }
-        }
-
-        if ($hasInvalidStudentRows) {
-            return;
-        }
-
-        $record = $this->ensureRecord();
-        $coordId = auth()->user()->empleado->id;
-        foreach ($this->empleado_proyecto as $item) {
-            if (!empty($item['empleado_id']) && $item['empleado_id'] != $coordId) {
-                $record->empleado_proyecto()->firstOrCreate(
-                    ['empleado_id' => $item['empleado_id']],
-                    ['rol' => 'Integrante']
-                );
-            }
-        }
-        $record->estudiante_proyecto()->delete();
-        foreach ($this->estudiante_proyecto as $item) {
-            $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '') ?: ($item['tipo_participacion_estudiante'] ?? '');
-            if (!empty($tipo)) {
-                $isAsignatura = $this->isTipoParticipacionAsignatura($tipo);
-                $data = [
-                    'tipo_participacion_estudiante' => $tipo,
-                    'carrera_id' => $isAsignatura ? $this->carreraIdParaAsignatura($item['asignatura_id'] ?? null) : null,
-                    'asignatura_id' => $isAsignatura ? ($item['asignatura_id'] ?? null) : null,
-                    'periodo_academico_id' => $isAsignatura ? ($item['periodo_academico_id'] ?? null) : null,
-                    'cantidad_estudiantes_hombres' => $item['cantidad_estudiantes_hombres'] ?? 0,
-                    'cantidad_estudiantes_mujeres' => $item['cantidad_estudiantes_mujeres'] ?? 0,
-                    'total_estudiantes' => ($item['cantidad_estudiantes_hombres'] ?? 0) + ($item['cantidad_estudiantes_mujeres'] ?? 0),
-                ];
-
-                if (!Schema::hasColumn('estudiante_proyecto', 'carrera_id')) {
-                    unset($data['carrera_id']);
-                }
-
-                $record->estudiante_proyecto()->create($data);
-            }
-        }
-        foreach ($this->integrante_internacional_proyecto as $item) {
-            if (!empty($item['integrante_internacional_id'])) {
-                $record->integrante_internacional_proyecto()->firstOrCreate(
-                    ['integrante_internacional_id' => $item['integrante_internacional_id']],
-                    []
-                );
-            }
-        }
-        Notification::make()->title('Paso II guardado')->success()->send();
-    }
-
-    protected function saveStep3(): void
-    {
-        foreach ($this->entidad_contraparte as $ci => $item) {
-            foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
-                $tipo = $this->normalizeInstrumentoTipo($inst['tipo_documento'] ?? '');
-                if ($tipo !== '') {
-                    $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['tipo_documento'] = $tipo;
-                }
-            }
-        }
-
-        $this->validate([
-            'entidad_contraparte.*.instrumento_formalizacion.*.tipo_documento' => 'nullable|in:' . implode(',', $this->instrumentoTipos),
-            'entidad_contraparte.*.instrumento_formalizacion.*.documento_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
-        ]);
-
-        $hasMissingDocument = false;
-        foreach ($this->entidad_contraparte as $ci => $item) {
-            $tieneAlMenosUnDocumento = false;
-
-            foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
-                if (empty($inst['tipo_documento'])) continue;
-                $isExisting = !empty($inst['id']);
-                $hasStoredDocument = !empty($inst['documento_url']);
-                $hasUploadedDocument = $this->instrumentoTieneArchivoNuevo($inst);
-                if (!$isExisting && !$hasStoredDocument && !$hasUploadedDocument) {
-                    $this->addError("entidad_contraparte.$ci.instrumento_formalizacion.$ii.documento_file", 'El documento es obligatorio para instrumentos nuevos.');
-                    $hasMissingDocument = true;
-                }
-                if ($hasStoredDocument || $hasUploadedDocument) {
-                    $tieneAlMenosUnDocumento = true;
-                }
-            }
-
-            if (!empty($item['nombre']) && !$tieneAlMenosUnDocumento) {
-                $this->addError("entidad_contraparte.$ci", 'Cada contraparte debe tener al menos un documento de instrumento de formalización adjunto.');
-                $hasMissingDocument = true;
-            }
-        }
-        if ($hasMissingDocument) return;
-
-        $record = $this->ensureRecord();
-        $record->entidad_contraparte_proyecto()->each(fn($pivot) => $pivot->instrumentoFormalizacion()->delete());
-        $record->entidad_contraparte_proyecto()->delete();
-        foreach ($this->entidad_contraparte as $ci => $item) {
-            if (!empty($item['nombre'])) {
-                $catalogoId = $item['entidad_contraparte_id'] ?? null;
-                if (!$catalogoId) {
-                    $catalogo = EntidadContraparte::create([
-                        'rtn' => $item['rtn'] ?? null,
-                        'nombre' => $item['nombre'],
-                        'tipo_entidad' => $item['tipo_entidad'] ?? '',
-                        'nombre_contacto' => $item['nombre_contacto'] ?? '',
-                        'cargo_contacto' => $item['cargo_contacto'] ?? '',
-                        'telefono' => $item['telefono'] ?? '',
-                        'correo' => $item['correo'] ?? '',
-                    ]);
-                    $catalogoId = $catalogo->id;
-                }
-
-                $pivot = $record->entidad_contraparte_proyecto()->create([
-                    'entidad_contraparte_id' => $catalogoId,
-                    'nombre' => $item['nombre'],
-                    'tipo_entidad' => $item['tipo_entidad'] ?? '',
-                    'nombre_contacto' => $item['nombre_contacto'] ?? '',
-                    'cargo_contacto' => $item['cargo_contacto'] ?? '',
-                    'telefono' => $item['telefono'] ?? '',
-                    'correo' => $item['correo'] ?? '',
-                    'descripcion_acuerdos' => $item['descripcion_acuerdos'] ?? '',
-                ]);
-
-                foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
-                    if (!empty($inst['tipo_documento'])) {
-                        $documentoUrl = $this->normalizarRutaDocumentoInstrumento($inst['documento_url'] ?? null);
-                        $nombreArchivo = $inst['nombre_archivo'] ?? null;
-                        if ($this->instrumentoTieneArchivoNuevo($inst)) {
-                            $nombreArchivo = $inst['documento_file']->getClientOriginalName();
-                            $documentoUrl = $this->guardarDocumentoInstrumento($inst['documento_file']);
-                        }
-                            $instrumento = $pivot->instrumentoFormalizacion()->create([
-                                'documento_url' => $documentoUrl,
-                                'nombre_archivo' => $nombreArchivo,
-                            ]);
-                        $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['id'] = $instrumento->id;
-                        $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['documento_url'] = $documentoUrl;
-                        $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['nombre_archivo'] = $nombreArchivo;
-                        $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['documento_file'] = null;
-                    }
-                }
-            }
-        }
-        Notification::make()->title('Paso III guardado')->success()->send();
-    }
-
-    protected function saveStep4(): void
-    {
-        $this->resetErrorBag();
-
-        $this->validate([
-            'actividades' => 'required|array|min:1',
-            'actividades.*.descripcion' => 'required|string',
-            'actividades.*.resultados' => 'required|string',
-            'actividades.*.fecha_inicio' => 'required|date',
-            'actividades.*.fecha_finalizacion' => 'required|date|after_or_equal:actividades.*.fecha_inicio',
-            'actividades.*.horas' => 'required|integer|min:1',
-            'actividades.*.empleados' => 'required|array|min:1',
-            'actividades.*.empleados.*' => 'integer',
-        ]);
-
-        foreach ($this->actividades as $i => $actividad) {
-            $fechaInicio = $this->dateOrNull($actividad['fecha_inicio'] ?? null);
-            $fechaFin = $this->dateOrNull($actividad['fecha_finalizacion'] ?? null);
-
-            if ($fechaInicio && $fechaFin && $fechaFin < $fechaInicio) {
-                $this->addError(
-                    "actividades.$i.fecha_finalizacion",
-                    'La fecha de finalización debe ser igual o posterior a la fecha de inicio de la actividad.'
-                );
-            }
-        }
-
-        if (!$this->getErrorBag()->isEmpty()) {
-            return;
-        }
-
-        $record = $this->ensureRecord();
-        $validEmpleados = $this->responsableIdsDisponibles($record);
-        $hasInvalidResponsables = false;
-
-        foreach ($this->actividades as $i => $item) {
-            $selected = collect($item['empleados'] ?? [])
-                ->filter()->map(fn($id) => (int) $id)->unique()->values()->toArray();
-            $invalid = array_diff($selected, $validEmpleados);
-            if (!empty($invalid)) {
-                $this->addError("actividades.$i.empleados", 'Seleccione únicamente responsables del equipo ejecutor.');
-                $hasInvalidResponsables = true;
-            }
-        }
-        if ($hasInvalidResponsables) return;
-
-        DB::transaction(function () use ($record) {
-            $this->guardarActividadesParcial($record);
-            $this->recalculateAporteInstitucional();
-            $this->guardarPresupuestoParcial($record);
-        });
-        Notification::make()->title('Paso IV guardado')->success()->send();
-    }
-
-    protected function saveStep5(): void
-    {
-        $this->trimCamposDescripcion();
-        $this->validate($this->rulesDescripcion());
-
-        $record = $this->ensureRecord();
-        $record->update([
-            'resumen' => $this->resumen,
-            'descripcion_participantes' => $this->descripcion_participantes,
-            'participacion_unah' => $this->participacion_unah,
-            'participacion_contraparte' => $this->participacion_contraparte,
-            'participacion_comunidad' => $this->participacion_comunidad,
-            'definicion_problema' => $this->definicion_problema,
-            'alineamiento_reforma' => $this->alineamiento_reforma,
-            'metodologia' => $this->metodologia,
-            'bibliografia' => $this->bibliografia,
-        ]);
-        Notification::make()->title('Paso V guardado')->success()->send();
-    }
-
-    protected function saveStep6(): void
-    {
-        $this->calcTotales();
-
-        $this->validate([
-            'departamento_geo' => 'required|array|min:1',
-            'departamento_geo.*' => 'integer|exists:departamento,id',
-            'municipio_geo' => 'required|array|min:1',
-            'municipio_geo.*' => 'integer|exists:municipio,id',
-            'aldea' => 'required|string|max:255',
-            'caserio' => 'required|string|max:255',
-            'region' => 'required|string|max:255',
-            'pais' => 'required|array|min:1',
-        ]);
-
-        $record = $this->ensureRecord();
-        $record->update([
-            'indigenas_hombres_marcado' => $this->indigenas_hombres_marcado,
-            'indigenas_mujeres_marcado' => $this->indigenas_mujeres_marcado,
-            'afroamericanos_hombres_marcado' => $this->afroamericanos_hombres_marcado,
-            'afroamericanos_mujeres_marcado' => $this->afroamericanos_mujeres_marcado,
-            'mestizos_hombres_marcado' => $this->mestizos_hombres_marcado,
-            'mestizos_mujeres_marcado' => $this->mestizos_mujeres_marcado,
-            'hombres' => $this->hombres,
-            'mujeres' => $this->mujeres,
-            'poblacion_participante' => $this->poblacion_participante,
-            'pais' => $this->pais,
-            'region' => $this->region !== '' ? [$this->region] : [],
-            'caserio' => $this->caserio,
-            'aldea' => $this->aldea,
-        ]);
-        $this->filtrarMunicipiosImpactoSeleccionados();
-        $record->departamento()->sync($this->ids($this->departamento_geo));
-        $record->municipio()->sync($this->ids($this->municipio_geo));
-        Notification::make()->title('Paso VI guardado')->success()->send();
-    }
-
-    protected function saveStep7(): void
-    {
-        $this->validarMarcoLogicoCompleto();
-        $record = $this->ensureRecord();
-        DB::transaction(fn() => $this->guardarMarcoLogicoParcial($record));
-        Notification::make()->title('Paso VII guardado')->success()->send();
-    }
-
-    protected function saveStep8(): void
-    {
-        $record = $this->ensureRecord();
-        $this->aporte_institucional = $this->normalizeAporteRows($this->aporte_institucional);
-        $this->recalculateAporteInstitucional();
-        $totalAporteInstitucional = collect($this->aporte_institucional)->sum('costo_total');
-
-        $record->aporteInstitucional()->delete();
-        foreach ($this->aporte_institucional as $item) {
-            $record->aporteInstitucional()->create([
-                'concepto' => $item['concepto'],
-                'unidad' => $item['unidad'],
-                'cantidad' => $item['cantidad'] ?? 0,
-                'costo_unitario' => $item['costo_unitario'] ?? 0,
-                'costo_total' => $item['costo_total'] ?? 0,
-            ]);
-        }
-        $record->update(['total_aporte_institucional' => $totalAporteInstitucional]);
-        $record->presupuesto()->updateOrCreate([], [
-            'aporte_contraparte' => $this->montoNoNegativo($this->aporte_contraparte),
-            'aporte_internacionales' => $this->montoNoNegativo($this->aporte_internacionales),
-            'aporte_otras_universidades' => $this->montoNoNegativo($this->aporte_otras_universidades),
-            'aporte_comunidad' => $this->montoNoNegativo($this->aporte_comunidad),
-            'otros_aportes' => $this->montoNoNegativo($this->otros_aportes),
-        ]);
-        Notification::make()->title('Paso VIII guardado')->success()->send();
-    }
-
-    protected function saveStep9(): void
-    {
-        if (!empty($this->newAnexos)) {
-            $tipo = $this->validarNuevoAnexo();
-            $record = $this->ensureRecord();
-            $this->guardarAnexoParcial($record, $tipo);
-            $this->actualizarEstadoAnexos($record);
-        }
-        Notification::make()->title('Paso IX guardado')->success()->send();
     }
 
     // ─── Calc Totals ─────────────────────────────────────────────────────────
@@ -3615,7 +3338,7 @@ class CreateProyectoVinculacion extends Component
         return [
             'nuevaContraparte.rtn' => EntidadContraparte::reglasRtn(!$this->esVoluntariado),
             'nuevaContraparte.nombre' => 'required|string|max:255',
-            'nuevaContraparte.tipo_entidad' => 'required|string',
+            'nuevaContraparte.tipo_entidad' => ['required', 'string', Rule::in(array_keys(EntidadContraparte::TIPOS))],
             'nuevaContraparte.nombre_contacto' => 'required|string|max:255',
             'nuevaContraparte.cargo_contacto' => 'required|string|max:255',
             'nuevaContraparte.telefono' => 'required|string|max:255',
@@ -4318,7 +4041,10 @@ class CreateProyectoVinculacion extends Component
 
     public function abrirModalEnviar(): void
     {
-        $this->autoGuardarBorrador();
+        if (! $this->autoGuardarBorrador()) {
+            $this->notificarGuardadoFallido('enviar el proyecto');
+            return;
+        }
 
         if (! $this->recordId) {
             Notification::make()->title('Error')->body('Complete al menos el primer paso antes de enviar.')->danger()->send();
@@ -4333,6 +4059,10 @@ class CreateProyectoVinculacion extends Component
         }
 
         $this->validarFormularioAntesDeEnviar();
+
+        if (! $this->validarProyectoGuardadoCompleto($proyecto)) {
+            return;
+        }
 
         $this->modalEsReenvioSubsanacion = false;
 
@@ -4510,12 +4240,22 @@ class CreateProyectoVinculacion extends Component
 
     public function confirmarEnvio(): void
     {
+        if (! $this->autoGuardarBorrador()) {
+            $this->showEnviarModal = false;
+            $this->notificarGuardadoFallido('enviar el proyecto');
+            return;
+        }
+
         if (! $this->validarFormularioAntesDeEnviar()) {
             $this->showEnviarModal = false;
             return;
         }
 
         $proyecto = Proyecto::findOrFail($this->recordId);
+
+        if (! $this->validarProyectoGuardadoCompleto($proyecto)) {
+            return;
+        }
 
         try {
             if ($this->modalEsReenvioSubsanacion) {
@@ -4555,9 +4295,9 @@ class CreateProyectoVinculacion extends Component
     private function enviarPorFlujoDeEtapas(Proyecto $proyecto): void
     {
         // El "Coordinador Proyecto" ya no es una etapa configurable del flujo:
-        // se autofirma con la firma/sello de quien inscribió el proyecto en el
-        // momento del envío. Es idempotente, así que no duplica si ya se firmó
-        // al guardar un borrador anterior.
+        // se autofirma con la firma de quien inscribió el proyecto en el
+        // momento del envío. Es idempotente: actualiza la fila de firma del
+        // coordinador que EmpleadoProyecto crea al registrar el borrador.
         $coordinadorEmpleado = auth()->user()?->empleado;
 
         if (! $coordinadorEmpleado) {
@@ -4693,6 +4433,28 @@ class CreateProyectoVinculacion extends Component
         return true;
     }
 
+    /**
+     * La validación por pasos revisa lo que el formulario tiene en memoria; esto
+     * revisa lo que quedó GUARDADO, que es lo que reciben los revisores.
+     */
+    private function validarProyectoGuardadoCompleto(Proyecto $proyecto): bool
+    {
+        $faltantes = $proyecto->fresh()?->camposObligatoriosFaltantes() ?? ['el proyecto'];
+
+        if ($faltantes === []) {
+            return true;
+        }
+
+        $this->showEnviarModal = false;
+        Notification::make()
+            ->title('El proyecto guardado está incompleto')
+            ->body('No se puede enviar porque en lo guardado falta: ' . implode(', ', $faltantes) . '. Revise esas secciones y vuelva a guardar el borrador.')
+            ->danger()
+            ->send();
+
+        return false;
+    }
+
     protected function validarSinFirmasPreviasParaEnvioPorEtapa(Proyecto $proyecto, int $flujoAprobacionId): void
     {
         $existenFirmasPorEtapa = $proyecto->firma_proyecto()
@@ -4815,19 +4577,23 @@ class CreateProyectoVinculacion extends Component
 
     public function borrador(): void
     {
-        $this->autoGuardarBorrador();
+        // Si algo no se guardó, el docente se queda en el formulario: redirigir
+        // descartaría lo que solo existe en memoria.
+        if (! $this->autoGuardarBorrador()) {
+            $this->notificarGuardadoFallido('guardar el borrador');
+            return;
+        }
 
         if (!$this->recordId) {
             Notification::make()->title('Error')->body('Complete al menos el primer paso.')->danger()->send();
             return;
         }
         $record = Proyecto::findOrFail($this->recordId);
-        $empleado = auth()->user()->empleado;
         $estadoConservado = $record->estadoDespuesDeGuardar();
 
+        // Guardar un borrador no firma: el coordinador firma al enviar
+        // (enviarPorFlujoDeEtapas), así la fecha de firma es la del envío.
         try {
-            $record->agregarFirma(cargoFirma: 'Coordinador Proyecto', empleado: $empleado);
-
             if ($estadoConservado === 'Subsanacion') {
                 activity('Proyecto')
                     ->performedOn($record)

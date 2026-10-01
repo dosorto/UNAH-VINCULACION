@@ -127,7 +127,7 @@ class InformeFinalPdfGenerator
         return [
             'nombre' => $firma->empleado?->nombre_completo,
             'firma' => $this->resolverRutaFirma($firma->firma?->ruta_storage, $isPdf),
-            'sello' => $this->resolverRutaFirma($firma->sello?->ruta_storage, $isPdf),
+            'sello' => $this->resolverRutaFirma($firma->selloParaDocumento()?->ruta_storage, $isPdf),
             'fecha' => $firma->fecha_firma,
             'cargo' => $firma->etapa_nombre ?: $firma->cargo_firma?->tipoCargoFirma?->nombre,
         ];

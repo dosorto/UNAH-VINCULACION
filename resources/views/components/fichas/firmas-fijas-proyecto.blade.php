@@ -93,8 +93,10 @@
                 @php
                     $firmaRegistro = $cuadro['firma'] ?? null;
                     // Las firmas antiguas pueden tener firma_id/sello_id nulos
-                    // aunque el empleado sí conserve una firma activa.
-                    $firmaSello = $firmaRegistro?->sello ?: $firmaRegistro?->empleado?->sello;
+                    // aunque el empleado sí conserve una firma activa. El sello pasa
+                    // por FirmaProyecto::selloParaDocumento: la firma del coordinador
+                    // nunca lo lleva, aunque el empleado tenga uno por otro cargo.
+                    $firmaSello = $firmaRegistro?->selloParaDocumento(respaldoPerfil: true);
                     $firmaDigital = $firmaRegistro?->firma ?: $firmaRegistro?->empleado?->firma;
                     $sello = $resolverRutaFirma($firmaSello?->ruta_storage);
                     $firmaImg = $resolverRutaFirma($firmaDigital?->ruta_storage);

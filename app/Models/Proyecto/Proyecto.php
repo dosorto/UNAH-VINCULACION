@@ -2367,6 +2367,76 @@ class Proyecto extends Model
      * Guardar contenido nunca constituye una transición del flujo. Un registro
      * nuevo nace como Borrador; uno existente conserva exactamente su estado.
      */
+    /**
+     * Campos obligatorios del FORM-DVUS-001/015 que faltan en lo GUARDADO (no en
+     * lo que el formulario tiene en memoria). Se revisa antes de enviar a
+     * revisión para no mandar un expediente que la base de datos tiene incompleto.
+     *
+     * @return list<string> Etiquetas de lo que falta; vacío si está completo.
+     */
+    public function camposObligatoriosFaltantes(): array
+    {
+        $this->loadMissing([
+            'ods',
+            'estudiante_proyecto',
+            'entidad_contraparte_proyecto.instrumentoFormalizacion',
+            'actividades',
+            'objetivosEspecificos.resultados',
+            'departamento',
+            'municipio',
+        ]);
+
+        $textos = [
+            'resumen' => 'antecedentes del proyecto',
+            'participacion_unah' => 'participación de la UNAH',
+            'participacion_contraparte' => 'participación de la entidad contraparte',
+            'participacion_comunidad' => 'participación de la comunidad beneficiada',
+            'definicion_problema' => 'definición del problema',
+            'objetivo_general' => 'objetivo general',
+            'alineamiento_reforma' => 'alineamiento con la reforma',
+            'metodologia' => 'metodología',
+            'bibliografia' => 'bibliografía',
+        ];
+
+        if ($this->codigoFormularioFlujo() === 'FORM-DVUS-015') {
+            $textos += [
+                'experiencia_conocimientos_teoricos' => 'conocimientos teóricos',
+                'experiencia_habilidades_tecnicas' => 'habilidades técnicas',
+                'experiencia_competencias_blandas' => 'competencias blandas',
+            ];
+        }
+
+        $faltantes = collect($textos)
+            ->filter(fn (string $etiqueta, string $campo) => trim((string) $this->{$campo}) === '')
+            ->values()
+            ->all();
+
+        $contrapartesCompletas = $this->entidad_contraparte_proyecto->isNotEmpty()
+            && $this->entidad_contraparte_proyecto->every(
+                fn ($contraparte) => ($contraparte->instrumentoFormalizacion ?? collect())->isNotEmpty()
+            );
+        $objetivosCompletos = $this->objetivosEspecificos->isNotEmpty()
+            && $this->objetivosEspecificos->every(fn ($objetivo) => $objetivo->resultados->isNotEmpty());
+
+        $relaciones = [
+            'ODS' => $this->ods->isNotEmpty(),
+            'participación de estudiantes' => $this->estudiante_proyecto->isNotEmpty(),
+            'entidad contraparte con instrumento de formalización' => $contrapartesCompletas,
+            'cronograma de actividades' => $this->actividades->isNotEmpty(),
+            'objetivos específicos con sus resultados' => $objetivosCompletos,
+            'sitio de ejecución (departamento y municipio)' => $this->departamento->isNotEmpty() && $this->municipio->isNotEmpty(),
+            'aporte institucional' => (float) $this->total_aporte_institucional > 0,
+        ];
+
+        foreach ($relaciones as $etiqueta => $completo) {
+            if (! $completo) {
+                $faltantes[] = $etiqueta;
+            }
+        }
+
+        return $faltantes;
+    }
+
     public function estadoDespuesDeGuardar(): string
     {
         return $this->estado?->tipoestado?->nombre === 'Autoguardado'

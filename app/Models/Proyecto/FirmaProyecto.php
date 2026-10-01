@@ -184,4 +184,33 @@ class FirmaProyecto extends Model
     {
         return $this->belongsTo(FirmaSelloEmpleado::class, 'sello_id');
     }
+
+    /**
+     * Garantía al escribir: ningún módulo guarda sello en la firma de quien
+     * registra o coordina (CargoFirma::admiteSello), aunque el empleado tenga
+     * un sello en su perfil por otro cargo.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (FirmaProyecto $firma): void {
+            if ($firma->sello_id && ! CargoFirma::admiteSello($firma->cargo_firma_id ? (int) $firma->cargo_firma_id : null)) {
+                $firma->sello_id = null;
+            }
+        });
+    }
+
+    /**
+     * Única puerta para dibujar el sello de una firma en un documento. Devuelve
+     * null si el cargo no admite sello, también en firmas históricas que lo
+     * guardaron. Con $respaldoPerfil se usa el sello actual del empleado cuando
+     * la firma no guardó uno (firmas antiguas con sello_id nulo).
+     */
+    public function selloParaDocumento(bool $respaldoPerfil = false): ?FirmaSelloEmpleado
+    {
+        if (! CargoFirma::admiteSello($this->cargo_firma_id ? (int) $this->cargo_firma_id : null)) {
+            return null;
+        }
+
+        return $this->sello ?: ($respaldoPerfil ? $this->empleado?->sello : null);
+    }
 }
