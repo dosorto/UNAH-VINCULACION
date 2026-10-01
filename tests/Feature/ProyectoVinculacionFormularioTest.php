@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\PDFController;
+use App\Http\Controllers\Proyectos\ProyectoAnexoController;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Models\NivelAcademico;
@@ -503,10 +504,22 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $this->assertStringNotContainsString('Descargar PDF', $ficha);
         $this->assertSame(1, substr_count($detalle, "route('proyecto.perfil.pdf.download'"));
         $this->assertStringContainsString("route('proyecto.perfil.pdf.download'", $detalle);
-        $this->assertStringNotContainsString("route('proyecto.perfil.pdf',", $detalle);
+        $this->assertStringContainsString("route('proyecto.perfil.pdf',", $detalle);
+        $this->assertStringContainsString('Ficha {{ $codigoFormulario }} en PDF', $detalle);
+        $this->assertStringContainsString('<iframe', $detalle);
         $this->assertStringNotContainsString('<iframe src="{{ route(\'proyecto.perfil.pdf.download', $detalle);
         $this->assertStringNotContainsString('<embed src="{{ route(\'proyecto.perfil.pdf.download', $detalle);
         $this->assertStringNotContainsString('<object data="{{ route(\'proyecto.perfil.pdf.download', $detalle);
+    }
+
+    public function test_detalle_muestra_la_ficha_y_anexos_en_pestanas(): void
+    {
+        $detalle = file_get_contents(resource_path('views/livewire/docente/proyectos/historial-proyecto.blade.php'));
+
+        $this->assertStringContainsString("documentoActivo: 'ficha'", $detalle);
+        $this->assertStringContainsString('Adjunto {{ $loop->iteration }}', $detalle);
+        $this->assertStringContainsString("route('proyectos.anexos.mostrar'", $detalle);
+        $this->assertStringContainsString('Descargar original', $detalle);
     }
 
     public function test_rutas_pdf_separan_preview_y_descarga(): void
@@ -520,6 +533,15 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $this->assertSame(PDFController::class.'@previsualizarPerfilProyecto', $preview->getActionName());
         $this->assertSame('proyectos/{proyecto}/perfil-pdf/descargar', $download->uri());
         $this->assertSame(PDFController::class.'@descargarPerfilProyecto', $download->getActionName());
+    }
+
+    public function test_ruta_de_anexo_del_proyecto_usa_el_visor_protegido(): void
+    {
+        $anexo = Route::getRoutes()->getByName('proyectos.anexos.mostrar');
+
+        $this->assertNotNull($anexo);
+        $this->assertSame('proyectos/{proyecto}/anexos/{anexo}', $anexo->uri());
+        $this->assertSame(ProyectoAnexoController::class, $anexo->getActionName());
     }
 
     public function test_respuestas_pdf_declaran_disposition_correcto(): void
@@ -596,7 +618,7 @@ class ProyectoVinculacionFormularioTest extends TestCase
         }
     }
 
-    public function test_ficha_base_del_proyecto_solo_se_incrusta_en_su_pantalla_completa(): void
+    public function test_ficha_base_del_proyecto_se_sirve_en_pdf_desde_el_detalle(): void
     {
         $vistasConFicha = collect(File::allFiles(resource_path('views/livewire')))
             ->filter(fn ($archivo) => str_contains(
@@ -607,7 +629,10 @@ class ProyectoVinculacionFormularioTest extends TestCase
             ->values()
             ->all();
 
-        $this->assertSame(['docente/proyectos/historial-proyecto.blade.php'], $vistasConFicha);
+        $this->assertSame([], $vistasConFicha);
+
+        $detalle = file_get_contents(resource_path('views/livewire/docente/proyectos/historial-proyecto.blade.php'));
+        $this->assertStringContainsString("route('proyecto.perfil.pdf'", $detalle);
     }
 
     public function test_proyectos_por_firmar_envia_la_ficha_base_al_detalle(): void

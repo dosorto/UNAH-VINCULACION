@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ documentoActivo: 'ficha' }">
     @push('styles')
         <style>
             @media print {
@@ -14,6 +14,7 @@
 
         $estadoNombre = $proyecto->estado_general;
         $firmaRevisionPendiente = $this->firmaPendienteRevision();
+        $codigoFormulario = $proyecto->codigoFormularioFlujo() ?: 'FORM-DVUS-001';
     @endphp
 
     <div class="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
@@ -298,13 +299,34 @@
         @endif
     @endif
 
+    <nav class="no-print flex gap-1 overflow-x-auto rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-900" aria-label="Documentos del proyecto">
+        <button type="button" x-on:click="documentoActivo = 'ficha'" :aria-pressed="documentoActivo === 'ficha'" :class="documentoActivo === 'ficha' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'" class="whitespace-nowrap rounded-md px-5 py-3 text-sm font-semibold">Ficha</button>
+        @foreach($anexos as $anexo)
+            @php $tituloAnexo = $anexo->tipoAnexo?->nombre ?: ($anexo->nombre_archivo ?: 'Anexo'); @endphp
+            <button type="button" x-on:click="documentoActivo = @js('anexo-'.$anexo->id)" :aria-pressed="documentoActivo === @js('anexo-'.$anexo->id)" :class="documentoActivo === @js('anexo-'.$anexo->id) ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'" class="whitespace-nowrap rounded-md px-5 py-3 text-sm font-semibold">Adjunto {{ $loop->iteration }} · {{ $tituloAnexo }}</button>
+        @endforeach
+    </nav>
+
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <section class="min-w-0">
-            @include('components.fichas.ficha-proyecto-vinculacion', [
-                'proyecto' => $proyecto,
-                'hideEmbeddedDocuments' => true,
-                'embebido' => true,
-            ])
+        <section class="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <template x-if="documentoActivo === 'ficha'">
+                <div>
+                    <div class="border-b border-gray-200 px-5 py-3 text-sm font-semibold dark:border-gray-700">Ficha {{ $codigoFormulario }}</div>
+                    <iframe wire:key="pdf-ficha-{{ $proyecto->id }}-{{ $proyecto->updated_at?->timestamp }}" src="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}" title="Ficha {{ $codigoFormulario }} en PDF" class="w-full border-0" style="height:80vh;min-height:600px"></iframe>
+                </div>
+            </template>
+            @foreach($anexos as $anexo)
+                @php $tituloAnexo = $anexo->tipoAnexo?->nombre ?: ($anexo->nombre_archivo ?: 'Anexo'); @endphp
+                <template x-if="documentoActivo === @js('anexo-'.$anexo->id)">
+                    <div>
+                        <div class="flex items-center justify-between gap-3 border-b border-gray-200 px-5 py-3 dark:border-gray-700">
+                            <h2 class="text-sm font-semibold">{{ $tituloAnexo }}</h2>
+                            <a href="{{ route('proyectos.anexos.mostrar', ['proyecto' => $proyecto->id, 'anexo' => $anexo->id, 'download' => 1]) }}" class="text-sm font-medium text-blue-600 hover:text-blue-700">Descargar original</a>
+                        </div>
+                        <iframe src="{{ route('proyectos.anexos.mostrar', ['proyecto' => $proyecto->id, 'anexo' => $anexo->id]) }}" title="{{ $tituloAnexo }}" class="w-full border-0" style="height:80vh;min-height:600px"></iframe>
+                    </div>
+                </template>
+            @endforeach
         </section>
 
         <aside class="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
