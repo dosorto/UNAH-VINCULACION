@@ -434,6 +434,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('informes-intermedios.ver');
         Route::get('/informes-intermedios/{informe}/descargar', [InformeIntermedioProyectoController::class, 'descargar'])
             ->name('informes-intermedios.descargar');
+        Route::get('/proyectos/{proyecto}/anexos/{anexo}', \App\Http\Controllers\Proyectos\ProyectoAnexoController::class)
+            ->name('proyectos.anexos.mostrar');
 
         Route::get('/crearPpsServicioSocial', CreatePpsServicioSocial::class)
             ->name('crearPpsServicioSocial')

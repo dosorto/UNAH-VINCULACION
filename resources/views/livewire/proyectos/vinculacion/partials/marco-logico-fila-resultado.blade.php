@@ -1,15 +1,20 @@
 {{--
-    Fila de resultado del marco lógico (paso 7): Resultado | Indicador | Medio de verificación.
-    Recibe: $ruta (base del wire:model), $numero, $wireKey, $quitar (acción de wire:click) y $ejemplos.
+    Fila de resultado del marco lógico (paso 7). FORM-001 usa una única columna
+    "Medio de verificación (indicador)"; FORM-015 conserva sus dos campos.
+    Recibe: $ruta, $numero, $wireKey, $quitar, $ejemplos y $unificarVerificacion.
 --}}
 @php
     $campos = [
         'nombre_resultado' => ['Resultado', $ejemplos['resultado'] ?? ''],
-        'nombre_indicador' => ['Indicador', $ejemplos['indicador'] ?? ''],
-        'nombre_medio_verificacion' => ['Medio de verificación', $ejemplos['medio'] ?? ''],
     ];
+    if ($unificarVerificacion ?? false) {
+        $campos['nombre_medio_verificacion'] = ['Medio de verificación (indicador)', $ejemplos['verificacion'] ?? $ejemplos['medio'] ?? ''];
+    } else {
+        $campos['nombre_indicador'] = ['Indicador', $ejemplos['indicador'] ?? ''];
+        $campos['nombre_medio_verificacion'] = ['Medio de verificación', $ejemplos['medio'] ?? ''];
+    }
 @endphp
-<div wire:key="{{ $wireKey }}" class="grid grid-cols-1 gap-2 py-2 md:grid-cols-[1.5rem_1fr_1fr_1fr_2rem] md:items-start md:gap-3">
+<div wire:key="{{ $wireKey }}" class="grid grid-cols-1 gap-2 py-2 {{ ($unificarVerificacion ?? false) ? 'md:grid-cols-[1.5rem_1fr_1fr_2rem]' : 'md:grid-cols-[1.5rem_1fr_1fr_1fr_2rem]' }} md:items-start md:gap-3">
     <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 md:pt-2"><span class="md:hidden">Resultado </span>{{ $numero }}</span>
     @foreach($campos as $campo => [$etiqueta, $ejemplo])
         <div>

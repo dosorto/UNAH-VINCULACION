@@ -11,13 +11,15 @@ use App\Models\Personal\EmpleadoProyecto;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\Proyecto;
+use App\Services\Proyecto\ProyectoDetalleAuthorization;
 use Illuminate\Support\Str;
 use PDF;
 
 class PDFController extends Controller
 {
-    public function previsualizarPerfilProyecto(Proyecto $proyecto)
+    public function previsualizarPerfilProyecto(Proyecto $proyecto, ProyectoDetalleAuthorization $authorization)
     {
+        abort_unless($authorization->puedeVer($proyecto, request()->user()), 403);
         $pdf = $this->crearPdfPerfilProyecto($proyecto);
         $nombreArchivo = $this->nombreArchivoPerfilProyecto($proyecto);
         $response = $pdf->stream($nombreArchivo, ['Attachment' => false]);
@@ -25,8 +27,9 @@ class PDFController extends Controller
         return $this->aplicarHeadersPerfilPdf($response, 'inline', $nombreArchivo);
     }
 
-    public function descargarPerfilProyecto(Proyecto $proyecto)
+    public function descargarPerfilProyecto(Proyecto $proyecto, ProyectoDetalleAuthorization $authorization)
     {
+        abort_unless($authorization->puedeVer($proyecto, request()->user()), 403);
         $pdf = $this->crearPdfPerfilProyecto($proyecto);
         $nombreArchivo = $this->nombreArchivoPerfilProyecto($proyecto);
         $response = $pdf->download($nombreArchivo);

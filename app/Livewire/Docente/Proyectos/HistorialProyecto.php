@@ -543,6 +543,10 @@ class HistorialProyecto extends Component
         ProyectoWorkflowService $proyectoWorkflow
     ): View {
         $proyecto = $this->proyecto;
+        $proyecto->loadMissing('anexos.tipoAnexo');
+        $anexos = $proyecto->anexos
+            ->filter(fn ($anexo) => filled($anexo->documento_url))
+            ->values();
 
         $documentosIds = DocumentoProyecto::where('proyecto_id', $proyecto->id)->pluck('id')->toArray();
 
@@ -620,6 +624,7 @@ class HistorialProyecto extends Component
 
         return view('livewire.docente.proyectos.historial-proyecto', compact(
             'proyecto',
+            'anexos',
             'estados',
             'documentosRevisionInformeFinal',
             'documentosSubsanacion',
