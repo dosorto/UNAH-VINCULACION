@@ -3,43 +3,15 @@
 Problemas detectados y aún sin resolver. Cada entrada indica dónde está, por
 qué importa y cómo resolverla. Al cerrar uno, bórralo de aquí en el mismo commit.
 
-Última revisión: 2026-10-01.
+Última revisión: 2026-10-02.
 
 ---
+
+<!-- BLOQUE: FLUJOS, FIRMAS Y DATOS YA REGISTRADOS -->
 
 ## Auditoría FORM-DVUS-001 (2026-10-01)
 
 Lo hecho está en `docs/auditoria-form-dvus-001.md`. Falta:
-
-### Fusionar los roles `DIRECCION DIVUS` y `Director Vinculacion`
-- **Qué:** hay dos roles para la Dirección DVUS. `DIRECCION DIVUS` (con errata)
-  se creó a mano y no lo usa el código; el canónico es `Director Vinculacion`.
-  Quien busca «Dirección DVUS» en «Rol con acceso» no encuentra ninguno.
-- **Decidido:** conservar `Director Vinculacion` y migrar a él usuarios y
-  permisos del duplicado. No renombrar.
-- **Paso 1, antes de escribir la migración:** contar en producción, con SQL de
-  solo lectura, usuarios, permisos y referencias de cada rol. Las consultas
-  completas están en `docs/auditoria-form-dvus-001.md`; la principal es:
-
-  ```sql
-  SELECT r.id, r.name,
-         (SELECT COUNT(*) FROM model_has_roles m WHERE m.role_id = r.id AND m.model_type = 'App\\Models\\User') AS usuarios,
-         (SELECT COUNT(*) FROM role_has_permissions rp WHERE rp.role_id = r.id) AS permisos,
-         (SELECT COUNT(*) FROM users u WHERE u.active_role_id = r.id) AS usuarios_con_rol_activo
-  FROM roles r
-  WHERE r.name IN ('Director Vinculacion', 'DIRECCION DIVUS');
-  ```
-- **Paso 2, la migración** tiene que reapuntar, además de `model_has_roles` y
-  `role_has_permissions`:
-  - `users.active_role_id`;
-  - `flujos_aprobacion_etapas.rol_revisor_id`;
-  - `rol_requerido = 'DIRECCION DIVUS'` de las filas **pendientes** de
-    `firma_proyecto`, `enf_revisiones` y `programa_revisiones`. La autorización
-    compara ese nombre, y sin reapuntarlo esas firmas se quedan sin quién las
-    apruebe.
-
-  Las filas históricas se dejan intactas. Heredar los permisos del duplicado
-  solo si el equipo lo confirma.
 
 ### Etapa `PASANTIAS_ETAPA_01` con cargo «Coordinador Proyecto»
 - **Qué:** la migración `2026_09_07_000001` le asignó el primer cargo con
@@ -122,6 +94,8 @@ Lo hecho está en `docs/auditoria-form-dvus-001.md`. Falta:
 
 ---
 
+<!-- BLOQUE: INFORME FINAL INF-001 -->
+
 ## Informe final INF-001
 
 Afecta por igual al FORM-DVUS-001 y al FORM-DVUS-015, que comparten el INF-001
@@ -197,6 +171,8 @@ Ya fallaban antes de los cambios recientes.
 
 ---
 
+<!-- BLOQUE: INTEGRIDAD DE DATOS Y SEEDERS -->
+
 ## Datos y seeders
 
 ### `tipo_estado` duplicado
@@ -231,6 +207,8 @@ Ya fallaban antes de los cambios recientes.
 
 ---
 
+<!-- BLOQUE: SEGURIDAD, ACCESO Y PANEL -->
+
 ## Seguridad y acceso
 
 ### Usuarios sin empleado reciben un 500 en vez de un 403
@@ -257,6 +235,8 @@ Ya fallaban antes de los cambios recientes.
   con el sidebar plegado. Los tests prueban que renderiza, no cómo se ve.
 
 ---
+
+<!-- BLOQUE: DESPLIEGUE, MIGRACIONES Y PRUEBAS -->
 
 ## Antes de desplegar
 
@@ -318,6 +298,8 @@ Ya fallaban antes de los cambios recientes.
   falta el flujo de cierre.
 
 ---
+
+<!-- BLOQUE: MENORES -->
 
 ## Menores
 
