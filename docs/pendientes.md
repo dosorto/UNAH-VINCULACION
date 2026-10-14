@@ -1,307 +1,180 @@
 # Pendientes
 
-Problemas detectados y aún sin resolver. Cada entrada indica dónde está, por
-qué importa y cómo resolverla. Al cerrar uno, bórralo de aquí en el mismo commit.
+Última verificación: 2026-10-02, código hasta `931b1de7` y base local.
+Evidencia y elementos retirados: [auditoría de pendientes](auditoria-pendientes-2026-10-02.md).
+Producción y la apariencia en navegador no se verificaron. Al resolver un punto,
+retirarlo de este archivo con evidencia de la corrección.
 
-Última revisión: 2026-10-02.
+## Prioridad: acceso e integridad de datos
 
----
+### Usuario con rol pero sin empleado
+- **Confirmado en código:** `EnsureUserHasRole::handle()` valida roles, pero no
+  comprueba que exista empleado. `DataNavBar::obtenerCantidadFichasPorFirmar()`
+  accede a `auth()->user()->empleado->firmaProyectoPendientes()` sin comprobar nulo.
+  El sidebar invoca ese método cuando corresponde al permiso del usuario.
+- **Falta:** aplicar la política de acceso para usuarios sin empleado y probar
+  tanto el sidebar como las rutas directas. Conservar la posibilidad de cerrar sesión.
+  La ubicación de la llamada peligrosa es `app/Clases/DataNavBar.php`, no la vista.
 
-<!-- BLOQUE: FLUJOS, FIRMAS Y DATOS YA REGISTRADOS -->
+### Estados duplicados y búsqueda de estados borrados
+- **Confirmado en la base local:** 16 nombres tienen dos filas activas cada uno.
+  Las cantidades de producción deben consultarse por separado.
+- **Confirmado en código:** `ProyectoSeeder` usa `TipoEstado::firstOrCreate()` y
+  el modelo usa `SoftDeletes`. Si solo existe una fila borrada, crea otra; no
+  agrega duplicados en cada ejecución si ya encuentra una fila activa.
+  Esto no demuestra cómo se originaron los duplicados activos actuales.
+- **Falta:** deduplicar reapuntando las referencias, revisar las consultas por
+  nombre que usan un único id y definir restauración/búsqueda con `withTrashed()`.
+  `EstadosProyecto::ids()` mitiga el panel, pero no todas las consultas.
 
-## Auditoría FORM-DVUS-001 (2026-10-01)
-
-Lo hecho está en `docs/auditoria-form-dvus-001.md`. Falta:
-
-### Etapa `PASANTIAS_ETAPA_01` con cargo «Coordinador Proyecto»
-- **Qué:** la migración `2026_09_07_000001` le asignó el primer cargo con
-  descripción «Proyecto» por id, que es «Coordinador Proyecto».
-  `PasantiaWorkflowService.php:340-361` lo usa para derivar el rol revisor.
-  Con la regla «el coordinador no lleva sello», quien firme esa revisión ya no
-  guarda sello. Hoy no se nota: los PDF de Pasantías no dibujan sellos.
-- **Decidir:** si esa revisión es una etapa administrativa con sello, asignarle
-  un cargo administrativo y ajustar `PasantiaWorkflowService.php:345-361`.
-
-### Etapa DVUS del FORM-DVUS-001 con cargo `Revisor Vinculacion`
-- **Qué:** en la base local, la etapa «Director Vinculacion» tiene cargo
-  `Revisor Vinculacion`. La constancia de registro busca primero la firma con
-  cargo `Director Vinculacion` y, si no la encuentra, usa la de la última etapa
-  de inscripción.
-- **Por qué no se corrige desde la UI:** el selector de cargos no ofrece
-  `Director Vinculacion` (decisión: no se agrega), y una etapa REVISION creada
-  desde la UI recibe `Revisor Vinculacion`.
-- **Verificar en producción:**
-
-  ```sql
-  SELECT e.id, e.nombre, t.nombre AS cargo
-  FROM flujos_aprobacion_etapas e
-  JOIN cargo_firma c ON c.id = e.cargo_firma_id
-  JOIN tipo_cargo_firma t ON t.id = c.tipo_cargo_firma_id
-  WHERE e.nombre LIKE '%Director Vinculacion%';
-  ```
-
-### PDF canónico del INF-001 con sello del coordinador
-- **Qué:** `InformeFinalProyectoWorkflowService::enviarInformeFinal()` guarda un
-  PDF fijo al enviar. La vista y la descarga se generan al vuelo y ya salen sin
-  ese sello, pero un archivo guardado antes conserva el sello del coordinador si
-  ya había una firma aprobada con ese cargo.
-- **Verificar y regenerar solo esos documentos:**
-
-  ```sql
-  SELECT DISTINCT d.id, d.proyecto_id, d.documento_url
-  FROM proyecto_documento d
-  JOIN firma_proyecto fp ON fp.firmable_id = d.id AND fp.firmable_type LIKE '%DocumentoProyecto'
-  JOIN cargo_firma cf ON cf.id = fp.cargo_firma_id
-  JOIN tipo_cargo_firma t ON t.id = cf.tipo_cargo_firma_id
-  WHERE d.tipo_documento = 'Informe Final' AND t.nombre = 'Coordinador Proyecto'
-    AND fp.estado_revision = 'Aprobado' AND fp.sello_id IS NOT NULL;
-  ```
-
-### Proyectos que ya perdieron datos (#81 y otros)
-- **Qué:** los textos que se perdieron no se pueden recuperar: iban en un
-  `UPDATE` revertido y el formulario los descartó al redirigir. El docente tiene
-  que volver a capturarlos.
-- **Qué sí se puede recuperar:** el `laravel.log` de producción contiene la
-  sentencia que falló, con sus valores (por ejemplo, la contraparte).
-- **Detectar los proyectos afectados:**
-
-  ```sql
-  SELECT p.id, p.nombre_proyecto FROM proyecto p
-  WHERE (p.objetivo_general IS NULL OR p.objetivo_general = '')
-    AND EXISTS (SELECT 1 FROM actividades a WHERE a.proyecto_id = p.id)
-    AND p.deleted_at IS NULL;
-  ```
-
-### El borrador ya tiene una firma «Aprobado» del coordinador
-- **Dónde:** `EmpleadoProyecto::boot()`.
-- **Qué:** al registrar al coordinador se crea su firma ya aprobada, sin fecha.
-  Aunque guardar el borrador ya no firma, el PDF de un borrador muestra la
-  imagen de la firma; solo la marca de agua lo distingue.
-- **Evaluar:** crearla Pendiente hasta el envío. Revisar antes
-  `FichaActualizacion::puedeSerEliminada()` y el historial, que cuentan con esa
-  firma.
-
-### Menores
-- Por uniformidad, `AutoridadEmisoraConstanciaResolver.php:27` y
-  `AutoridadEmisoraConstanciaRegistroResolver.php:29` pueden leer el sello con
-  `FirmaProyecto::selloParaDocumento()`. No cambia el resultado: son cargos
-  administrativos.
-- Si ENF empieza a escribir firmas en `EnfFirma`, reutilizar
-  `CargoFirma::admiteSello()` (también tiene `cargo_firma_id`).
-- El texto de ayuda de Configuración → Flujos dice que una etapa de Revisión
-  «solo pasa a la siguiente etapa». En realidad `aprobarFirmaPorEtapa()` guarda
-  firma y sello en ambos tipos.
-
----
-
-<!-- BLOQUE: INFORME FINAL INF-001 -->
+### Seeders que sobrescriben configuración existente
+- **PersonalSeeder:** usa `updateOrCreate()` para NOTIFICACIONES POA; sobrescribe
+  rol activo, contraseña y datos de empleado, fija facultad 4, departamento 9 y
+  categoría 2. También ejecuta `syncRoles()`.
+- **Falta:** preservar cuentas existentes y resolver catálogos por nombre.
+  Cambiar solo a `firstOrCreate()` no evita que `syncRoles()` reemplace sus roles.
+- **Hallazgo adicional:** `ProyectoSeeder` actualiza `PROYECTO_DEFAULT`, elimina
+  sus etapas y las vuelve a crear. Reejecutarlo puede sustituir la configuración
+  y los identificadores de etapas existentes.
+- **Falta:** hacer que el seeder preserve flujos configurados y comprobar las
+  referencias históricas antes de cualquier reconstrucción.
 
 ## Informe final INF-001
 
-Afecta por igual al FORM-DVUS-001 y al FORM-DVUS-015, que comparten el INF-001
-sin ninguna rama condicional.
+### Aplicabilidad limitada a dos tipos
+- **Reproducido con el servicio actual:** admite `DESARROLLO_LOCAL_REGIONAL` y
+  `VOLUNTARIADO`; rechaza `SEGUMIENTO_A_EGRESADOS`, `ALINEAMIENTO_CURRICULAR`,
+  `PRACTICAS_EDUCATIVAS_INTEGRALES`, `PPS_VOLUNTARIADO_GESTION_RIESGO` y proyectos
+  sin tipo.
+- **Dónde:** `InformeFinalProyectoWorkflowService::aplicaInformeFinalInf001()`.
+- **Falta:** alinear la regla con los tipos que deben cerrar mediante INF-001,
+  manteniendo los cierres propios de ENF y Servicio Tecnológico. Verificar también
+  la configuración de etapas de cierre de cada tipo.
+- **Pruebas existentes:** `test_el_inf001_alcanza_a_las_categorias_de_proyecto_del_formato`
+  y `test_un_proyecto_sin_tipo_de_accion_puede_cerrar_su_ciclo`.
 
-Los defectos de esta sección tienen su especificación en
-`tests/Feature/InformeFinalInf001FormatoOficialTest.php`: los tests rojos pasan
-a verde al arreglarlos.
+### Uniformar etiquetas presupuestarias del registro
+- El INF-001 ya usa `ConceptosPresupuestoInf001`, con los 12 conceptos oficiales.
+- **Pendiente menor:** `AporteInstitucional::getConceptoLabelAttribute()` reconoce
+  12 claves, pero mantiene las letras antiguas c–g y deja los cinco conceptos
+  adicionales sin letra. Uniformar los consumidores del registro sin alterar
+  el cálculo ya corregido del INF-001.
 
-Orden recomendado: aplicabilidad → catálogo presupuestario → clasificación por
-clave → base del 3 % → actividades por resultado.
+## Flujos y firmas: decisiones pendientes
 
-### Aplicabilidad: la lista blanca deja fuera tipos de acción
-- **Dónde:** `InformeFinalProyectoWorkflowService::TIPOS_ACCION_INF_001`.
-- **Qué:** solo admite `DESARROLLO_LOCAL_REGIONAL` y `VOLUNTARIADO`. Quedan
-  fuera, sin tener formato de cierre propio, `SEGUMIENTO_A_EGRESADOS` (el formato
-  lo lista en I.7 como «Seguimiento a graduados»), `ALINEAMIENTO_CURRICULAR`,
-  `PRACTICAS_EDUCATIVAS_INTEGRALES` y `PPS_VOLUNTARIADO_GESTION_RIESGO`.
-  Los proyectos heredados sin tipo reciben Desarrollo local con la migración
-  `2026_09_17_000001_backfill_tipo_accion_on_legacy_proyectos`.
-- **Resolver:** invertir la regla y excluir solo los tipos con cierre propio
-  (`EDUCACION_NO_FORMAL`, `PRESTACION_SERVICIOS_TECNICOS`).
-- **Tests:** `test_el_inf001_alcanza_a_las_categorias_de_proyecto_del_formato`,
-  `test_un_proyecto_sin_tipo_de_accion_puede_cerrar_su_ciclo`.
+### Firma aprobada al crear el borrador
+- **Confirmado en código:** `App\Models\Proyecto\EmpleadoProyecto::boot()` crea
+  la firma como `Aprobado` si el empleado coordinador corresponde al usuario
+  autenticado; en otro caso la crea `Pendiente`. No asigna fecha de firma.
+- La ficha puede usar la imagen del perfil como respaldo.
+- **Falta decidir:** si la firma debe permanecer pendiente hasta enviar. Revisar
+  `FichaActualizacion::puedeSerEliminada()` y el historial antes de cambiarlo.
+  Este punto trata del momento de aprobación; la omisión del sello ya está resuelta.
 
-### Catálogo presupuestario incompleto
-- **Dónde:** `AporteInstitucional::getConceptoLabelAttribute`.
-- **Qué:** define 7 conceptos y el apartado X del formato exige 12. Faltan
-  c) consultorías, d) alimentación, e) viáticos/estipendios, g) combustible y
-  j) insumos adquiridos por estudiantes. Las letras además están desalineadas
-  (el formato llama f) a movilización; el sistema, c).
-- **Resolver:** ampliar el catálogo a los 12 con las letras oficiales. Es
-  prerrequisito de los dos siguientes.
-- **Test:** `test_el_catalogo_presupuestario_cubre_los_doce_conceptos_del_formato`.
+### Cargo de la revisión inicial de Pasantías
+- **Confirmado localmente:** etapa 1, `PASANTIAS_ETAPA_01`, usa `Coordinador Proyecto`.
+- La migración inicial elige el primer cargo «Proyecto»; el método
+  `PasantiaWorkflowService::repararCargoInicialSiEsNecesario()` también busca el
+  cargo de coordinador cuando falta la configuración.
+- **Falta decidir:** si la revisión es administrativa, asignar el cargo apropiado
+  y ajustar la reparación automática. Si corresponde a coordinación, conservar
+  la regla vigente de firma sin sello. No es por sí solo un defecto de renderizado.
 
-### Costos indirectos detectados buscando texto
-- **Dónde:** `InformeFinalProyecto::getSubtotalUnahBaseAttribute`,
-  `getInfraestructuraUnahAttribute`, `getServiciosUnahAttribute`.
-- **Qué:** clasifican con `str_contains($concepto, 'servicio')` sobre texto libre.
-  «c) Contratación de servicios profesionales» (40 000) sale de la base y se
-  contabiliza como costo indirecto de servicios públicos.
-- **Resolver:** clasificar por la clave del catálogo
-  (`costos_indirectos_infraestructura` / `costos_indirectos_servicios`).
-- **Test:** `test_un_concepto_de_consultoria_no_se_clasifica_como_costo_indirecto`.
+### Cargo de la etapa de Dirección DVUS
+- **Confirmado localmente:** etapa 12 `ETAPA_05`, llamada `Director Vinculacion`,
+  usa `Revisor Vinculacion`; la etapa 18 `DIRECTOR_VINCULACION` sí usa el cargo
+  `Director Vinculacion`.
+- La constancia busca la firma del Director y tiene respaldo en la última etapa
+  de inscripción. La diferencia de nombres no demuestra un fallo de emisión.
+- **Falta:** verificar que el cargo y la autoridad emisora de cada flujo sean
+  los institucionalmente previstos, también en producción. No agregar el cargo
+  al selector sin revisar la decisión documentada en la auditoría FORM-DVUS-001.
 
-### Base del 3 % incorrecta
-- **Dónde:** `InformeFinalProyecto::getSubtotalUnahBaseAttribute`.
-- **Qué:** el formato dice «calculado sobre la sumatoria de los conceptos a – b»
-  (horas docentes + horas de estudiantes). El sistema usa todo el subtotal.
-  Con a=100 000, b=20 000, d=50 000, g=30 000 da 6 000 en vez de 3 600 por
-  partida: un 66,7 % de más, dos veces. Infla el aporte institucional reportado.
-- **Resolver:** restringir la base a los conceptos a) y b).
-- **Test:** `test_los_costos_indirectos_se_calculan_sobre_horas_docentes_y_estudiantes`.
+## Datos que requieren revisión
 
-### Actividades no asociadas a su resultado
-- **Dónde:** tabla `informe_final_actividades`.
-- **Qué:** el apartado VI pone «Detalle de las actividades realizadas» dentro de
-  cada RESULTADO. La tabla no tiene `informe_final_resultado_id` (las acciones
-  emergentes sí lo tienen), así que el documento las imprime en una tabla global.
-- **Resolver:** migración con la FK, selector de resultado en el wizard y
-  agrupar la tabla por resultado en `inf-001-document.blade.php`.
-- **Test:** `test_cada_actividad_realizada_se_asocia_a_su_resultado`.
+### Proyectos con objetivo vacío y actividades
+- **Resultado local actual:** la consulta devuelve el proyecto 32. No devuelve
+  el #81 mencionado en el reporte anterior. Esto no demuestra recuperación ni
+  pérdida de datos: el registro puede ser un borrador incompleto.
+- **Falta:** revisar esos expedientes y consultar producción/logs antes de pedir
+  recaptura o restaurar valores. Los logs pueden contener algunos valores de
+  sentencias fallidas; no se garantiza recuperar todo el formulario.
 
-### Tres fallos preexistentes en `InformeFinalINF001Test`
-Ya fallaban antes de los cambios recientes.
-- `test_cupos_por_sexo_y_resumen_planificado_registrado_pendiente` — desactualizado:
-  registra estudiantes manuales sin carrera, correo ni horas (obligatorios desde
-  antes) ni apellidos (obligatorios al registrar desde 2026-09-16). Basta con
-  completar esos `set()` en el test.
-- `test_instrumento_de_contraparte_se_precarga_en_anexos_sin_duplicar_archivo`
-- `test_ods_planificado_es_solo_lectura_y_ods_de_ejecucion_permanece_editable`
-  (espera el texto «Cargado desde el registro del proyecto», que la vista ya no emite)
+```sql
+SELECT p.id FROM proyecto p
+WHERE (p.objetivo_general IS NULL OR p.objetivo_general = '')
+  AND EXISTS (SELECT 1 FROM actividades a WHERE a.proyecto_id = p.id)
+  AND p.deleted_at IS NULL;
+```
 
----
+### Reporte anterior del proyecto 64
+- **Resultado local actual:** `programa_pertenece` tiene 15 caracteres y no
+  contiene «Programa/Estrategia al que Pertenece». El input enlaza la propiedad,
+  que inicia vacía; no se encontró una asignación automática de la etiqueta.
+- **Falta:** confirmar el estado en el entorno del reporte original antes de
+  atribuirlo a un defecto del formulario. No está reproducido localmente.
 
-<!-- BLOQUE: INTEGRIDAD DE DATOS Y SEEDERS -->
-
-## Datos y seeders
-
-### `tipo_estado` duplicado
-- **Qué:** 33 filas con los 16 nombres repetidos. El seeder usa `firstOrCreate`
-  sobre un modelo con `SoftDeletes`, así que cada `db:seed` añade otras 16.
-- **Mitigado:** el panel estadístico usa `EstadosProyecto::ids()`, que devuelve
-  todos los ids de un nombre. El resto del sistema que haga
-  `TipoEstado::where('nombre', …)->first()` cuenta solo la mitad.
-- **Resolver:** que el seeder busque también entre los borrados
-  (`withTrashed()`) y deduplicar la tabla reapuntando las FK de
-  `estado_proyecto` y `cargo_firma`.
-
-### `PersonalSeeder` pisa datos
-- **Qué:** fuerza `active_role_id = 1`, `centro_facultad_id = 4` y
-  `departamento_academico_id = 9` en NOTIFICACIONES POA, y deja
-  `categoria_id => 2` escrito a mano (los usuarios de prueba, en cambio,
-  resuelven la categoría por nombre).
-- **Consecuencia:** correr el seeder sobre un dump cambia el rol activo de esa
-  cuenta y la ubica en Ciencias Jurídicas.
-- **Resolver:** `firstOrCreate` en vez de `updateOrCreate` para esa cuenta y
-  resolver la categoría por nombre.
-
-### Posible placeholder guardado como valor en el FORM-DVUS-015
-- **Qué:** el `programa_pertenece` del proyecto 64 contiene «Programa/Estrategia
-  al que Pertenece» repetido ~15 veces: el texto de la etiqueta del campo.
-- **Resolver:** confirmar si el formulario guarda la etiqueta al dejar el campo
-  vacío o si fue un dato de prueba tecleado así.
-
-### NOTIFICACIONES POA con perfil de empleado
-- Es una cuenta de servicio (`notificacionespoa@unah.edu.hn`) y tiene empleado
-  con facultad y departamento asignados. Revisar si debe tenerlos.
-
----
-
-<!-- BLOQUE: SEGURIDAD, ACCESO Y PANEL -->
-
-## Seguridad y acceso
-
-### Usuarios sin empleado reciben un 500 en vez de un 403
-- **Dónde:** `resources/views/components/panel/navbar/one-item.blade.php` llama
-  a `empleado->firmaProyectoPendientes()` sin comprobar nulo.
-- **Qué:** la política correcta es que no entren, pero hoy se impone por
-  accidente: revienta la vista. Una pantalla sin sidebar (PDF, descarga) quedaría
-  accesible, el usuario no recibe un mensaje útil y ensucia los logs.
-- **Resolver:** en `EnsureUserHasRole`, junto a la comprobación de roles, un
-  `abort(403)` con mensaje si el usuario no tiene empleado. Con test.
-
----
+### Perfil de NOTIFICACIONES POA
+- **Confirmado localmente:** la cuenta de servicio tiene un registro de empleado.
+- **Falta decidir:** si debe conservar ese perfil y sus asignaciones académicas.
+  El seeder todavía vuelve a establecerlas.
 
 ## Panel estadístico
 
-- **Formularios sin declarar en `nexo.dashboard.formularios`:**
-  `ServicioTecnologico` (usa su propio `EstadoServicioTecnologico`, necesita una
-  clase que implemente `FormularioPanel`) y `FichaActualizacion` (motor común,
-  pero sus firmas son solo por cargo). Tampoco DAFT (`ProgramaRevision`).
-- **Pasantías y PPS sin centro enlazado:** guardan la facultad como texto, así
-  que en el panel de un centro su cifra es institucional (se advierte).
-- **Verificación visual por rol:** el 23-09 se revisó el panel de administración
-  con los datos importados, en modo claro. Falta con cada rol, en modo oscuro y
-  con el sidebar plegado. Los tests prueban que renderiza, no cómo se ve.
+- **Cobertura:** `config/nexo.php` no declara Servicio Tecnológico, Ficha de
+  Actualización ni DAFT en `dashboard.formularios`. Agregar adaptadores según
+  su motor de estados y firmas.
+- **Filtro por centro/departamento:** Pasantías y PPS no tienen las columnas
+  enlazadas en `FormularioMotorComun`; se muestran cifras institucionales y la
+  vista lo advierte. Falta el vínculo estructurado para filtrar correctamente.
+- **Revisión visual:** comprobar cada rol, modo oscuro y sidebar plegado.
+  No se verificó el navegador en esta auditoría.
 
----
+## Pruebas y despliegue
 
-<!-- BLOQUE: DESPLIEGUE, MIGRACIONES Y PRUEBAS -->
+### Cuatro fallos reproducidos el 2026-10-02
+- `ProyectoVinculacionFormularioTest`:
+  - `test_beneficiario_vacio_se_convierte_en_cero`;
+  - `test_calc_totales_no_lanza_error_y_calcula_subtotales`;
+  - `test_catalogo_de_anexos_contiene_los_cuatro_tipos_solicitados`.
+- `FormDvus001PdfLayoutTest::test_documentos_adjuntos_incluyen_los_cuatro_requisitos_y_la_nota`.
+- Los dos primeros usan contadores antiguos (`indigenas_mujeres`, etc.); el
+  formulario actual suma `hombres` y `mujeres`. El tercero espera nombres sin
+  los prefijos numéricos actuales. El cuarto espera «(cualquiera de los dos)»,
+  frase ausente de una nota que conserva el mismo requisito.
+- **Falta:** actualizar las expectativas y conservar pruebas del comportamiento
+  actual. No se reprodujo un defecto funcional nuevo a partir de estos cuatro fallos.
 
-## Antes de desplegar
+### Base de pruebas y fallos históricos por verificar
+- La selección sin dependencia de MySQL completó **69 pruebas aprobadas y 4
+  fallidas (231 aserciones)**.
+- La selección dependiente de MySQL se detuvo en el primer error de conexión:
+  `Access denied for user 'nexo'@'localhost'` (0 aserciones; 244 pruebas pendientes).
+  La base local de la aplicación sí permitió consultas de lectura.
+- **Falta:** corregir el acceso a `vinculacion_testing` y ejecutar la suite completa.
+  No se confirma el antiguo total de 18 fallos.
+- Revalidar los reportes anteriores de `FichaFirmaDelFirmanteRealTest`,
+  `InformeFinalINF001Test`, `InformeFinalInf001FormatoOficialTest`,
+  `NewUserOnboardingTest`, `PasantiaLivewireTest`, `PpsServicioSocialWorkflowTest`
+  y `EnfDocumentoArchivoTest`.
+- En INF-001, el test de cupos aún omite datos obligatorios del estudiante y el
+  test de ODS exige un texto antiguo. El test ENF desactiva el flujo del formulario;
+  revisar su escenario antes de atribuir el fallo al guardado de anexos.
 
-- **Migraciones restituidas del 17-09:**
-  `2026_09_17_000001_backfill_tipo_accion_on_legacy_proyectos` y
-  `2026_09_17_000002_add_revision_vinculacion_stages_to_form_dvus_001_flow`. Se
-  habían ejecutado en algunas bases sin llegar al repositorio. Donde no constan,
-  `php artisan migrate` asigna Desarrollo local a los proyectos sin tipo y
-  completa el flujo del FORM-DVUS-001 con las etapas de Vinculación. Revisar
-  después en Configuración → Flujos los responsables de las etapas nuevas (se
-  crean enviando a todo el rol).
+### Verificación por entorno
+- **Base local:** `migrate:status` no reporta migraciones pendientes, incluidas
+  `2026_09_22_000002_alinear_inf001_con_formato_oficial`, las del 29-09 y 01-10,
+  y `2026_10_02_000001_merge_legacy_direccion_divus_role`.
+- **Producción:** falta verificar el estado de migraciones, responsables de las
+  etapas y catálogos de tipos de acción y anexos. No inferir su estado del local.
+- Si faltan catálogos, ejecutar solo los seeders necesarios tras revisarlos;
+  el `db:seed` completo incluye las sobrescrituras descritas arriba.
 
-- **Migración nueva:** correr
-  `2026_09_11_000001_widen_texto_libre_on_informe_final_proyectos` en cada entorno.
-- **Migraciones de la auditoría del FORM-DVUS-001:**
-  - `2026_10_01_000001_ampliar_textos_de_contrapartes_y_resultados`: TEXT en
-    compromisos, indicador y medio de verificación;
-  - `2026_10_01_000002_revocar_administrar_asignaturas_de_docente`.
+## Ajustes menores
 
-  En la base local de desarrollo también está pendiente
-  `2026_09_29_000001_add_tipo_firma_to_firma_proyecto_table`.
-- **Cargo «Coordinador Proyecto» retirado del selector de flujos:** comprobar
-  en producción que ninguna etapa lo use; si alguna lo usa, migrarla antes.
-  Desde la auditoría del 2026-10-01, una etapa con ese cargo nunca guarda sello
-  (`CargoFirma::admiteSello`).
-
-  ```sql
-  SELECT COUNT(*) FROM flujos_aprobacion_etapas e
-    JOIN cargo_firma c ON c.id = e.cargo_firma_id
-    JOIN tipo_cargo_firma t ON t.id = c.tipo_cargo_firma_id
-   WHERE t.nombre = 'Coordinador Proyecto';
-  ```
-
-- **Catálogos sin sembrar tras importar un dump:** correr `php artisan db:seed`
-  (o al menos `VinculacionTiposAccionSeeder` y `TipoAnexoSeeder`). Sin el
-  primero, 4 de 5 formularios desaparecen de la configuración de flujos y el
-  INF-001 no abre; sin el segundo, ningún anexo pasa la validación del
-  FORM-DVUS-001. Ver antes la advertencia de `PersonalSeeder`.
-- **Suite completa:** en Windows nunca terminó (supera los 600 s). En macOS
-  termina en ~90 s. El 2026-10-01 fallaban 18 tests, los mismos con y sin los
-  cambios de la auditoría:
-  - `ProyectoVinculacionFormularioTest` (4): resultado sin plazo, beneficiario
-    vacío, `calcTotales` y catálogo de anexos. Están desactualizados; por
-    ejemplo, usan la propiedad `indigenas_mujeres`, que ya no existe.
-  - `FormDvus001PdfLayoutTest` (1): nota de documentos adjuntos.
-  - `FichaFirmaDelFirmanteRealTest` (2): `firmasParaFicha()`.
-  - `InformeFinalINF001Test` (3) e `InformeFinalInf001FormatoOficialTest` (2):
-    ver la sección del INF-001.
-  - `NewUserOnboardingTest` (2): inicio de sesión.
-  - `PasantiaLivewireTest` (2).
-  - `PpsServicioSocialWorkflowTest` (1).
-  - `EnfDocumentoArchivoTest` (1).
-
-  `HistorialProyectoWorkflowStageResubmissionIntegrationTest` y
-  `EnfWorkflowResumptionTest` ya pasan.
-- **Fallo de ENF que llegó con `origin/efrain`** (merge del 2026-09-16):
-  `EnfDocumentoArchivoTest::test_envio_final_guarda_el_archivo_del_paso_10_antes_de_iniciar_el_flujo`.
-  Error: «No hay etapas configuradas para este proceso ENF»; al escenario le
-  falta el flujo de cierre.
-
----
-
-<!-- BLOQUE: MENORES -->
-
-## Menores
-
-- Textos sin tilde en `ConfiguracionFlujosProyectos::projectFlowCatalog()`:
-  «Practica», «accion», «Educacion», «vinculacion».
+- Corregir la ayuda de Configuración → Flujos que afirma que Revisión «solo
+  pasa a la siguiente etapa»: el flujo registra firmas también en revisiones.
+- Corregir tildes en `ConfiguracionFlujosProyectos::projectFlowCatalog()`.
+- Uniformar los resolutores de constancias para leer el sello mediante
+  `FirmaProyecto::selloParaDocumento()`. Es mantenimiento; no se reprodujo un
+  fallo de constancia por este acceso directo.
