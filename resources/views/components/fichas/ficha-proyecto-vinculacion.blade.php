@@ -378,6 +378,9 @@
                 font-style: italic !important;
             }
         </style>
+        @if (!$esVoluntariado)
+            @include('components.fichas.partials.form-dvus-001-official-styles')
+        @endif
     @endif
 @unless($embebido ?? false)
 </head>
@@ -488,7 +491,11 @@
     @endif
 
     @if (!empty($isPdf))
-        @include('components.fichas.partials.form-dvus-001-header', array_merge(['isPdf' => true], $encabezadoFicha))
+        @if ($esVoluntariado)
+            @include('components.fichas.partials.form-dvus-001-header', array_merge(['isPdf' => true], $encabezadoFicha))
+        @else
+            @include('components.fichas.partials.form-dvus-001-official-header')
+        @endif
         @if (in_array($proyecto->estado?->tipoestado?->nombre, ['Borrador', 'Autoguardado'], true))
             <div class="pdf-marca-borrador">BORRADOR — NO VÁLIDO</div>
         @endif
@@ -507,6 +514,11 @@
                     @include('components.fichas.partials.form-dvus-001-header', array_merge(['isPdf' => false], $encabezadoFicha))
                 @endif
 
+                @if (!empty($isPdf) && !$esVoluntariado)
+                    <div class="official-form-code">FORM-DVUS-001</div>
+                    <div class="official-form-title">FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN DE<br>DESARROLLO LOCAL Y REGIONAL</div>
+                @endif
+
                 {{-- INFORMACIÓN GENERAL --}}
                 <div class="section1">
                     <div class="section-title">@if ($esVoluntariado) I. INFORMACIÓN GENERAL @else I. INFORMACIÓN GENERAL DEL PROYECTO @endif</div>
@@ -521,10 +533,8 @@
                         </colgroup>
                         @php
                             $fechaRegistro = $proyecto->fecha_registro;
-                            // El FORM-DVUS-015 ordena la fecha de registro como Año / Mes / Día.
-                            $partesFechaRegistro = $esVoluntariado
-                                ? ['Año' => 'Y', 'Mes' => 'm', 'Día' => 'd']
-                                : ['Día' => 'd', 'Mes' => 'm', 'Año' => 'Y'];
+                            // Ambos formatos oficiales ordenan la fecha de registro como Año / Mes / Día.
+                            $partesFechaRegistro = ['Año' => 'Y', 'Mes' => 'm', 'Día' => 'd'];
                         @endphp
                         <tr>
                             <th class="full-width1">{{ $numItem('fecha_registro') }}. {{ $esVoluntariado ? 'Fecha de registro' : 'Fecha de solicitud de registro:' }}</th>
@@ -576,7 +586,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">{{ $esVoluntariado ? 'Carrera' : 'Carreras' }}</td>
+                            <td class="sub-header" colspan="1">Carrera</td>
                             <td class="full-width" colspan="4">
                                 @if($proyecto->carrera_no_aplica)
                                     <span>No aplica</span>
@@ -614,6 +624,15 @@
                         @endif
                         <tr>
                             <th class="full-width1" rowspan="1">{{ $numItem('modalidad') }}. Modalidad</th>
+                            @if (!empty($isPdf) && !$esVoluntariado)
+                                <td colspan="5" class="official-choice-cell">
+                                    <table class="official-choices"><tr>
+                                        @foreach (['Unidisciplinar', 'Multidisciplinar', 'Interdisciplinar', 'Transdisciplinar'] as $opcion)
+                                            <td class="sub-header1 pdf-choice">{{ $opcion }}<br>{!! $pdfCheck($proyecto->modalidad?->nombre === $opcion) !!}</td>
+                                        @endforeach
+                                    </tr></table>
+                                </td>
+                            @else
                             <td class="sub-header1 pdf-choice" colspan="1">Unidisciplinar <br>
                                 @if (!empty($isPdf)){!! $pdfCheck($proyecto->modalidad?->nombre == 'Unidisciplinar') !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>@endif
                             </td>
@@ -626,9 +645,19 @@
                             <td class="sub-header1 pdf-choice" colspan="2">Transdisciplinar<br>
                                 @if (!empty($isPdf)){!! $pdfCheck($proyecto->modalidad?->nombre == 'Transdisciplinar') !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>@endif
                             </td>
+                            @endif
                         </tr>
                         <tr>
                             <th class="full-width1" rowspan="{{ $esVoluntariado ? 1 : 3 }}">{{ $numItem('alineamiento') }}. {{ $esVoluntariado ? 'Alineamiento con ejes prioritarios de la UNAH' : 'Alineamiento institucional' }}</th>
+                            @if (!empty($isPdf) && !$esVoluntariado)
+                                <td colspan="5" class="official-choice-cell">
+                                    <table class="official-choices"><tr>
+                                        @foreach (['Desarrollo económico y social', 'Democracia y gobernabilidad', 'Población y condiciones de vida', 'Ambiente, biodiversidad y desarrollo'] as $opcion)
+                                            <td class="sub-header1 pdf-choice">{{ $opcion }}<br>{!! $pdfCheck((bool) $proyecto->ejes_prioritarios_unah?->contains('nombre', $opcion)) !!}</td>
+                                        @endforeach
+                                    </tr></table>
+                                </td>
+                            @else
                             <td class="sub-header1 pdf-choice" colspan="1">Desarrollo económico y social <br>
                                 @if (!empty($isPdf)){!! $pdfCheck((bool) $proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) checked @endif>@endif
                             </td>
@@ -641,6 +670,7 @@
                             <td class="sub-header1 pdf-choice" colspan="2">Ambiente, biodiversidad y desarrollo<br>
                                 @if (!empty($isPdf)){!! $pdfCheck((bool) $proyecto->ejes_prioritarios_unah?->contains('nombre', 'Ambiente, biodiversidad y desarrollo')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Ambiente, biodiversidad y desarrollo')) checked @endif>@endif
                             </td>
+                            @endif
                         </tr>
                         @if (!$esVoluntariado)
                         <tr>
@@ -777,7 +807,7 @@
                         @else
                         <!-- TABLA DE BENEFICIARIOS DIRECTOS -->
                         <tr>
-                            <th class="full-width1" rowspan="3">{{ $numItem('beneficiarios') }}. Descripción de los beneficiarios</th>
+                            <th class="full-width1" rowspan="2">{{ $numItem('beneficiarios') }}. Descripción de los beneficiarios</th>
                             <td class="sub-header" colspan="1">Cantidad aproximada</td>
                             <td class="full-width" colspan="4" style="padding:0 !important;">
                                 <table class="beneficiary-summary" style="width:100%; border-collapse:collapse;">
@@ -793,7 +823,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Tipo de población a la que está dirigido el proyecto</td>
+                            <td class="sub-header" colspan="1">Tipo de población a la que está dirigido el proyecto (marcar con una “x)</td>
                             <td class="full-width" colspan="4" style="padding:0 !important;">
                                 <table class="beneficiary-ethnicity" style="width:100%; border-collapse:collapse;">
                                     <tr>
@@ -925,6 +955,9 @@
                         $coordinador = optional($proyecto->coordinador_proyecto->first())->empleado;
                     @endphp
                     <div class="section-title">II. EQUIPO EJECUTOR DEL PROYECTO{{ $esVoluntariado ? '' : '.' }} </div>
+                    @if (!empty($isPdf) && !$esVoluntariado)
+                        @include('components.fichas.partials.form-dvus-001-coordinator')
+                    @else
                     <table class="table_datos1">
                         <!-- TABLA COORDINADOR DEL PROYECTO -->
                         <tr>
@@ -937,7 +970,7 @@
                                     <div class="input-field-multiline-static">{{ $coordinador?->nombre_completo ?? 'No especificado' }}</div>
                                 @endif
                             </td>
-                            <td class="sub-header">{{ $esVoluntariado ? 'No. de empleado/a:' : 'No. de empleado:' }}</td>
+                            <td class="sub-header">No. de empleado/a:</td>
                             <td class="full-width" colspan="2">
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($coordinador?->numero_empleado ?? 'No especificado') !!}</div>
@@ -973,7 +1006,7 @@
                                     <div class="input-field-multiline-static">{{ $coordinador?->categoria?->nombre ?? 'No especificado' }}</div>
                                 @endif
                             </td>
-                            <td class="sub-header">{{ $esVoluntariado ? 'Departamento al que pertenece:' : 'Departamento:' }}</td>
+                            <td class="sub-header">Departamento al que pertenece:</td>
                             <td class="full-width" colspan="2">
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($coordinador?->departamento_academico?->nombre, 'No especificado') !!}</div>
@@ -984,8 +1017,10 @@
                         </tr>
                     </table>
 
+                    @endif
+
                     <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
-                    <table class="table_datos1">
+                    <table class="table_datos1 official-team-table">
                         <tr>
                             <th class="full-width1" colspan="8" style="text-align:left !important; padding-left:8px;">{{ $numItem('docentes') }}. Integrantes del equipo docente permanente tiempo completo
                                 (Agregar más líneas de ser necesario)</th>
@@ -1117,6 +1152,7 @@
                                 </td>
                             </tr>
                         @empty
+                            @unless (!empty($isPdf) && !$esVoluntariado)
                             <tr>
                                 <td class="full-width
                                 " colspan="8">
@@ -1127,7 +1163,22 @@
                                     @endif
                                 </td>
                             </tr>
+                                                    @endunless
                         @endforelse
+                        @if (!empty($isPdf) && !$esVoluntariado)
+                            @for ($fila = $proyecto->integrantes->count(); $fila < 6; $fila++)
+                                <tr class="official-empty-row">
+                                    <td class="full-width" colspan="1">{{ $fila + 1 }}</td>
+                                    <td class="full-width" colspan="1">&nbsp;</td>
+                                    <td class="full-width" colspan="1">&nbsp;</td>
+                                    <td class="full-width" colspan="1">&nbsp;</td>
+                                    <td class="full-width" colspan="1">&nbsp;</td>
+                                    <td class="full-width" colspan="1">&nbsp;</td>
+                                    <td class="full-width" colspan="1">&nbsp;</td>
+                                    <td class="full-width" colspan="1">&nbsp;</td>
+                                </tr>
+                            @endfor
+                        @endif
                         @endif
                        
                         <tr>
@@ -1182,6 +1233,7 @@
                                 </td>
                             </tr>
                         @empty
+                            @unless (!empty($isPdf) && !$esVoluntariado)
                             <tr>
                                 <td class="full-width
                                 " colspan="8">
@@ -1192,7 +1244,20 @@
                                     @endif
                                 </td>
                             </tr>
+                                                    @endunless
                         @endforelse
+                        @if (!empty($isPdf) && !$esVoluntariado)
+                            @for ($fila = $proyecto->integrantesInternacionales->count(); $fila < 6; $fila++)
+                                <tr class="official-empty-row">
+                                    <td class="full-width" colspan="1">{{ $fila + 1 }}</td>
+                                    <td class="full-width" colspan="2">&nbsp;</td>
+                                    <td class="full-width" colspan="1">&nbsp;</td>
+                                    <td class="full-width" colspan="2">&nbsp;</td>
+                                    <td class="full-width" colspan="1">&nbsp;</td>
+                                    <td class="full-width" colspan="1">&nbsp;</td>
+                                </tr>
+                            @endfor
+                        @endif
                     </table>
 
                 </div>
@@ -1449,17 +1514,20 @@
                             </tr>
                         @endfor
                     </table>
+                    @if (!$esVoluntariado)
+                        <p class="official-note">Nota: En el informe final del proyecto se detallarán los nombres completos de los(as) estudiantes UNAH y voluntarios que participaron en el proyecto</p>
+                    @endif
                 </div>
                 {{-- ENTIDAD CONTRAPARTE --}}
                 <div class="section4">
                     <div class="section-title">@if ($esVoluntariado) IV. INFORMACIÓN DE LA ENTIDAD CONTRAPARTE @else IV. INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (OBLIGATORIO) @endif</div>
-                    <table class="table_datos2">
+                    <table class="table_datos2 official-counterparty-table">
                         <tr>
                             <th class="header" colspan="7">
                                 @if ($esVoluntariado)
                                     (Sí existe más de una contraparte añadir una tabla de información por cada una de ellas)
                                 @else
-                                    En caso de que la contraparte sea nacional (añadir una tabla de información por cada una de las contrapartes)
+                                    (Sí existe más de una contraparte añadir una tabla de información por cada una de ellas)
                                 @endif
                             </th>
                         </tr>
@@ -1579,9 +1647,9 @@
                                     @endif
                                 </td>
                             </tr>
-                            {{-- El FORM-DVUS-015 no tiene este bloque: en su PDF el instrumento ya consta en el ítem 22;
-                                 en pantalla se conserva para consultar los documentos adjuntos. --}}
-                            @if (!$esVoluntariado || empty($isPdf))
+                            {{-- Los formatos oficiales ya identifican el instrumento mediante las casillas.
+                                 En pantalla se conserva el acceso a los documentos adjuntos. --}}
+                            @if (empty($isPdf))
                             <tr>
                                 <td class="sub-header" colspan="7">{{ $esVoluntariado ? 'Documentos de los instrumentos de formalización:' : 'Instrumentos de formalización de alianza (Si hubiese):' }}</td>
                             </tr>
@@ -2474,9 +2542,7 @@
                             </td>
                         </tr>
                     </table>
-                    @if ($esVoluntariado)
-                        <p style="margin-top:6px; font-size:0.9em;"><strong>Nota:</strong> El aporte de la institución contraparte y de la comunidad deberá ser certificada al finalizar el proyecto mediante documento de declaración firmada por el representante legal de la entidad contraparte y/o comunidad. De no poder contarse con este documento, no se deberá de detallar este dato.</p>
-                    @endif
+                        <p class="official-note" style="margin-top:6px; font-size:0.9em;"><strong>Nota:</strong> El aporte de la institución contraparte y de la comunidad deberá ser certificada al finalizar el proyecto mediante documento de declaración firmada por el representante legal de la entidad contraparte y/o comunidad. De no poder contarse con este documento, no se deberá de detallar este dato.</p>
                 </div>
 
                 {{-- FIRMAS --}}
@@ -2531,19 +2597,19 @@
                     @endphp
                     <table class="table_datos5">
                         <tr>
-                            <th class="header" colspan="1">No</th>
-                            <th class="header" colspan="10">Descripción</th>
-                            <th class="header" colspan="4">Si</th>
-                            <th class="header" colspan="4">No</th>
+                            <th class="header" colspan="2">No</th>
+                            <th class="header" colspan="13">Descripción</th>
+                            <th class="header" colspan="2">Si</th>
+                            <th class="header" colspan="2">No</th>
                         </tr>
                         @foreach ($documentosAdjuntos as $documento)
                             <tr>
-                                <td class="sub-header" colspan="1">{{ $documento['numero'] }}</td>
-                                <td class="full-width" colspan="10">{{ $documento['descripcion'] }}</td>
-                                <td class="full-width" colspan="4">
+                                <td class="sub-header" colspan="2">{{ $documento['numero'] }}</td>
+                                <td class="full-width" colspan="13">{{ $documento['descripcion'] }}</td>
+                                <td class="full-width" colspan="2">
                                     @if (!empty($isPdf)){!! $pdfCheck($documento['adjunto']) !!}@else<input disabled type="checkbox" class="checkbox-field" @checked($documento['adjunto'])>@endif
                                 </td>
-                                <td class="full-width" colspan="4">
+                                <td class="full-width" colspan="2">
                                     @if (!empty($isPdf)){!! $pdfCheck(! $documento['adjunto']) !!}@else<input disabled type="checkbox" class="checkbox-field" @checked(! $documento['adjunto'])>@endif
                                 </td>
                             </tr>
@@ -2551,10 +2617,17 @@
                     </table>
                     
                     <div class="documents-note">
-                        <p><strong>Nota:</strong> El documento 1 o el documento 2 es obligatorio. El documento 3 es obligatorio.</p>
+                        <p><strong>Nota:</strong></p>
+                        <ul>
+                            <li>El documento 1 / documento 2 (cualquiera de los dos) es obligatorio</li>
+                            <li>Los documentos 2 y 3 son obligatorios</li>
+                        </ul>
                     </div>
                 </div>
 
+                <p class="official-note">OE= Objetivo Específico. Indicar el número de objetivo específico al que corresponde el resultado</p>
+
+                @if (empty($isPdf))
                 {{-- ANEXOS DEL SISTEMA --}}
                 <div class="section4 section-annexes">
                     <div class="section-title">XI. ANEXOS</div>
@@ -2629,6 +2702,7 @@
                         @endforelse
                     </table>
                 </div>
+                @endif
                 @endif
 
             </div>

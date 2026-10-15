@@ -8,7 +8,7 @@ class FormDvus001PdfLayoutTest extends TestCase
 {
     public function test_usa_exclusivamente_los_tres_recursos_institucionales_configurados(): void
     {
-        $header = $this->viewSource('components/fichas/partials/institutional-pdf-header');
+        $header = $this->viewSource('components/fichas/partials/form-dvus-001-official-header');
         $watermark = $this->viewSource('components/fichas/partials/institutional-pdf-watermark');
         $combined = $header . "\n" . $watermark;
 
@@ -21,16 +21,17 @@ class FormDvus001PdfLayoutTest extends TestCase
 
     public function test_encabezado_y_marca_de_agua_se_configuran_como_elementos_repetibles(): void
     {
-        $styles = $this->viewSource('components/fichas/partials/institutional-pdf-chrome-styles');
-        $wrapper = $this->viewSource('components/fichas/partials/form-dvus-001-header');
-        $institutionalHeader = $this->viewSource('components/fichas/partials/institutional-pdf-header');
+        $styles = $this->viewSource('components/fichas/partials/form-dvus-001-official-styles');
+        $view = $this->viewSource('components/fichas/ficha-proyecto-vinculacion');
+        $header = $this->viewSource('components/fichas/partials/form-dvus-001-official-header');
+        $chrome = $this->viewSource('components/fichas/partials/institutional-pdf-chrome-styles');
 
-        $this->assertMatchesRegularExpression('/\.institutional-pdf-header\s*\{[^}]*position:\s*fixed/s', $styles);
-        $this->assertMatchesRegularExpression('/\.institutional-pdf-watermark\s*\{[^}]*position:\s*fixed/s', $styles);
-        $this->assertMatchesRegularExpression('/\.institutional-pdf-accent\s*\{[^}]*position:\s*fixed/s', $styles);
-        $this->assertStringContainsString('FORM-DVUS-001', $wrapper);
-        $this->assertStringContainsString('vinculacion.sociedad@unah.edu.hn', $institutionalHeader);
-        $this->assertStringContainsString('2216-6100 Ext. 110576', $institutionalHeader);
+        $this->assertMatchesRegularExpression('/\.official-page-header\s*\{[^}]*position:\s*fixed/s', $styles);
+        $this->assertMatchesRegularExpression('/\.institutional-pdf-watermark\s*\{[^}]*position:\s*fixed/s', $chrome);
+        $this->assertMatchesRegularExpression('/\.official-accent\s*\{[^}]*position:\s*fixed/s', $styles);
+        $this->assertStringContainsString('official-form-code">FORM-DVUS-001', $view);
+        $this->assertStringContainsString('vinculacion.sociedad@unah.edu.hn', $header);
+        $this->assertStringContainsString('2216-7070 Ext. 110576', $header);
     }
 
     public function test_secciones_conservan_el_orden_institucional_requerido(): void
@@ -67,9 +68,10 @@ class FormDvus001PdfLayoutTest extends TestCase
         $this->assertStringContainsString('Oficio de remisión del Decano/Director Centro Regional', $view);
         $this->assertStringContainsString('Otros (detallar)', $view);
         $this->assertStringContainsString(
-            'El documento 1 o el documento 2 (cualquiera de los dos) es obligatorio. El documento 3 es obligatorio.',
+            'El documento 1 / documento 2 (cualquiera de los dos) es obligatorio',
             $view
         );
+        $this->assertStringContainsString('Los documentos 2 y 3 son obligatorios', $view);
         $this->assertStringContainsString("'adjunto' => \$anexosPorCodigo->has(\$documento['codigo'])", $view);
         $this->assertStringContainsString("\$pdfCheck(\$documento['adjunto'])", $view);
         $this->assertStringContainsString("\$pdfCheck(! \$documento['adjunto'])", $view);
