@@ -2119,7 +2119,7 @@
             <section id="marco-objetivo-general" class="scroll-mt-24">
                 <h4 class="text-sm font-semibold text-gray-900 dark:text-white">1. Objetivo general <span class="text-red-500">*</span></h4>
                 <p class="mt-0.5 mb-2 text-xs text-gray-500 dark:text-gray-400">El objetivo debe estar basado en la población participante del {{ $unidad }}.</p>
-                <textarea wire:model.live.debounce.1000ms="objetivo_general" rows="3" placeholder="Describa el propósito central del {{ $unidad }}..."
+                <textarea wire:model.live.debounce.1000ms="objetivo_general" rows="{{ $esVoluntariado ? 3 : 6 }}" placeholder="Describa el propósito central del {{ $unidad }}..."
                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
                 @error('objetivo_general') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </section>
@@ -2167,7 +2167,7 @@
                             <div x-show="abierto" class="space-y-4 border-t border-gray-100 px-4 pb-4 pt-3 dark:border-gray-800">
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Descripción del objetivo <span class="text-red-500">*</span></label>
-                                    <textarea x-ref="descripcion" wire:key="objetivo-descripcion-{{ $objetivoKey }}" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.descripcion" rows="3"
+                                    <textarea x-ref="descripcion" wire:key="objetivo-descripcion-{{ $objetivoKey }}" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.descripcion" rows="{{ $esVoluntariado ? 3 : 6 }}"
                                         placeholder="Ej.: Fortalecer las capacidades de los productores de la comunidad en manejo sostenible de suelos"
                                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
                                     @error("objetivosEspecificos.{$oi}.descripcion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
