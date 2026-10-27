@@ -962,7 +962,7 @@
                         @error('nuevoEstudiante.total_estudiantes') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
-                        <button wire:click="closeEstudianteModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>
+                        <button wire:click="closeEstudianteModal" type="button" class="form-action form-action--secondary" wire:loading.attr="disabled">Cancelar</button>
                         <button wire:click="saveEstudiante" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">Guardar</button>
                     </div>
                 </div>
@@ -1074,7 +1074,7 @@
                         </div>
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
-                        <button wire:click="closeInternacionalModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>
+                        <button wire:click="closeInternacionalModal" type="button" class="form-action form-action--secondary" wire:loading.attr="disabled">Cancelar</button>
                         <button wire:click="saveNuevoIntegranteInternacional" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-orange-600 text-white hover:bg-orange-700">
                             {{ $editIntegranteInternacionalIndex !== null ? 'Actualizar docente' : 'Guardar integrante' }}
                         </button>
@@ -1413,7 +1413,7 @@
                         @endif
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
-                        <button wire:click="closeContraparteModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>
+                        <button wire:click="closeContraparteModal" type="button" class="form-action form-action--secondary" wire:loading.attr="disabled">Cancelar</button>
                         @if($modoContraparte)
                         <button wire:click="saveContraparte" wire:loading.attr="disabled" wire:target="nuevaContraparte.instrumento_formalizacion" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">Guardar</button>
                         @endif
@@ -1596,7 +1596,7 @@
                         </div>
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
-                        <button wire:click="closeActividadModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>
+                        <button wire:click="closeActividadModal" type="button" class="form-action form-action--secondary" wire:loading.attr="disabled">Cancelar</button>
                         <button wire:click="saveActividad" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">Guardar</button>
                     </div>
                 </div>
@@ -2437,7 +2437,7 @@
                         </div>
 
                         <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
-                            <button wire:click="closeAnexoModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>
+                            <button wire:click="closeAnexoModal" type="button" class="form-action form-action--secondary" wire:loading.attr="disabled">Cancelar</button>
                             <button wire:click="uploadAnexos" type="button" wire:loading.attr="disabled" wire:target="uploadAnexos,newAnexos" @disabled(empty($newAnexos) || empty($nuevoAnexoTipoId))
                                 class="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <span wire:loading.remove wire:target="uploadAnexos">Agregar</span>
@@ -2500,7 +2500,7 @@
             <div>
                 @if($currentStep > 1)
                 <button wire:click="prevStep" type="button"
-                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    class="form-action form-action--secondary" wire:loading.attr="disabled">
                     ← Anterior
                 </button>
                 @endif
@@ -2517,19 +2517,19 @@
                 </span>
                 @if($currentStep < 9)
                 <button wire:click="nextStep" type="button"
-                    class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    class="form-action form-action--primary" wire:loading.attr="disabled">
                     Siguiente →
                 </button>
                 @elseif($currentStep === 9)
                 <button wire:click="borrador" type="button"
-                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
-                    {{ $enSubsanacion ? 'Guardar cambios' : 'Guardar como Borrador' }}
+                    class="form-action form-action--secondary" wire:loading.attr="disabled">
+                    {{ $enSubsanacion ? 'Guardar cambios' : 'Guardar como borrador' }}
                 </button>
                 <button
                     wire:click="abrirModalEnviar"
                     type="button"
-                    class="inline-flex items-center px-4 py-2 rounded-md text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 shadow-sm">
-                    {{ $enSubsanacion ? 'Reenviar a revisión' : 'Enviar para Firmar' }}
+                    class="form-action form-action--send" wire:loading.attr="disabled">
+                    {{ $enSubsanacion ? 'Reenviar a revisión' : 'Enviar a revisión' }}
                 </button>
                 @endif
             </div>
@@ -2538,7 +2538,7 @@
     </div>
 </div>
 
-{{-- ══════════════════ Modal: Enviar para Firmar ══════════════════ --}}
+{{-- ══════════════════ Modal: Enviar a revisión ══════════════════ --}}
 @if($showEnviarModal)
 <div
     wire:key="modal-enviar"
@@ -2647,21 +2647,21 @@
 
         {{-- Footer --}}
         <div class="mt-6 flex items-center justify-between">
-            <button wire:click="$set('showEnviarModal', false)" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+            <button wire:click="$set('showEnviarModal', false)" class="form-action form-action--secondary" wire:loading.attr="disabled">
                 Cancelar
             </button>
             <div class="flex items-center gap-2">
                 @if($pasoActual > 0)
-                <button wire:click="modalAnterior" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                <button wire:click="modalAnterior" class="form-action form-action--secondary" wire:loading.attr="disabled">
                     &larr; Anterior
                 </button>
                 @endif
                 @if($pasoActual < count($modalEtapasConDestinatario))
-                <button wire:click="modalSiguiente" class="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900">
+                <button wire:click="modalSiguiente" class="form-action form-action--primary" wire:loading.attr="disabled">
                     Siguiente &rarr;
                 </button>
                 @else
-                <button wire:click="confirmarEnvio" class="inline-flex items-center rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600">
+                <button wire:click="confirmarEnvio" class="form-action form-action--send" wire:loading.attr="disabled">
                     Confirmar envío
                 </button>
                 @endif

@@ -76,13 +76,13 @@
                                 Ver PDF
                             </a>
                         @endif
-                        <a href="{{ route('enf.acciones.pdf', $accion) }}" class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700">
+                        <a href="{{ route('enf.acciones.pdf', $accion) }}" class="form-action form-action--download">
                             @svg('heroicon-o-arrow-down-tray', ['class' => 'h-4 w-4'])
                             Descargar PDF
                         </a>
 
                         @if ($puedeActualizarEquipoFechasEnf)
-                            <a href="{{ route('enf.acciones.edit', $accion) }}" class="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700">
+                            <a href="{{ route('enf.acciones.edit', $accion) }}" class="form-action form-action--update">
                                 Actualizar Equipo o Fechas
                             </a>
                         @endif
@@ -92,7 +92,7 @@
                     @if ($puedeReenviar ?? false)
                         <form method="POST" action="{{ route('enf.acciones.reenviar-revision', $accion) }}">
                             @csrf
-                            <button class="inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                            <button class="form-action form-action--send">
                                 Reenviar a revisi&oacute;n
                             </button>
                         </form>
@@ -157,7 +157,7 @@
                         </div>
                         <div class="flex flex-wrap justify-end gap-2">
                             @if($informeIntermedio?->archivo_pdf)
-                                <a href="{{ route('enf.informes-intermedios.ver', $informeIntermedio) }}" target="_blank" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Ver PDF</a>
+                                <a href="{{ route('enf.informes-intermedios.ver', $informeIntermedio) }}" target="_blank" class="form-action form-action--download">Ver PDF</a>
                                 <a href="{{ route('enf.informes-intermedios.descargar', $informeIntermedio) }}" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Descargar</a>
                             @endif
                             @if(($puedeGestionarInformeIntermedio ?? false) && (! $informeIntermedio || $informeIntermedio->esEditable()))
@@ -193,7 +193,7 @@
                                         @endforeach
                                     </div>
                                 @endif
-                                <button class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Enviar a revisi&oacute;n</button>
+                                <button class="form-action form-action--send">Enviar a revisi&oacute;n</button>
                             </form>
                         @endif
                     @else
@@ -216,7 +216,7 @@
                                     <input type="file" name="archivo_pdf" accept="application/pdf" required class="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
                                 </div>
                                 <div class="flex justify-end gap-3 border-t border-gray-200 px-5 py-4 dark:border-gray-700">
-                                    <button type="button" data-close-enf-intermedio-upload class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">Cancelar</button>
+                                    <button type="button" data-close-enf-intermedio-upload class="form-action form-action--secondary">Cancelar</button>
                                     <button class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700">Subir</button>
                                 </div>
                             </form>
@@ -276,14 +276,14 @@
                                 @elseif(($cierreInformeFinal['accion'] ?? null) === 'continuar')
                                     <a href="{{ route('enf.acciones.informe-final.edit', $accion) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</a>
                                 @elseif(($cierreInformeFinal['accion'] ?? null) === 'subsanar')
-                                    <a href="{{ route('enf.acciones.informe-final.edit', $accion) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Editar subsanaci&oacute;n</a>
+                                    <a href="{{ route('enf.acciones.informe-final.edit', $accion) }}" class="form-action form-action--primary">Corregir informe</a>
                                     @if($cierreInformeFinal['puede_enviar'])
                                         @if(($opcionesDestinatariosFinal ?? collect())->isNotEmpty())
-                                            <button form="enf-final-send-form-{{ $accion->id }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Reenviar informe final</button>
+                                            <button form="enf-final-send-form-{{ $accion->id }}" class="form-action form-action--send">Reenviar informe final</button>
                                         @else
                                             <form method="POST" action="{{ route('enf.informes-finales.enviar', $cierreInformeFinal['informe']) }}">
                                                 @csrf
-                                                <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Reenviar informe final</button>
+                                                <button class="form-action form-action--send">Reenviar informe final</button>
                                             </form>
                                         @endif
                                     @endif
@@ -339,14 +339,14 @@
                         @csrf
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Observaci&oacute;n de aprobaci&oacute;n</label>
                         <textarea name="observaciones" rows="3" class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
-                        <button class="rounded-md bg-green-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-800">Aprobar etapa</button>
+                        <button class="form-action form-action--approve">Aprobar</button>
                     </form>
 
                     <form method="POST" action="{{ route('enf.acciones.revisiones.subsanar', [$accion, $revisionActual]) }}" class="space-y-3">
                         @csrf
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Observaci&oacute;n de subsanaci&oacute;n</label>
                         <textarea name="observaciones" rows="3" required class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
-                        <button class="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-800">Enviar a subsanaci&oacute;n</button>
+                        <button class="form-action form-action--danger">Enviar a subsanaci&oacute;n</button>
                     </form>
                 </div>
             </div>

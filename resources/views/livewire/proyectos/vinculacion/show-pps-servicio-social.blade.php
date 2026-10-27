@@ -90,14 +90,14 @@
 
             <div class="flex flex-wrap gap-2 xl:max-w-xs xl:justify-end">
                 <a href="{{ route('pps-servicio-social.pdf', $registro->id) }}"
-                   class="inline-flex items-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-sky-700">
+                   class="form-action form-action--download">
                     Descargar PDF
                 </a>
 
                 @if($puedeEditar)
                     <a href="{{ route('pps-servicio-social.edit', $registro->id) }}" wire:navigate
-                       class="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 shadow-sm transition hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:bg-amber-900/50">
-                        Editar
+                       class="form-action form-action--primary">
+                        {{ $registro->estado === 'subsanacion' ? 'Corregir proyecto' : 'Continuar editando' }}
                     </a>
                 @endif
 
@@ -116,7 +116,7 @@
                             x-on:click.prevent="confirmDialog('Al enviar este registro a revisión ya no podrá editarse. ¿Desea continuar?').then((ok) => ok && $wire.enviarRevision())"
                             wire:loading.attr="disabled"
                             wire:target="enviarRevision"
-                            class="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
+                            class="form-action form-action--send">
                         <span wire:loading.remove wire:target="enviarRevision">Enviar a revisión</span>
                         <span wire:loading wire:target="enviarRevision">Enviando...</span>
                     </button>
@@ -125,7 +125,7 @@
                 @if($puedeRechazar)
                     <button type="button"
                             wire:click="abrirModalSubsanacion"
-                            class="inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700">
+                            class="form-action form-action--danger" wire:loading.attr="disabled">
                         Enviar a subsanación
                     </button>
                 @endif
@@ -135,7 +135,7 @@
                             x-on:click.prevent="confirmDialog('¿Desea aprobar esta etapa del registro PPS / Servicio Social?').then((ok) => ok && $wire.aprobarEtapa())"
                             wire:loading.attr="disabled"
                             wire:target="aprobarEtapa"
-                            class="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
+                            class="form-action form-action--approve">
                         <span wire:loading.remove wire:target="aprobarEtapa">Aprobar</span>
                         <span wire:loading wire:target="aprobarEtapa">Aprobando...</span>
                     </button>
@@ -319,15 +319,15 @@
                     <div class="flex justify-end gap-3 pt-2">
                         <button type="button"
                                 wire:click="cerrarModalSubsanacion"
-                                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                                class="form-action form-action--secondary" wire:loading.attr="disabled">
                             Cancelar
                         </button>
                         <button type="button"
                                 wire:click="enviarASubsanar"
                                 wire:loading.attr="disabled"
                                 wire:target="enviarASubsanar"
-                                class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70">
-                            <span wire:loading.remove wire:target="enviarASubsanar">Subsanar</span>
+                                class="form-action form-action--danger">
+                            <span wire:loading.remove wire:target="enviarASubsanar">Enviar a subsanación</span>
                             <span wire:loading wire:target="enviarASubsanar">Enviando...</span>
                         </button>
                     </div>

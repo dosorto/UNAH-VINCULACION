@@ -34,9 +34,18 @@
             @endif
         </section>
         <div class="flex flex-wrap items-center gap-2">
-            <a href="{{ route('pasantias.pdf', $registro->id) }}" class="inline-flex items-center rounded-md bg-sky-600 px-4 py-3 text-sm font-medium text-white hover:bg-sky-700">Descargar PDF</a>
+            <a href="{{ route('pasantias.pdf', $registro->id) }}" class="form-action form-action--download">Descargar PDF</a>
+            @if($registro->puedeRechazarse(auth()->id(), auth()->user()))
+                <button type="button" wire:click="abrirModalSubsanacion" wire:loading.attr="disabled" class="form-action form-action--danger">Enviar a subsanación</button>
+            @endif
+            @if($registro->puedeAprobarse(auth()->id(), auth()->user()))
+                <button type="button" x-on:click.prevent="confirmDialog('¿Desea aprobar esta etapa de la pasantía?').then((ok) => ok && $wire.aprobar())" wire:loading.attr="disabled" wire:target="aprobar" class="form-action form-action--approve">
+                    <span wire:loading.remove wire:target="aprobar">Aprobar</span>
+                    <span wire:loading wire:target="aprobar">Aprobando...</span>
+                </button>
+            @endif
             @if($puedeEditar)
-                <a href="{{ route('pasantias.edit', $registro->id) }}" wire:navigate class="inline-flex items-center rounded-md bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700">Continuar editando</a>
+                <a href="{{ route('pasantias.edit', $registro->id) }}" wire:navigate class="form-action form-action--primary">{{ $registro->estado === 'subsanacion' ? 'Corregir proyecto' : 'Continuar editando' }}</a>
             @endif
         </div>
     </header>
@@ -81,5 +90,5 @@
         </aside>
     </div>
 
-    @if($subsanarModal)<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div class="w-full max-w-lg rounded-xl bg-white shadow-xl"><div class="border-b p-4"><h3 class="text-lg font-semibold">Enviar a subsanación</h3></div><div class="space-y-4 p-4"><label class="block text-sm font-medium">Correcciones requeridas <span class="text-red-500">*</span><textarea wire:model="subsanarComentario" rows="5" class="mt-1 w-full rounded-md border px-3 py-2"></textarea></label>@error('subsanarComentario')<p class="text-sm text-red-600">{{ $message }}</p>@enderror<div class="flex justify-end gap-3"><button type="button" wire:click="cerrarModalSubsanacion" class="rounded-lg border px-4 py-2">Cancelar</button><button type="button" wire:click="enviarASubsanar" wire:loading.attr="disabled" class="rounded-lg bg-amber-600 px-4 py-2 text-white">Subsanar</button></div></div></div></div>@endif
+    @if($subsanarModal)<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div class="w-full max-w-lg rounded-xl bg-white shadow-xl"><div class="border-b p-4"><h3 class="text-lg font-semibold">Enviar a subsanación</h3></div><div class="space-y-4 p-4"><label class="block text-sm font-medium">Correcciones requeridas <span class="text-red-500">*</span><textarea wire:model="subsanarComentario" rows="5" class="mt-1 w-full rounded-md border px-3 py-2"></textarea></label>@error('subsanarComentario')<p class="text-sm text-red-600">{{ $message }}</p>@enderror<div class="flex justify-end gap-3"><button type="button" wire:click="cerrarModalSubsanacion" class="form-action form-action--secondary" wire:loading.attr="disabled">Cancelar</button><button type="button" wire:click="enviarASubsanar" wire:loading.attr="disabled" class="form-action form-action--danger">Enviar a subsanación</button></div></div></div></div>@endif
 </div>
