@@ -51,6 +51,16 @@ class ListProyectosVinculacion extends Component
     public array $flowExistingAdoption = [];
     public ?string $flowAdoptionMode = null;
     public ?int $flowStartStageId = null;
+
+    public bool $flowManualStage = false;
+
+    public string $flowManualStageReason = '';
+
+    public array $flowHistoricalStages = [];
+
+    public array $flowHistoricalSigners = [];
+
+    public array $flowHistoricalCandidates = [];
     public array $flowReviewers = [];
     public string $flowSubsanacionReason = '';
 
@@ -141,6 +151,11 @@ class ListProyectosVinculacion extends Component
         $this->flowDiagnosis = [];
         $this->flowAdoptionMode = null;
         $this->flowStartStageId = null;
+        $this->flowManualStage = false;
+        $this->flowManualStageReason = '';
+        $this->flowHistoricalStages = [];
+        $this->flowHistoricalSigners = [];
+        $this->flowHistoricalCandidates = [];
         $this->flowReviewers = [];
         $this->flowSubsanacionReason = '';
         $this->flowIsLegacyAdoption = app(ProyectoLegacyWorkflowAdoptionService::class)
@@ -161,6 +176,11 @@ class ListProyectosVinculacion extends Component
 
         $this->flowAdoptionMode = null;
         $this->flowStartStageId = null;
+        $this->flowManualStage = false;
+        $this->flowManualStageReason = '';
+        $this->flowHistoricalStages = [];
+        $this->flowHistoricalSigners = [];
+        $this->flowHistoricalCandidates = [];
         $this->flowReviewers = [];
         $this->refreshFlowDiagnosis(true);
     }
@@ -172,6 +192,11 @@ class ListProyectosVinculacion extends Component
         }
 
         $this->flowStartStageId = null;
+        $this->flowManualStage = false;
+        $this->flowManualStageReason = '';
+        $this->flowHistoricalStages = [];
+        $this->flowHistoricalSigners = [];
+        $this->flowHistoricalCandidates = [];
         $this->flowReviewers = [];
         $this->refreshFlowDiagnosis(true);
 
@@ -182,12 +207,32 @@ class ListProyectosVinculacion extends Component
         }
     }
 
+    public function updatedFlowManualStage(): void
+    {
+        $this->authorizeWorkflowAdministration();
+        $this->flowStartStageId = null;
+        $this->flowManualStageReason = '';
+        $this->flowHistoricalStages = [];
+        $this->flowHistoricalSigners = [];
+        $this->flowHistoricalCandidates = [];
+        $this->refreshFlowDiagnosis(true);
+    }
+
     public function updatedFlowStartStageId(): void
     {
+        $this->flowHistoricalStages = [];
+        $this->flowHistoricalSigners = [];
         if ($this->flowIsLegacyAdoption) {
             $this->flowReviewers = [];
             $this->refreshFlowDiagnosis(true);
         }
+    }
+
+    public function updatedFlowHistoricalStages(): void
+    {
+        $this->authorizeWorkflowAdministration();
+        abort_unless(auth()->user()->hasRole('admin') && $this->flowManualStage, 403);
+        $this->refreshFlowDiagnosis();
     }
 
     public function refreshFlowReviewerCandidates(): void
@@ -229,12 +274,6 @@ class ListProyectosVinculacion extends Component
                         'integer',
                     ],
                     'flowReviewers' => ['array'],
-                    'flowSubsanacionReason' => [
-                        Rule::requiredIf($this->flowAdoptionMode === ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION),
-                        'nullable',
-                        'string',
-                        'max:2000',
-                    ],
                 ]);
 
                 $service->adoptar(
@@ -244,7 +283,9 @@ class ListProyectosVinculacion extends Component
                     $this->flowStartStageId,
                     $this->flowReviewers,
                     auth()->user(),
-                    $this->flowSubsanacionReason
+                    null,
+                    $this->flowManualStage ? '' : null,
+                    collect($this->flowHistoricalStages)->mapWithKeys(fn ($id) => [$id => $this->flowHistoricalSigners[$id] ?? []])->all()
                 );
 
                 $mensaje = match ($this->flowAdoptionMode) {
@@ -284,11 +325,39 @@ class ListProyectosVinculacion extends Component
         try {
             $diagnostico = app(ProyectoLegacyWorkflowAdoptionService::class)->diagnosticar(
                 Proyecto::findOrFail($this->flowProyectoId),
-                FlujoAprobacion::findOrFail($this->flowSelectedId)
+                FlujoAprobacion::findOrFail($this->flowSelectedId),
+                $this->flowManualStage ? $this->flowStartStageId : null,
+                $this->flowHistoricalStages
             );
+            if ($this->flowManualStage && auth()->user()?->hasRole('admin')) {
+                $this->flowHistoricalCandidates = [];
+                foreach ($diagnostico['etapas'] as $etapa) {
+                    $rol = $etapa['rol'];
+                    $this->flowHistoricalCandidates[$etapa['id']] = $rol
+                        ? Empleado::whereHas('firma')->whereHas('user', fn ($q) => $q->role($rol))
+                            ->with('user')->orderBy('nombre_completo')->get()
+                            ->map(fn ($e): array => ['id' => $e->id, 'nombre' => $e->nombre_completo, 'email' => $e->user->email])->all()
+                        : [];
+                }
+            }
+
+            if ($this->flowManualStage && ! $this->flowStartStageId) {
+                // Conservar la sugerencia como información, sin elegirla por el administrador.
+                $diagnostico['etapa_inicio_id'] = null;
+                $diagnostico['recorrido_ids'] = [];
+                $diagnostico['etapas'] = array_map(function (array $etapa): array {
+                    $etapa['es_inicio'] = false;
+                    $etapa['en_nuevo_recorrido'] = false;
+
+                    return $etapa;
+                }, $diagnostico['etapas']);
+                $diagnostico['bloqueos'][] = 'Seleccione la etapa que recibirá el proyecto antes de confirmar la adaptación manual.';
+            }
             $this->flowDiagnosis = $diagnostico;
             $this->flowAdoptionMode = $diagnostico['modo'];
-            $this->flowStartStageId = $diagnostico['etapa_inicio_id'];
+            if (! $this->flowManualStage) {
+                $this->flowStartStageId = $diagnostico['etapa_inicio_id'];
+            }
 
             $anteriores = $resetReviewers ? [] : $this->flowReviewers;
             $this->flowReviewers = [];
@@ -334,6 +403,11 @@ class ListProyectosVinculacion extends Component
         $this->flowExistingAdoption = [];
         $this->flowAdoptionMode = null;
         $this->flowStartStageId = null;
+        $this->flowManualStage = false;
+        $this->flowManualStageReason = '';
+        $this->flowHistoricalStages = [];
+        $this->flowHistoricalSigners = [];
+        $this->flowHistoricalCandidates = [];
         $this->flowReviewers = [];
         $this->flowSubsanacionReason = '';
     }

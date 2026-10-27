@@ -1608,8 +1608,23 @@ class Proyecto extends Model
                 return $etapa;
             });
 
-        return $etapas->concat(FlujoAprobacionEtapa::whereIn('id', $adoptadas)
-            ->where('flujo_aprobacion_id', $this->flujo_aprobacion_id)->get())
+        $evidenciaAnterior = $adoptadas->isNotEmpty()
+            ? collect($this->adopcionFlujoLegacy()->first()?->evidencia['etapas_anteriores'] ?? [])->keyBy('id')
+            : collect();
+        $etapasHistoricas = FlujoAprobacionEtapa::whereIn('id', $adoptadas)
+            ->where('flujo_aprobacion_id', $this->flujo_aprobacion_id)->get()
+            ->map(function (FlujoAprobacionEtapa $etapa) use ($evidenciaAnterior): FlujoAprobacionEtapa {
+                $historica = clone $etapa;
+                $snapshot = $evidenciaAnterior->get($etapa->id, []);
+                foreach (['orden', 'codigo', 'nombre', 'tipo_etapa', 'cargo_firma_id'] as $campo) {
+                    if (array_key_exists($campo, $snapshot)) {
+                        $historica->setAttribute($campo, $snapshot[$campo]);
+                    }
+                }
+                return $historica;
+            });
+
+        return $etapas->concat($etapasHistoricas)
             ->unique('id')->sortBy([['orden', 'asc'], ['id', 'asc']])->values();
     }
 
@@ -1899,6 +1914,20 @@ class Proyecto extends Model
         }
     }
 
+    /** Solo el ciclo inicial adoptado puede tener trabajo pendiente antes del rechazo histórico. */
+    public function esSubsanacionLegacyInicial(FirmaProyecto $firma): bool
+    {
+        if ($firma->firmable_type !== self::class || (int) $firma->firmable_id !== (int) $this->id
+            || (int) $firma->revision_ciclo !== 1 || $firma->estado_revision !== 'Rechazado') {
+            return false;
+        }
+        $adopcion = $this->adopcionFlujoLegacy()->first();
+        return $adopcion && $adopcion->modo === 'SUBSANACION'
+            && (int) $adopcion->flujo_aprobacion_id === (int) $firma->flujo_aprobacion_id
+            && (int) ($adopcion->evidencia['version'] ?? 1) >= 2
+            && in_array((int) $firma->id, $adopcion->evidencia['firmas_configurables_creadas'] ?? [], true);
+    }
+
     protected function firmasBaseParaNuevoCicloDesdeRechazo(FirmaProyecto $firmaRechazada, Collection $firmasCiclo): Collection
     {
         $plan = app(WorkflowResumptionPolicy::class)->plan(
@@ -1914,7 +1943,8 @@ class Proyecto extends Model
                     },
                     'source' => $firma,
                 ])
-                ->values()
+                ->values(),
+            $this->esSubsanacionLegacyInicial($firmaRechazada)
         );
 
         $firmasBase = $plan->stages->pluck('source')->values();

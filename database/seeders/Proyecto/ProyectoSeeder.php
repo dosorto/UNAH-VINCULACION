@@ -60,7 +60,7 @@ class ProyectoSeeder extends Seeder
             ->orderBy('nombre')
             ->value('id');
 
-        $defaultFlow = FlujoAprobacion::updateOrCreate(
+        $defaultFlow = FlujoAprobacion::firstOrCreate(
             ['codigo' => 'PROYECTO_DEFAULT'],
             [
                 'nombre' => 'Flujo de aprobacion de proyectos',
@@ -71,30 +71,31 @@ class ProyectoSeeder extends Seeder
             ]
         );
 
-        $defaultFlow->etapas()->delete();
+        // Nunca reconstruir etapas de un flujo existente: pueden tener firmas históricas.
+        if ($defaultFlow->wasRecentlyCreated) {
+            $defaultStages = collect(config('nexo.firmas_cargos.revisores_documento_proyecto') ?? []);
+            $defaultStages->each(function (array $stage, int $index) use ($defaultFlow) {
+                $cargo = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                    ->where('tipo_cargo_firma.nombre', $stage['cargo'])
+                    ->where('cargo_firma.descripcion', 'Proyecto')
+                    ->select('cargo_firma.*')
+                    ->first();
 
-        $defaultStages = collect(config('nexo.firmas_cargos.revisores_documento_proyecto') ?? []);
-        $defaultStages->each(function (array $stage, int $index) use ($defaultFlow) {
-            $cargo = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                ->where('tipo_cargo_firma.nombre', $stage['cargo'])
-                ->where('cargo_firma.descripcion', 'Proyecto')
-                ->select('cargo_firma.*')
-                ->first();
+                if (! $cargo) {
+                    return;
+                }
 
-            if (! $cargo) {
-                return;
-            }
+                $code = Str::of($stage['cargo'])->upper()->replaceMatches('/[^A-Z0-9]+/', '_')->trim('_')->value();
 
-            $code = Str::of($stage['cargo'])->upper()->replaceMatches('/[^A-Z0-9]+/', '_')->trim('_')->value();
-
-            $defaultFlow->etapas()->create([
-                'orden' => $index + 1,
-                'codigo' => $code,
-                'nombre' => $stage['cargo'],
-                'cargo_firma_id' => $cargo->id,
-                'activo' => true,
-            ]);
-        });
+                $defaultFlow->etapas()->create([
+                    'orden' => $index + 1,
+                    'codigo' => $code,
+                    'nombre' => $stage['cargo'],
+                    'cargo_firma_id' => $cargo->id,
+                    'activo' => true,
+                ]);
+            });
+        }
 
         collect([
             'Transdisciplinar',

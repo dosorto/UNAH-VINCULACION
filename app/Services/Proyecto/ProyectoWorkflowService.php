@@ -284,6 +284,12 @@ class ProyectoWorkflowService
 
     public function inscripcionCompletada(Proyecto $proyecto): bool
     {
+        $adopcion = $proyecto->adopcionFlujoLegacy()->first();
+        if ($adopcion && $adopcion->modo === ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO
+            && (int) $adopcion->flujo_aprobacion_id === (int) $proyecto->flujo_aprobacion_id) {
+            // El registro histórico acredita la inscripción global, no aprobaciones individuales ficticias.
+            return in_array(\App\Support\Proyecto\EstadoGeneralProyecto::nombre($adopcion->estado_origen), ['Registrado', 'Finalizado'], true);
+        }
         $flujo = $proyecto->resolveFlujoAprobacion();
         $etapas = $proyecto->etapasDelExpediente()
             ->filter(fn (FlujoAprobacionEtapa $etapa): bool => filled($etapa->cargo_firma_id))
