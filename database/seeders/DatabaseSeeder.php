@@ -39,6 +39,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PermisosSeeder::class);
         $this->call(PersonalSeeder::class);
         $this->call(NotificacionesPoaRolesSeeder::class);
+        $this->call(\Database\Seeders\Proyecto\FormDvus001FlujoSeeder::class);
         $this->call(EjesPrioritariosUnahSeeder::class);
         $this->call(CarreraDepartamentoSeeder::class);
         $this->call(MetasContribuyeSeeder::class);

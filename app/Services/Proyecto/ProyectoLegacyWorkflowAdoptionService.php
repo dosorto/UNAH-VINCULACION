@@ -63,7 +63,9 @@ final class ProyectoLegacyWorkflowAdoptionService
      */
     public function diagnosticar(
         Proyecto $proyecto,
-        FlujoAprobacion $flujo
+        FlujoAprobacion $flujo,
+        ?int $etapaManualId = null,
+        array $etapasRegularizadas = []
     ): array {
         $proyecto->loadMissing('adopcionFlujoLegacy');
         $flujo->loadMissing([
@@ -76,15 +78,42 @@ final class ProyectoLegacyWorkflowAdoptionService
         $estado = $proyecto->estado;
         $estadoNombre = $estado?->tipoestado?->nombre;
         $legacy = $this->firmasLegacy($proyecto);
+        $legacyVigente = $legacy->whereIn('estado_revision', ['Aprobado', 'Pendiente', 'Rechazado'])
+            ->sortByDesc('id')->unique(fn (FirmaProyecto $firma): string => $this->claveCargoFirma($firma).'|rol:'.$this->normalizar($firma->rol_requerido))->values();
         $etapas = $this->etapasInscripcion($flujo);
         $modoSugerido = $this->modoSugerido($estadoNombre);
         $modo = $modoSugerido;
         $cargoEstadoActual = $this->cargoEsperadoPorEstadoActual($proyecto);
-        [$etapaSugerida, $razonEtapa] = $this->detectarEtapaActual($proyecto, $etapas, $legacy, $modo);
+        [$etapaSugerida, $razonEtapa] = $this->detectarEtapaActual($proyecto, $etapas, $legacyVigente, $modo);
         $etapaInicio = in_array($modo, [self::MODO_EN_REVISION, self::MODO_SUBSANACION], true)
             ? $etapaSugerida
             : null;
-        $bloqueos = collect();
+        $conciliacion = app(LegacyStageReconciler::class)->reconcile(
+            $etapas, $legacy, fn (FirmaProyecto $firma, FlujoAprobacionEtapa $etapa): bool => $this->firmaCorrespondeEtapa($firma, $etapa)
+        );
+        $seleccionManual = $etapaManualId ? $etapas->firstWhere('id', $etapaManualId) : null;
+        $bloqueos = collect($conciliacion['bloqueos']);
+        if ($etapaManualId && (! $seleccionManual || ! in_array($modo, [self::MODO_EN_REVISION, self::MODO_SUBSANACION], true))) {
+            $bloqueos->push('La etapa seleccionada no es una etapa activa de inscripción válida para esta adaptación.');
+        }
+        if ($seleccionManual && $conciliacion['completadas']->contains('id', $seleccionManual->id)) {
+            $bloqueos->push('La etapa seleccionada ya tiene una aprobación comprobada y no debe repetirse.');
+        }
+
+        $regularizadas = collect($etapasRegularizadas)->map(fn ($id): int => (int) $id)->unique();
+        if ($regularizadas->count() !== count($etapasRegularizadas)) {
+            $bloqueos->push('No puede registrar más de una firma histórica para la misma etapa.');
+        }
+        foreach ($regularizadas as $id) {
+            $etapa = $etapas->firstWhere('id', $id);
+            $estadoFirma = $conciliacion['clasificacion']->get($id)['estado'] ?? null;
+            if (! $seleccionManual || ! $etapa || $etapa->tipo_etapa !== 'APROBACION'
+                || (int) $etapa->orden >= (int) $seleccionManual->orden
+                || in_array($estadoFirma, ['Aprobado', 'Rechazado'], true)) {
+                $bloqueos->push('Solo se pueden regularizar etapas de aprobación anteriores a la etapa de retorno, sin aprobación conservada ni rechazo vigente.');
+            }
+        }
+        $conciliacion['pendientes'] = $conciliacion['pendientes']->reject(fn ($etapa) => $regularizadas->contains((int) $etapa->id))->values();
 
         if (! $this->permiteAdaptacion($proyecto)) {
             $bloqueos->push('No se pueden adaptar proyectos que no han sido enviados a revisión. El borrador utilizará el flujo configurado al enviarse.');
@@ -120,7 +149,7 @@ final class ProyectoLegacyWorkflowAdoptionService
             $bloqueos->push('El flujo no tiene etapas activas de inscripción con cargo de firma.');
         }
 
-        if (in_array($modo, [self::MODO_EN_REVISION, self::MODO_SUBSANACION], true) && ! $etapaInicio) {
+        if (in_array($modo, [self::MODO_EN_REVISION, self::MODO_SUBSANACION], true) && ! $etapaInicio && ! $seleccionManual) {
             $bloqueos->push('El sistema no pudo identificar automáticamente una etapa única. Revise el historial legacy y la configuración del flujo.');
         }
 
@@ -130,43 +159,67 @@ final class ProyectoLegacyWorkflowAdoptionService
             $bloqueos->push('El proyecto tiene revisiones legacy activas; no es seguro adoptarlo como borrador.');
         }
 
-        if ($modo === self::MODO_SUBSANACION && $legacy->where('estado_revision', 'Rechazado')->count() > 1) {
+        if ($modo === self::MODO_SUBSANACION && $legacyVigente->where('estado_revision', 'Rechazado')->count() > 1) {
             $bloqueos->push('El historial legacy contiene más de una revisión rechazada; debe depurarse antes de adoptar el proyecto.');
         }
 
-        $etapasDesdeInicio = $etapaInicio
-            ? $etapas->filter(fn (FlujoAprobacionEtapa $etapa): bool => (int) $etapa->orden >= (int) $etapaInicio->orden)->values()
-            : collect();
+        $etapasDesdeInicio = in_array($modo, [self::MODO_EN_REVISION, self::MODO_SUBSANACION], true)
+            ? $conciliacion['pendientes'] : collect();
 
         if ($legacy->contains(fn (FirmaProyecto $firma): bool => ! $firma->esFirmaLegacy())) {
             $bloqueos->push('Existen firmas de un flujo cuya etapa ya no está disponible. Revise el historial antes de adaptar nuevamente el proyecto.');
         }
 
-        if ($modo === self::MODO_EN_REVISION && $etapasDesdeInicio->isNotEmpty()) {
-            $aprobadas = $legacy->where('estado_revision', 'Aprobado');
-            $repiteAprobacion = $etapasDesdeInicio->contains(fn (FlujoAprobacionEtapa $etapa): bool =>
-                $aprobadas->contains(fn (FirmaProyecto $firma): bool => $this->firmaCorrespondeEtapa($firma, $etapa))
-            );
+        if (! $seleccionManual && $etapaSugerida && $conciliacion['completadas']->contains('id', $etapaSugerida->id)) {
+            $bloqueos->push('La etapa detectada por el estado repetiría una aprobación histórica. Revise la correspondencia entre el estado y las etapas antes de adoptar.');
+        }
+        if ($modo === self::MODO_EN_REVISION && $legacyVigente->contains('estado_revision', 'Rechazado')) {
+            $bloqueos->push('El historial contiene un rechazo pero el estado no indica subsanación. Revise el estado de origen.');
+        }
 
-            if ($repiteAprobacion) {
-                $bloqueos->push('La etapa detectada por el estado repetiría una aprobación histórica. Revise la correspondencia entre el estado y las etapas antes de adoptar.');
-            }
+        // El estado de origen se conserva por separado del primer trabajo pendiente del nuevo orden.
+        $etapaInicio = $etapaSugerida ? $etapasDesdeInicio->first() : null;
+        if ($modo !== self::MODO_SUBSANACION && $etapaInicio && (int) $etapaInicio->id !== (int) $etapaSugerida->id) {
+            $razonEtapa .= ' El nuevo recorrido comienza en "'.$etapaInicio->nombre.'" porque no tiene una aprobación vigente comprobada.';
+        }
+
+        $priorizarRetorno = $modo === self::MODO_SUBSANACION && $etapaSugerida
+            && $conciliacion['pendientes']->contains('id', $etapaSugerida->id)
+            && (int) $etapasDesdeInicio->first()?->id !== (int) $etapaSugerida->id;
+        if ($priorizarRetorno) {
+            $etapaInicio = $etapaSugerida;
+            $etapasDesdeInicio = collect([$etapaSugerida])->concat(
+                $etapasDesdeInicio->reject(fn ($etapa) => (int) $etapa->id === (int) $etapaSugerida->id)
+            )->values();
+            $razonEtapa .= ' Al reenviar, esta etapa recibirá primero; las demás revisiones pendientes se conservarán después.';
+        }
+        $inicioAutomaticoId = $etapaInicio?->id;
+        if ($seleccionManual) {
+            $etapaInicio = $seleccionManual;
+            $etapasDesdeInicio = collect([$seleccionManual])->concat(
+                $conciliacion['pendientes']->reject(fn ($etapa) => (int) $etapa->id === (int) $seleccionManual->id)
+            )->values();
         }
 
         $etapasUi = $etapas->map(function (FlujoAprobacionEtapa $etapa) use (
             $legacy,
             $etapaInicio,
+            $etapaSugerida,
             $etapasDesdeInicio,
             $modo,
-            $bloqueos
+            $bloqueos,
+            $conciliacion,
+            $regularizadas
         ): array {
             $estaEnNuevoRecorrido = $etapasDesdeInicio->contains(fn (FlujoAprobacionEtapa $item): bool => (int) $item->id === (int) $etapa->id);
             $candidatos = $estaEnNuevoRecorrido ? $this->candidatosParaEtapa($etapa) : collect();
             $propuesto = $estaEnNuevoRecorrido
-                ? $this->revisorPropuesto($etapa, $legacy, $modo, (int) $etapaInicio?->id === (int) $etapa->id)
+                ? $this->revisorPropuesto($etapa, $legacy, $modo, (int) $etapaSugerida?->id === (int) $etapa->id)
                 : null;
 
-            if ($estaEnNuevoRecorrido && $candidatos->isEmpty()) {
+            if ($estaEnNuevoRecorrido && $etapa->responsableFijoPendiente()) {
+                $bloqueos->push(sprintf('Configure el responsable fijo de la etapa "%s" en Configuración → Flujos antes de adaptar.', $etapa->nombre));
+            } elseif ($estaEnNuevoRecorrido && $candidatos->isEmpty()) {
                 $bloqueos->push(sprintf(
                     'La etapa "%s" no tiene usuarios elegibles con empleado activo, rol y correo válido.',
                     $etapa->nombre
@@ -182,9 +235,12 @@ final class ProyectoLegacyWorkflowAdoptionService
                 'cargo' => $etapa->cargoFirma?->tipoCargoFirma?->nombre,
                 'estado' => $etapa->cargoFirma?->estadoProyectoActual?->nombre,
                 'es_inicio' => (int) $etapaInicio?->id === (int) $etapa->id,
-                'es_anterior' => $etapaInicio && (int) $etapa->orden < (int) $etapaInicio->orden,
+                'es_anterior' => $conciliacion['clasificacion']->get((int) $etapa->id)['completada'],
+                'regularizacion_solicitada' => $regularizadas->contains((int) $etapa->id),
+                'tipo_etapa' => $etapa->tipo_etapa,
+                'evidencia_legacy' => $conciliacion['clasificacion']->get((int) $etapa->id),
                 'en_nuevo_recorrido' => $estaEnNuevoRecorrido,
-                'responsable_fijo' => ! $etapa->emisor_define_destinatario && filled($etapa->usuario_responsable_id),
+                'responsable_fijo' => ! $etapa->emisor_define_destinatario && ($etapa->requiere_asignacion || filled($etapa->usuario_responsable_id)),
                 'propuesto_usuario_id' => $propuesto?->id,
                 'propuesto' => $propuesto ? [
                     'id' => (int) $propuesto->id,
@@ -208,7 +264,12 @@ final class ProyectoLegacyWorkflowAdoptionService
             'modo_sugerido' => $modoSugerido,
             'modo' => $modo,
             'etapa_sugerida_id' => $etapaSugerida?->id,
+            'etapa_origen' => $etapaSugerida?->nombre,
             'etapa_inicio_id' => $etapaInicio?->id,
+            'inicio_automatico_id' => $inicioAutomaticoId,
+            'seleccion_manual' => (bool) $seleccionManual,
+            'orden_ejecucion_propio' => (bool) $seleccionManual || (bool) $priorizarRetorno,
+            'recorrido_ids' => $etapasDesdeInicio->pluck('id')->all(),
             'razon_etapa' => $razonEtapa,
             'etapas' => $etapasUi,
             'bloqueos' => $bloqueos->unique()->values()->all(),
@@ -224,7 +285,9 @@ final class ProyectoLegacyWorkflowAdoptionService
         ?int $etapaInicioId,
         array $revisoresPorEtapa,
         User $actor,
-        ?string $motivoSubsanacion = null
+        ?string $motivoSubsanacion = null,
+        ?string $motivoEtapaManual = null,
+        array $firmasHistoricas = []
     ): LegacyWorkflowAdoption {
         if (! $this->modoValido($modo)) {
             throw new \RuntimeException('El modo de adopción indicado no es válido.');
@@ -237,7 +300,9 @@ final class ProyectoLegacyWorkflowAdoptionService
             $etapaInicioId,
             $revisoresPorEtapa,
             $actor,
-            $motivoSubsanacion
+            $motivoSubsanacion,
+            $motivoEtapaManual,
+            $firmasHistoricas
         ): array {
             $proyectoBloqueado = Proyecto::query()
                 ->whereKey($proyecto->id)
@@ -258,7 +323,17 @@ final class ProyectoLegacyWorkflowAdoptionService
                 throw new \RuntimeException('El proyecto ya tiene un ciclo de revisión configurable.');
             }
 
-            $diagnostico = $this->diagnosticar($proyectoBloqueado, $flujoBloqueado);
+            $manual = $motivoEtapaManual !== null;
+            if ($manual && (! $actor->hasRole(['admin', 'Director/Enlace']) || ! $actor->can('proyectos.historial'))) {
+                throw new \RuntimeException('No tiene autorización para seleccionar manualmente la etapa de adaptación.');
+            }
+            if ($manual && (mb_strlen($motivoEtapaManual) > 2000 || ! $etapaInicioId)) {
+                throw new \RuntimeException('Seleccione una etapa válida. Si proporciona una justificación, no debe superar 2000 caracteres.');
+            }
+            if ($firmasHistoricas !== [] && (! $manual || ! $actor->hasRole('admin') || ! $actor->can('proyectos.historial'))) {
+                throw new \RuntimeException('Solo un administrador puede regularizar firmas históricas durante la selección manual de etapa.');
+            }
+            $diagnostico = $this->diagnosticar($proyectoBloqueado, $flujoBloqueado, $manual ? $etapaInicioId : null, array_keys($firmasHistoricas));
 
             if ($diagnostico['bloqueos'] !== []) {
                 throw new \RuntimeException(implode(' ', $diagnostico['bloqueos']));
@@ -283,14 +358,17 @@ final class ProyectoLegacyWorkflowAdoptionService
             $etapas = $this->etapasInscripcion($flujoBloqueado);
             $etapaInicio = $etapas->firstWhere('id', $etapaInicioId);
             $etapasNuevoRecorrido = $etapaInicio
-                ? $etapas->filter(fn (FlujoAprobacionEtapa $etapa): bool => (int) $etapa->orden >= (int) $etapaInicio->orden)->values()
+                ? collect($diagnostico['recorrido_ids'])->map(fn ($id) => $etapas->firstWhere('id', $id))->values()
                 : collect();
             $asignaciones = $this->validarRevisores(
                 $etapasNuevoRecorrido,
                 $revisoresPorEtapa,
                 in_array($modo, [self::MODO_EN_REVISION, self::MODO_SUBSANACION], true)
             );
+            $regularizaciones = $this->validarFirmasHistoricas($firmasHistoricas, $etapas)
+                ->sortBy(fn ($datos, $id) => $etapas->firstWhere('id', $id)->orden);
             $estadoOrigen = $proyectoBloqueado->estado;
+            $historialOrigen = $proyectoBloqueado->estado_proyecto()->orderBy('id')->get(['id', 'tipo_estado_id', 'comentario', 'fecha', 'es_actual'])->toArray();
             $legacy = $this->firmasLegacy($proyectoBloqueado);
             $estadoNormalizadoId = null;
 
@@ -304,11 +382,7 @@ final class ProyectoLegacyWorkflowAdoptionService
             }
 
             if ($modo === self::MODO_SUBSANACION) {
-                $motivoSubsanacion = trim((string) $motivoSubsanacion);
-
-                if ($motivoSubsanacion === '') {
-                    throw new \RuntimeException('Debe indicar el motivo histórico de la subsanación.');
-                }
+                $motivoSubsanacion = trim((string) ($estadoOrigen?->comentario ?: $motivoSubsanacion));
 
                 $estadoNormalizadoId = $this->asegurarEstadoSubsanacion(
                     $proyectoBloqueado,
@@ -326,7 +400,9 @@ final class ProyectoLegacyWorkflowAdoptionService
                     $proyectoBloqueado,
                     $flujoBloqueado,
                     $asignaciones,
-                    $modo
+                    $modo,
+                    $diagnostico,
+                    $regularizaciones
                 ): FirmaProyecto {
                     $usuario = $asignaciones->get((int) $etapa->id);
 
@@ -335,14 +411,14 @@ final class ProyectoLegacyWorkflowAdoptionService
                         'cargo_firma_id' => $etapa->cargo_firma_id,
                         'flujo_aprobacion_id' => $flujoBloqueado->id,
                         'flujo_aprobacion_etapa_id' => $etapa->id,
-                        'orden_revision' => $etapa->orden,
+                        'orden_revision' => $diagnostico['orden_ejecucion_propio'] ? $regularizaciones->count() + $indice + 1 : $etapa->orden,
                         'etapa_codigo' => $etapa->codigo,
                         'etapa_nombre' => $etapa->nombre,
                         'rol_requerido' => $etapa->rolRevisor?->name,
                         'responsable_usuario_id' => $usuario->id,
                         'requiere_asignacion' => (bool) $etapa->requiere_asignacion,
                         'revision_ciclo' => 1,
-                        'estado_revision' => $modo === self::MODO_SUBSANACION && $indice === 0
+                        'estado_revision' => $modo === self::MODO_SUBSANACION && (int) $etapa->id === (int) ($diagnostico['seleccion_manual'] ? $diagnostico['etapa_inicio_id'] : $diagnostico['etapa_sugerida_id'])
                             ? 'Rechazado'
                             : 'Pendiente',
                         'firma_id' => null,
@@ -351,6 +427,41 @@ final class ProyectoLegacyWorkflowAdoptionService
                         'hash' => (string) Str::uuid(),
                     ]);
                 })->values();
+            }
+
+            $firmasRegularizadas = collect();
+            foreach ($regularizaciones as $etapaId => $datos) {
+                $etapa = $etapas->firstWhere('id', $etapaId);
+                $empleado = $datos['empleado'];
+                $firma = $proyectoBloqueado->firma_proyecto()->create([
+                    'empleado_id' => $empleado->id,
+                    'cargo_firma_id' => $etapa->cargo_firma_id,
+                    'flujo_aprobacion_id' => $flujoBloqueado->id,
+                    'flujo_aprobacion_etapa_id' => $etapa->id,
+                    'orden_revision' => $firmasRegularizadas->count() + 1,
+                    'etapa_codigo' => $etapa->codigo,
+                    'etapa_nombre' => $etapa->nombre,
+                    'rol_requerido' => $etapa->rolRevisor?->name,
+                    'responsable_usuario_id' => $empleado->user_id,
+                    'requiere_asignacion' => true,
+                    'revision_ciclo' => 1,
+                    'estado_revision' => 'Aprobado',
+                    'firma_id' => $datos['firma']->id,
+                    'sello_id' => null,
+                    'fecha_firma' => $datos['fecha'],
+                    'hash' => (string) Str::uuid(),
+                ]);
+                $firmasRegularizadas->push([
+                    'firma_proyecto_id' => $firma->id,
+                    'etapa_id' => $etapa->id,
+                    'empleado_id' => $empleado->id,
+                    'nombre_firmante' => $empleado->nombre_completo,
+                    'firma_id' => $datos['firma']->id,
+                    'fecha_historica' => $datos['fecha'],
+                    'registrada_por' => $actor->id,
+                    'registrada_en' => now()->toIso8601String(),
+                    'motivo' => trim($motivoEtapaManual),
+                ]);
             }
 
             $legacyPendientes = $legacy->where('estado_revision', 'Pendiente')->pluck('id')->values();
@@ -367,11 +478,7 @@ final class ProyectoLegacyWorkflowAdoptionService
             $revisorActual = $primeraFirma
                 ? $asignaciones->get((int) $primeraFirma->flujo_aprobacion_etapa_id)
                 : null;
-            $etapasAnteriores = $modo === self::MODO_COMPLETADO
-                ? $etapas
-                : ($etapaInicio
-                    ? $etapas->filter(fn (FlujoAprobacionEtapa $etapa): bool => (int) $etapa->orden < (int) $etapaInicio->orden)
-                    : collect());
+            $etapasAnteriores = $etapas->whereIn('id', collect($diagnostico['etapas'])->where('es_anterior', true)->pluck('id'));
 
             $adopcion = $proyectoBloqueado->adopcionFlujoLegacy()->create([
                 'flujo_aprobacion_id' => $flujoBloqueado->id,
@@ -385,12 +492,28 @@ final class ProyectoLegacyWorkflowAdoptionService
                 'adoptado_por_usuario_id' => $actor->id,
                 'adoptado_en' => now(),
                 'evidencia' => [
-                    'version' => 1,
+                    'version' => 3,
+                    'firmas_regularizadas' => $firmasRegularizadas->all(),
+                    'seleccion_etapa' => [
+                        'manual' => $manual,
+                        'sugerida_id' => $diagnostico['inicio_automatico_id'],
+                        'elegida_id' => $etapaInicioId,
+                        'motivo' => $manual ? trim($motivoEtapaManual) : null,
+                        'usuario_id' => $actor->id,
+                    ],
+                    'conciliacion' => collect($diagnostico['etapas'])->map(fn (array $etapa): array => [
+                        'etapa_id' => $etapa['id'],
+                        'nombre' => $etapa['nombre'],
+                        'evidencia' => $etapa['evidencia_legacy'],
+                        'en_nuevo_recorrido' => $etapa['en_nuevo_recorrido'],
+                    ])->all(),
+                    'historial_estados' => $historialOrigen,
                     'diagnostico' => [
                         'estado_id' => $estadoOrigen?->tipo_estado_id,
                         'estado' => $estadoOrigen?->tipoestado?->nombre,
                         'comentario' => $estadoOrigen?->comentario,
                         'razon_etapa' => $diagnostico['razon_etapa'],
+                        'etapa_origen_id' => $diagnostico['etapa_sugerida_id'],
                     ],
                     'etapas_anteriores' => $etapasAnteriores->map(fn (FlujoAprobacionEtapa $etapa): array => $this->snapshotEtapa($etapa))->values()->all(),
                     'nuevo_recorrido' => $etapasNuevoRecorrido->map(fn (FlujoAprobacionEtapa $etapa): array => $this->snapshotEtapa($etapa))->values()->all(),
@@ -400,9 +523,14 @@ final class ProyectoLegacyWorkflowAdoptionService
                         'cargo_firma_id' => (int) $firma->cargo_firma_id,
                         'empleado_id' => (int) $firma->empleado_id,
                         'estado' => $firma->estado_revision,
+                        'rol_requerido' => $firma->rol_requerido,
+                        'firma_id' => $firma->firma_id,
+                        'sello_id' => $firma->sello_id,
+                        'fecha_firma' => $firma->fecha_firma,
+                        'hash' => $firma->hash,
                     ])->values()->all(),
                     'firmas_legacy_anuladas' => $legacyPendientes->all(),
-                    'firmas_configurables_creadas' => $firmasCreadas->pluck('id')->all(),
+                    'firmas_configurables_creadas' => $firmasCreadas->pluck('id')->concat($firmasRegularizadas->pluck('firma_proyecto_id'))->all(),
                     'estado_normalizado_id' => $estadoNormalizadoId,
                     'motivo_subsanacion' => $modo === self::MODO_SUBSANACION ? $motivoSubsanacion : null,
                 ],
@@ -488,6 +616,30 @@ final class ProyectoLegacyWorkflowAdoptionService
         ];
     }
 
+    private function validarFirmasHistoricas(array $firmas, Collection $etapas): Collection
+    {
+        return collect($firmas)->map(function ($datos, $etapaId) use ($etapas): array {
+            if (! is_array($datos)) {
+                throw new \RuntimeException('Los datos de la firma histórica no son válidos.');
+            }
+            $empleado = \App\Models\Personal\Empleado::with(['firma', 'user'])->find((int) ($datos['empleado_id'] ?? 0));
+            $rol = $etapas->firstWhere('id', $etapaId)?->rolRevisor?->name;
+            if (! $rol || ! $empleado?->user || ! $empleado->user->hasRole($rol)) {
+                throw new \RuntimeException('El firmante histórico debe tener el rol configurado para esa etapa.');
+            }
+            $firma = $empleado?->firma;
+            $imagen = $firma ? \App\Support\Fichas\FirmaImagen::resolver($firma->ruta_storage, true) : null;
+            if (! $empleado || ! $firma || empty($imagen['path']) || ! @getimagesize($imagen['path'])) {
+                throw new \RuntimeException('Cada firmante histórico debe tener una firma guardada válida y disponible para el PDF.');
+            }
+            $fecha = filled($datos['fecha'] ?? null) ? $datos['fecha'] : null;
+            if (\Illuminate\Support\Facades\Validator::make(['fecha' => $fecha], ['fecha' => 'nullable|date_format:Y-m-d|before_or_equal:today'])->fails()) {
+                throw new \RuntimeException('La fecha histórica debe ser válida y no puede estar en el futuro.');
+            }
+            return ['empleado' => $empleado, 'firma' => $firma, 'fecha' => $fecha];
+        });
+    }
+
     private function validarRevisores(Collection $etapas, array $revisoresPorEtapa, bool $sonRequeridos): Collection
     {
         if (! $sonRequeridos) {
@@ -506,6 +658,9 @@ final class ProyectoLegacyWorkflowAdoptionService
         $usuarios = collect();
 
         foreach ($etapas as $etapa) {
+            if ($etapa->responsableFijoPendiente()) {
+                throw new \RuntimeException(sprintf('Configure el responsable fijo de la etapa "%s" antes de adaptar.', $etapa->nombre));
+            }
             $rol = $etapa->rolRevisor?->name;
 
             if (! $etapa->emisor_define_destinatario && $etapa->usuario_responsable_id) {
@@ -646,22 +801,35 @@ final class ProyectoLegacyWorkflowAdoptionService
                 return [null, 'La etapa que solicitó la subsanación no tiene una correspondencia única en el flujo seleccionado.'];
             }
 
-            $estadosAnteriores = $proyecto->estado_proyecto()
-                ->where('id', '!=', $proyecto->estado?->id)
-                ->latest('id')
-                ->pluck('tipo_estado_id');
-
-            foreach ($estadosAnteriores as $tipoEstadoId) {
-                $coincidencias = $etapas->where('cargoFirma.tipo_estado_id', $tipoEstadoId);
-
-                if ($coincidencias->count() === 1) {
-                    return [$coincidencias->first(), 'Se identificó por el estado inmediatamente anterior a la subsanación.'];
-                }
-
-                if (CargoFirma::query()->where('descripcion', 'Proyecto')->where('tipo_estado_id', $tipoEstadoId)->exists()) {
-                    return [null, 'La etapa anterior a la subsanación no tiene una correspondencia única en el flujo seleccionado.'];
-                }
+            // Solo interpretar el estado previo de este episodio; no retroceder a otro ciclo.
+            $anterior = $proyecto->estado_proyecto()
+                ->where('id', '<', $proyecto->estado?->id)
+                ->whereHas('tipoestado', fn ($q) => $q->whereNotIn('nombre', ['Subsanacion', 'Subsanación']))
+                ->with('tipoestado')->latest('id')->first();
+            if (! $anterior) {
+                return [null, 'No existe un estado anterior que identifique el origen de la subsanación.'];
             }
+
+            $estadoAnterior = $anterior->tipoestado?->nombre;
+            $cargoLegacy = collect(config('nexo.firmas_cargos.revisores_documento_proyecto', []))
+                ->first(fn (array $regla): bool => $this->normalizar($regla['estado'] ?? '') === $this->normalizar($estadoAnterior));
+            if ($cargoLegacy) {
+                $rolEsperado = $this->normalizar($cargoLegacy['cargo']);
+                $coincidencias = $etapas->filter(fn (FlujoAprobacionEtapa $etapa): bool =>
+                    $this->normalizar($etapa->rolRevisor?->name) === $rolEsperado);
+                // Compatibilidad con etapas antiguas sin rol explícito: usar el cargo semántico.
+                if ($coincidencias->isEmpty()) {
+                    $coincidencias = $etapas->filter(fn (FlujoAprobacionEtapa $etapa): bool =>
+                        blank($etapa->rol_revisor_id) && $this->normalizar($etapa->cargoFirma?->tipoCargoFirma?->nombre) === $rolEsperado);
+                }
+            } else {
+                $coincidencias = $etapas->where('cargoFirma.tipo_estado_id', $anterior->tipo_estado_id);
+            }
+            if ($coincidencias->count() === 1) {
+                return [$coincidencias->first(), sprintf('El estado anterior "%s" (registro #%d) identifica la etapa de retorno "%s" según el recorrido legacy.',
+                    $estadoAnterior, $anterior->id, $coincidencias->first()->nombre)];
+            }
+            return [null, sprintf('El estado anterior "%s" no tiene una correspondencia única en el flujo seleccionado. Seleccione la etapa con una justificación.', $estadoAnterior)];
         }
 
         $tipoEstadoActualId = $proyecto->estado?->tipo_estado_id;
@@ -671,6 +839,15 @@ final class ProyectoLegacyWorkflowAdoptionService
 
         if ($coincidenciasEstado->count() === 1) {
             return [$coincidenciasEstado->first(), 'Se identificó por el estado actual y el cargo configurado de la etapa.'];
+        }
+
+        if ($coincidenciasEstado->count() > 1) {
+            $pendientesDelEstado = $coincidenciasEstado->filter(fn (FlujoAprobacionEtapa $etapa): bool => $legacy
+                ->where('estado_revision', 'Pendiente')
+                ->contains(fn (FirmaProyecto $firma): bool => $this->firmaCorrespondeEtapa($firma, $etapa)));
+            if ($pendientesDelEstado->count() === 1) {
+                return [$pendientesDelEstado->first(), 'Se identificó por el estado y el rol de la revisión legacy pendiente.'];
+            }
         }
 
         $cargoEstadoActual = $this->cargoEsperadoPorEstadoActual($proyecto);
@@ -746,6 +923,10 @@ final class ProyectoLegacyWorkflowAdoptionService
     ): ?User {
         $rol = $etapa->rolRevisor?->name;
 
+        if ($etapa->responsableFijoPendiente()) {
+            return null;
+        }
+
         if (! $etapa->emisor_define_destinatario && $etapa->usuario_responsable_id) {
             return $this->resumptionPolicy->eligibleRecipient(
                 $etapa->usuarioResponsable,
@@ -776,6 +957,10 @@ final class ProyectoLegacyWorkflowAdoptionService
     {
         $rol = $etapa->rolRevisor?->name;
 
+        if ($etapa->responsableFijoPendiente()) {
+            return collect();
+        }
+
         if (! $etapa->emisor_define_destinatario && $etapa->usuario_responsable_id) {
             $responsable = $this->resumptionPolicy->eligibleRecipient(
                 $etapa->usuarioResponsable,
@@ -801,6 +986,8 @@ final class ProyectoLegacyWorkflowAdoptionService
     {
         return $proyecto->firma_proyecto()
             ->whereNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->whereDoesntHave('cargo_firma.tipoCargoFirma', fn ($q) => $q->where('nombre', 'Coordinador Proyecto'))
             ->with(['empleado.user', 'cargo_firma.tipoCargoFirma'])
             ->orderBy('id')
             ->get();
@@ -808,7 +995,9 @@ final class ProyectoLegacyWorkflowAdoptionService
 
     private function firmaCorrespondeEtapa(FirmaProyecto $firma, FlujoAprobacionEtapa $etapa): bool
     {
-        return $this->claveCargoFirma($firma) === $this->claveCargoEtapa($etapa);
+        return $this->claveCargoFirma($firma) === $this->claveCargoEtapa($etapa)
+            && (blank($firma->rol_requerido)
+                || $this->normalizar($firma->rol_requerido) === $this->normalizar($etapa->rolRevisor?->name));
     }
 
     private function claveCargoFirma(FirmaProyecto $firma): string

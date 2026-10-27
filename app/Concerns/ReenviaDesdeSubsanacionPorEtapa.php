@@ -61,6 +61,8 @@ trait ReenviaDesdeSubsanacionPorEtapa
 
     protected function empleadosPorEtapaParaReenvio(FirmaProyecto $firmaRechazada, array $usuariosReemplazo = []): array
     {
+        $incluirPendientesAnteriores = $firmaRechazada->firmable instanceof Proyecto
+            && $firmaRechazada->firmable->esSubsanacionLegacyInicial($firmaRechazada);
         $firmas = FirmaProyecto::query()
             ->with('empleado')
             ->where('firmable_type', $firmaRechazada->firmable_type)
@@ -74,7 +76,8 @@ trait ReenviaDesdeSubsanacionPorEtapa
             ->orderBy('id')
             ->get()
             ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
-            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
+            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision
+                || ($incluirPendientesAnteriores && $firma->estado_revision === 'Pendiente'))
             ->values();
 
         $empleadosPorEtapa = [];
@@ -125,6 +128,8 @@ trait ReenviaDesdeSubsanacionPorEtapa
 
     protected function etapasQueRequierenReemplazoParaReenvio(FirmaProyecto $firmaRechazada): Collection
     {
+        $incluirPendientesAnteriores = $firmaRechazada->firmable instanceof Proyecto
+            && $firmaRechazada->firmable->esSubsanacionLegacyInicial($firmaRechazada);
         $firmas = FirmaProyecto::query()
             ->with('empleado.user')
             ->where('firmable_type', $firmaRechazada->firmable_type)
@@ -136,7 +141,8 @@ trait ReenviaDesdeSubsanacionPorEtapa
             ->orderBy('orden_revision')
             ->get()
             ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
-            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
+            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision
+                || ($incluirPendientesAnteriores && $firma->estado_revision === 'Pendiente'))
             ->values();
 
         return app(ProyectoWorkflowService::class)->firmasParaReanudacion($firmas)

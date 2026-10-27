@@ -189,7 +189,7 @@ class ProyectoLegacyWorkflowAdoptionTest extends TestCase
             ->whereNotNull('flujo_aprobacion_etapa_id')
             ->where('orden_revision', 1)
             ->count());
-        $this->assertSame(3, $contexto['proyecto']->firma_proyecto()
+        $this->assertSame(2, $contexto['proyecto']->firma_proyecto()
             ->whereNull('flujo_aprobacion_etapa_id')
             ->where('estado_revision', 'Anulado')
             ->count());
@@ -364,7 +364,7 @@ class ProyectoLegacyWorkflowAdoptionTest extends TestCase
             ->assertSet('flowAdoptionMode', ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION)
             ->assertSet('flowStartStageId', $contexto['etapas'][1]->id)
             ->assertSee('Diagnóstico legacy')
-            ->assertSee('Completadas antes de la adopción')
+            ->assertSee('Aprobaciones comprobadas antes de la adopción')
             ->assertSee('Responsables del recorrido que continúa')
             ->assertSee('Situación detectada')
             ->assertSee('Etapa actual / etapa de retorno detectada')
@@ -488,7 +488,7 @@ class ProyectoLegacyWorkflowAdoptionTest extends TestCase
         $nueva->forceFill(['codigo' => 'ETAPA_NUEVA', 'nombre' => 'Etapa agregada después', 'orden' => 10])->save();
         // Cambiar el catálogo no invalida una inscripción ya completada/adoptada.
         $this->assertTrue(app(ProyectoWorkflowService::class)->inscripcionCompletada($proyecto->fresh()));
-        $this->assertTrue($proyecto->fresh()->etapasParaStepper()->last()['adoptada_antes']);
+        $this->assertFalse($proyecto->fresh()->etapasParaStepper()->last()['adoptada_antes']);
         $configuracion = new \App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
         (new \ReflectionMethod($configuracion, 'syncFlowStages'))->invoke($configuracion, $contexto['flujo'], []);
         $this->assertTrue(app(ProyectoWorkflowService::class)->inscripcionCompletada($proyecto->fresh()));
@@ -638,6 +638,7 @@ class ProyectoLegacyWorkflowAdoptionTest extends TestCase
                 'flujo_aprobacion_id' => $flujo->id,
                 'orden' => $orden,
                 'codigo' => 'ETAPA_'.$orden,
+                'requiere_asignacion' => false,
                 'nombre' => 'Etapa '.$orden,
                 'tipo_etapa' => 'APROBACION',
                 'rol_revisor_id' => $rol->id,
@@ -650,7 +651,7 @@ class ProyectoLegacyWorkflowAdoptionTest extends TestCase
                 $proyecto->firma_proyecto()->create([
                     'empleado_id' => $empleado->id,
                     'cargo_firma_id' => $cargo->id,
-                    'estado_revision' => $rechazada && $etapaActual === $orden ? 'Rechazado' : 'Pendiente',
+                    'estado_revision' => $rechazada && $etapaActual === $orden ? 'Rechazado' : ($etapaActual && $orden < $etapaActual ? 'Aprobado' : 'Pendiente'),
                     'hash' => 'legacy-'.$orden.'-'.uniqid(),
                 ]);
             }

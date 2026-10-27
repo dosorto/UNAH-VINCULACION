@@ -362,7 +362,7 @@
                                 </div>
                             </div>
                             <div class="mt-4 flex flex-wrap justify-end gap-2">
-                                <button type="button" wire:click="cambiarInstitucion" class="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200">Cancelar</button>
+                                <button type="button" wire:click="cambiarInstitucion" class="form-action form-action--secondary" wire:loading.attr="disabled">Cancelar</button>
                                 <button type="button" wire:click="guardarInstitucionNueva" wire:loading.attr="disabled" wire:target="guardarInstitucionNueva" class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-60">Guardar institución</button>
                             </div>
                         </div>
@@ -996,7 +996,7 @@
         <div class="mt-8 flex items-center justify-between border-t border-gray-200 pt-4 dark:border-gray-700">
             <div>
                 @if($currentStep > 1)
-                    <button type="button" wire:click="prevStep" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                    <button type="button" wire:click="prevStep" class="form-action form-action--secondary" wire:loading.attr="disabled">
                         &larr; Anterior
                     </button>
                 @endif
@@ -1004,18 +1004,18 @@
 
             <div class="flex items-center gap-3">
                 @if($currentStep < $totalSteps)
-                    <button type="button" wire:click="nextStep" class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    <button type="button" wire:click="nextStep" class="form-action form-action--primary" wire:loading.attr="disabled">
                         Siguiente &rarr;
                     </button>
                 @else
                     <button type="button" wire:click="guardarBorrador"
-                        class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                        class="form-action form-action--secondary" wire:loading.attr="disabled">
                         {{ $esRevisor ? 'Guardar cambios' : 'Guardar como borrador' }}
                     </button>
                     @unless($esRevisor)
                         <button type="button" wire:click="abrirModalEnviar" wire:loading.attr="disabled" wire:target="abrirModalEnviar"
-                            class="inline-flex items-center rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 disabled:opacity-60">
-                            Enviar a firmar
+                            class="form-action form-action--send">
+                            Enviar a revisión
                         </button>
                     @endunless
                 @endif
@@ -1108,21 +1108,21 @@
 
                 {{-- Footer --}}
                 <div class="mt-6 flex items-center justify-between">
-                    <button wire:click="cancelarModal" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                    <button wire:click="cancelarModal" class="form-action form-action--secondary" wire:loading.attr="disabled">
                         Cancelar
                     </button>
                     <div class="flex items-center gap-2">
                         @if ($modalStep > 1)
-                            <button wire:click="modalAnterior" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                            <button wire:click="modalAnterior" class="form-action form-action--secondary" wire:loading.attr="disabled">
                                 &larr; Anterior
                             </button>
                         @endif
                         @if (count($modalEtapas) > 0 && $modalStep <= count($modalEtapas))
-                            <button wire:click="modalSiguiente" class="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
+                            <button wire:click="modalSiguiente" class="form-action form-action--primary" wire:loading.attr="disabled">
                                 Siguiente &rarr;
                             </button>
                         @else
-                            <button wire:click="confirmarEnvio" class="inline-flex items-center rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600">
+                            <button wire:click="confirmarEnvio" class="form-action form-action--send" wire:loading.attr="disabled">
                                 Confirmar envío
                             </button>
                         @endif

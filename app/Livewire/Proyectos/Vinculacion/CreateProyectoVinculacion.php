@@ -4113,6 +4113,14 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
+        $sinResponsable = $etapas->filter(fn (FlujoAprobacionEtapa $etapa): bool => $etapa->responsableFijoPendiente());
+        if ($sinResponsable->isNotEmpty()) {
+            Notification::make()->title('Responsables pendientes de configurar')
+                ->body('Administración debe configurar los responsables de: '.$sinResponsable->pluck('nombre')->implode(', ').'.')
+                ->warning()->send();
+            return;
+        }
+
         $this->modalEtapasConDestinatario = $etapas
             ->filter(fn (FlujoAprobacionEtapa $etapa): bool => (bool) $etapa->emisor_define_destinatario)
             ->map(function (FlujoAprobacionEtapa $etapa): array {

@@ -4,6 +4,7 @@ namespace App\Models\Proyecto;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Permission\Models\Role;
 
@@ -51,6 +52,25 @@ class FlujoAprobacionEtapa extends Model
     public function flujo(): BelongsTo
     {
         return $this->belongsTo(FlujoAprobacion::class, 'flujo_aprobacion_id');
+    }
+
+    public function responsableFijoPendiente(): bool
+    {
+        return $this->requiere_asignacion
+            && ! $this->emisor_define_destinatario
+            && ! $this->usuarioResponsable;
+    }
+
+    public function scopePendientesDeResponsable(Builder $query): Builder
+    {
+        return $query->where('configuracion_vigente', true)
+            ->where('activo', true)
+            ->where('requiere_asignacion', true)
+            ->where('emisor_define_destinatario', false)
+            ->whereDoesntHave('usuarioResponsable')
+            ->where(fn (Builder $q) => $q->where('aplica_inscripcion', true)
+                ->orWhere('aplica_informe_intermedio', true)
+                ->orWhere('aplica_cierre_proyecto', true));
     }
 
     public function cargoFirma(): BelongsTo
