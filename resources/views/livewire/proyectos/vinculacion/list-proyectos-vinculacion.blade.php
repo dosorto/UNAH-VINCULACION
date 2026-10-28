@@ -373,7 +373,22 @@
                             \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION,
                         ], true))
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Etapa actual / etapa de retorno detectada</label>
+                                <label class="mb-2 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <input type="checkbox" wire:model.live="flowManualStage"> Seleccionar etapa manualmente
+                                </label>
+                                @if($flowManualStage)
+                                    <label class="mb-1 block text-sm font-medium">Etapa que recibirá el proyecto</label>
+                                    <select wire:model.live="flowStartStageId" class="w-full rounded-md border-gray-300 dark:bg-gray-800">
+                                        <option value="">Seleccione una etapa</option>
+                                        @foreach($flowDiagnosis['etapas'] ?? [] as $opcion)
+                                            @if(!($opcion['es_anterior'] ?? false))
+                                                <option value="{{ $opcion['id'] }}">{{ $opcion['orden'] }}. {{ $opcion['nombre'] }}</option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                    <p class="mt-1 text-xs text-gray-500">La etapa elegida recibirá primero. Las demás revisiones pendientes se conservan y se atenderán después, en su orden configurado. No se marcarán aprobadas por esta selección.</p>
+                                @else
+                                <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Primera etapa pendiente del nuevo recorrido</label>
                                 <div class="flex min-h-[42px] items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm shadow-sm {{ $etapaDetectada ? 'border-gray-300 bg-gray-50 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white' : 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200' }}">
                                     <span>
                                         @if($etapaDetectada)
@@ -386,40 +401,67 @@
                                     </span>
                                     <span class="material-symbols-outlined shrink-0 text-[18px]">{{ $etapaDetectada ? 'lock' : 'error' }}</span>
                                 </div>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Se calcula con el estado, las firmas y el historial legacy; no admite selección manual.</p>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Se calcula con las revisiones pendientes y el orden configurado. Las etapas sin aprobación comprobada permanecen pendientes.</p>
+                                @endif
                             </div>
                         @endif
                     </div>
 
-                    @if($flowAdoptionMode === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION)
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo histórico de la subsanación</label>
-                            <textarea wire:model="flowSubsanacionReason" rows="3"
-                                      placeholder="Copie el motivo registrado en el trámite legacy."
-                                      class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm"></textarea>
-                            @error('flowSubsanacionReason') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
+                    @if(!empty($flowDiagnosis['etapa_origen']))
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Etapa identificada en el expediente legacy: <strong>{{ $flowDiagnosis['etapa_origen'] }}</strong>. El inicio del nuevo recorrido puede ser anterior si quedan revisiones pendientes.</p>
                     @endif
+
+
 
                     @php
                         $etapasAnteriores = collect($flowDiagnosis['etapas'] ?? [])->filter(fn($etapa) => $etapa['es_anterior'] ?? false);
-                        if ($flowAdoptionMode === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO) {
-                            $etapasAnteriores = collect($flowDiagnosis['etapas'] ?? []);
-                        }
-                        $etapasRecorrido = collect($flowDiagnosis['etapas'] ?? [])->filter(fn($etapa) => $etapa['en_nuevo_recorrido'] ?? false);
+                        $etapasRecorrido = collect($flowDiagnosis['recorrido_ids'] ?? [])->map(fn($id) => collect($flowDiagnosis['etapas'] ?? [])->firstWhere('id', $id))->filter();
                     @endphp
 
                     @if($etapasAnteriores->isNotEmpty())
                         <div class="rounded-lg border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950/20">
-                            <p class="text-sm font-semibold text-sky-900 dark:text-sky-200">Completadas antes de la adopción</p>
-                            <p class="mt-1 text-xs text-sky-700 dark:text-sky-300">Se mostrarán como antecedente, sin crear aprobaciones ni firmas ficticias.</p>
+                            <p class="text-sm font-semibold text-sky-900 dark:text-sky-200">Aprobaciones comprobadas antes de la adopción</p>
+                            <p class="mt-1 text-xs text-sky-700 dark:text-sky-300">Se conservan como antecedente respaldado por el historial, sin crear firmas nuevas.</p>
                             <div class="mt-3 flex flex-wrap gap-2">
                                 @foreach($etapasAnteriores as $etapa)
                                     <span class="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs text-sky-800 dark:border-sky-700 dark:bg-gray-800 dark:text-sky-200">
-                                        {{ $etapa['orden'] }}. {{ $etapa['nombre'] }}
+                                        {{ $etapa['orden'] }}. {{ $etapa['nombre'] }} — revisión #{{ $etapa['evidencia_legacy']['firma_legacy_id'] }}
                                     </span>
                                 @endforeach
                             </div>
+                        </div>
+                    @endif
+
+                    @if($flowManualStage && auth()->user()?->hasRole('admin'))
+                        <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:bg-gray-900">
+                            <p class="font-semibold">Firmas históricas a incorporar</p>
+                            <p class="text-sm">Marque las etapas anteriores ya aprobadas y seleccione quién firmó. Se insertará su firma guardada en el PDF como regularización administrativa y no se repetirá la aprobación. La justificación de la selección respaldará esta carga.</p>
+                            @foreach($flowDiagnosis['etapas'] ?? [] as $historica)
+                                @if(($historica['tipo_etapa'] ?? '') === 'APROBACION' && $historica['orden'] < ($etapaDetectada['orden'] ?? 0) && !($historica['es_anterior'] ?? false) && ($historica['evidencia_legacy']['estado'] ?? '') !== 'Rechazado')
+                                    <div class="mt-3 rounded border p-3" wire:key="historical-stage-{{ $historica['id'] }}">
+                                        <label class="flex items-center gap-2">
+                                            <input type="checkbox" wire:model.live="flowHistoricalStages" value="{{ $historica['id'] }}">
+                                            {{ $historica['orden'] }}. {{ $historica['nombre'] }}
+                                        </label>
+                                        @if(in_array($historica['id'], $flowHistoricalStages))
+                                            <label class="mt-2 block text-sm">Persona que aprobó la etapa</label>
+                                            <x-forms.searchable-user-select
+                                                :model="'flowHistoricalSigners.'.$historica['id'].'.empleado_id'"
+                                                :options="$flowHistoricalCandidates[$historica['id']] ?? []"
+                                                :selected="$flowHistoricalSigners[$historica['id']]['empleado_id'] ?? null"
+                                                placeholder="Buscar firmante por nombre..."
+                                            />
+                                            <p class="mt-1 text-xs">Rol requerido: {{ $historica['rol'] ?: 'sin configurar' }}.</p>
+                                            @if(empty($flowHistoricalCandidates[$historica['id']]))
+                                                <p class="text-sm text-amber-700">No hay firmantes con firma guardada y el rol de esta etapa. Revise la configuración del rol y los usuarios.</p>
+                                            @endif
+                                            <label class="mt-2 block text-sm">Fecha de aprobación histórica, si se conoce</label>
+                                            <input type="date" max="{{ now()->toDateString() }}" wire:model="flowHistoricalSigners.{{ $historica['id'] }}.fecha" class="rounded border-gray-300 dark:bg-gray-800">
+                                            <p class="text-xs">Si no se conoce la fecha, déjela vacía. Se registrará por separado la fecha de esta incorporación.</p>
+                                        @endif
+                                    </div>
+                                @endif
+                            @endforeach
                         </div>
                     @endif
 
@@ -446,11 +488,17 @@
                                             <p class="text-sm font-semibold text-gray-900 dark:text-white">
                                                 {{ $etapa['orden'] }}. {{ $etapa['nombre'] }}
                                                 @if($etapa['es_inicio'])
-                                                    <span class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">Punto actual</span>
+                                                    <span class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">Primera en recibir</span>
                                                 @endif
                                             </p>
                                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                 Rol: {{ $etapa['rol'] ?: 'sin rol específico' }} · Estado: {{ $etapa['estado'] ?: 'sin estado configurado' }}
+                                            </p>
+                                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                Historial: {{ $etapa['evidencia_legacy']['estado'] ?? 'Sin evidencia' }}.
+                                                @if(empty($etapa['evidencia_legacy']['firma_legacy_id']))
+                                                    Se incluye porque no existe una aprobación comprobada.
+                                                @endif
                                             </p>
                                         </div>
                                         <div>
@@ -522,11 +570,11 @@
 
                     <div class="rounded-lg bg-gray-50 p-4 text-sm text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                         @if($flowAdoptionMode === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION)
-                            Se creará el ciclo 1 desde la etapa detectada automáticamente. Solo esa etapa aparecerá en la bandeja del revisor actual y recibirá una notificación.
+                            Se creará el ciclo 1 desde la primera etapa indicada en esta vista previa. Solo esa etapa aparecerá en la bandeja del revisor actual y recibirá una notificación.
                         @elseif($flowAdoptionMode === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION)
-                            La etapa detectada quedará como rechazada. Cuando el coordinador subsane y reenvíe, volverá a ese revisor y luego continuará con las etapas posteriores.
+                            El proyecto seguirá en subsanación. Si selecciona una etapa manualmente, será la primera en recibir el reenvío; las demás revisiones pendientes se conservan. Sin selección manual, la etapa de retorno se identifica por la revisión rechazada o el estado anterior del historial legacy. Las aprobaciones comprobadas se conservan.
                         @elseif($flowAdoptionMode === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO)
-                            No se creará ninguna tarea. Todas las etapas se registrarán únicamente como completadas antes de la adopción.
+                            Se conservará el estado final del expediente sin crear tareas. Solo las etapas con aprobación comprobada se mostrarán como completadas.
                         @else
                             No se creará ninguna tarea ahora. Al enviar el proyecto, el flujo normal comenzará desde su primera etapa.
                         @endif

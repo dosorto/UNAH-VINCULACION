@@ -1343,7 +1343,7 @@
                         </div>
 
                         <div class="flex justify-end gap-2 border-t border-slate-200 px-5 py-3 dark:border-slate-700">
-                            <button type="button" data-close-document-modal class="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">Cancelar</button>
+                            <button type="button" data-close-document-modal class="form-action form-action--secondary">Cancelar</button>
                             <button type="button" data-add-document disabled class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">Agregar</button>
                         </div>
                     </div>
@@ -1351,21 +1351,21 @@
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <a href="{{ route('selectorTipoAccion') }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</a>
+                <a href="{{ route('selectorTipoAccion') }}" class="form-action form-action--secondary">Cancelar</a>
                 <div class="flex justify-end gap-3">
                     <button type="button" data-previous-step
-                        class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                        class="form-action form-action--secondary">
                         Anterior
                     </button>
                     <button type="button" data-next-step
-                        class="rounded-md bg-blue-700 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
+                        class="form-action form-action--primary">
                         Siguiente
                     </button>
-                    <button type="submit" data-submit-step class="rounded-md border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
-                        {{ $editingAccion ? 'Guardar cambios' : 'Guardar como Borrador' }}
+                    <button type="submit" data-submit-step class="form-action form-action--secondary">
+                        {{ $editingAccion ? 'Guardar cambios' : 'Guardar como borrador' }}
                     </button>
-                    <button type="button" data-send-step class="rounded-md bg-amber-500 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600">
-                        {{ in_array(strtoupper((string) $editingAccion?->estado_flujo), ['SUBSANACION', 'SUBSANACIÓN'], true) ? 'Reenviar a revisión' : 'Enviar para Firmar' }}
+                    <button type="button" data-send-step class="form-action form-action--send">
+                        {{ in_array(strtoupper((string) $editingAccion?->estado_flujo), ['SUBSANACION', 'SUBSANACIÓN'], true) ? 'Reenviar a revisión' : 'Enviar a revisión' }}
                     </button>
                 </div>
             </div>
@@ -1399,7 +1399,7 @@
                     </div>
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
-                    <button type="button" data-close-resultado-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-close-resultado-modal class="form-action form-action--secondary">Cancelar</button>
                     <button type="button" data-save-resultado class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Guardar</button>
                 </div>
             </div>
@@ -1422,7 +1422,7 @@
                     <p class="md:col-span-2 text-xs text-slate-500 dark:text-slate-400">La jornada laboral se toma del registro del empleado seleccionado.</p>
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
-                    <button type="button" data-close-employee-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-close-employee-modal class="form-action form-action--secondary">Cancelar</button>
                 </div>
             </div>
         </div>
@@ -1452,7 +1452,7 @@
                     </div>
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
-                    <button type="button" data-close-consultor-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-close-consultor-modal class="form-action form-action--secondary">Cancelar</button>
                     <button type="button" data-add-consultor class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Agregar</button>
                 </div>
             </div>
@@ -1489,7 +1489,7 @@
                 </div>
                 <p data-participacion-feedback class="mt-3 hidden rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"></p>
                 <div class="mt-5 flex justify-end gap-3">
-                    <button type="button" data-close-participacion-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-close-participacion-modal class="form-action form-action--secondary">Cancelar</button>
                     <button type="button" data-save-participacion class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Guardar</button>
                 </div>
             </div>
@@ -1534,7 +1534,7 @@
                     </div>
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
-                    <button type="button" data-close-practica-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-close-practica-modal class="form-action form-action--secondary">Cancelar</button>
                     <button type="button" data-save-practica class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Guardar</button>
                 </div>
             </div>
@@ -1567,7 +1567,7 @@
                     </div>
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
-                    <button type="button" data-close-presupuesto-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-close-presupuesto-modal class="form-action form-action--secondary">Cancelar</button>
                     <button type="button" data-save-presupuesto class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Guardar</button>
                 </div>
             </div>
@@ -1602,7 +1602,7 @@
                     </div>
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
-                    <button type="button" data-close-cronograma-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-close-cronograma-modal class="form-action form-action--secondary">Cancelar</button>
                     <button type="button" data-save-cronograma class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Guardar</button>
                 </div>
             </div>

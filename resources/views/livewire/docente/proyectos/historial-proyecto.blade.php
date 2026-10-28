@@ -45,17 +45,17 @@
 
             <div class="flex flex-wrap gap-2 lg:justify-end">
                 <a href="{{ route('proyecto.perfil.pdf.download', ['proyecto' => $proyecto->id]) }}"
-                   class="inline-flex items-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700">
+                   class="form-action form-action--download">
                     Descargar PDF
                 </a>
 
                 @if ($firmaRevisionPendiente)
                     <button wire:click="openSubsanar"
-                            class="inline-flex items-center rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">
-                        Subsanar
+                            class="form-action form-action--danger" wire:loading.attr="disabled">
+                        Enviar a subsanación
                     </button>
                     <button wire:click="openAprobar"
-                            class="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700">
+                            class="form-action form-action--approve" wire:loading.attr="disabled">
                         Aprobar
                     </button>
                 @endif
@@ -63,19 +63,19 @@
                 @if ($esCoordinador)
                     @if (in_array($estadoNombre, ['Borrador', 'Autoguardado', 'Subsanacion']))
                         <a href="{{ route('crearProyectoVinculacion', $proyecto) }}"
-                           class="inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                            {{ $estadoNombre === 'Subsanacion' ? 'Subsanar Proyecto' : 'Continuar Editando' }}
+                           class="form-action form-action--primary">
+                            {{ $estadoNombre === 'Subsanacion' ? 'Corregir proyecto' : 'Continuar editando' }}
                         </a>
                     @endif
 
                     @if ($proyecto->estaRegistrado() && ! $fichaActualizacionPendiente)
                         <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
-                           class="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700">
+                           class="form-action form-action--update">
                             Actualizar Equipo o Fechas
                         </a>
                     @elseif ($proyecto->estaRegistrado() && $fichaActualizacionPendiente)
                         <a href="{{ route('FichasActualizacionDocente') }}"
-                           class="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700">
+                           class="form-action form-action--update">
                             Ver actualización pendiente
                         </a>
                     @endif
@@ -157,7 +157,7 @@
 
                 <div class="flex flex-wrap justify-end gap-2">
                     @if($informeIntermedio['informe'])
-                        <a href="{{ route('informes-intermedios.ver', $informeIntermedio['informe']) }}" target="_blank" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Ver PDF</a>
+                        <a href="{{ route('informes-intermedios.ver', $informeIntermedio['informe']) }}" target="_blank" class="form-action form-action--download">Ver PDF</a>
                         <a href="{{ route('informes-intermedios.descargar', $informeIntermedio['informe']) }}" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Descargar</a>
                     @elseif($informeIntermedio['legacy']?->documento_url && \Illuminate\Support\Facades\Storage::disk('public')->exists($informeIntermedio['legacy']->documento_url))
                         <a href="/storage/{{ $informeIntermedio['legacy']->documento_url }}" target="_blank" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Ver PDF cargado</a>
@@ -172,9 +172,9 @@
                     @endif
                     @if($informeIntermedio['puede_enviar'] && $opcionesDestinatariosIntermedio->isNotEmpty())
                         {{-- El flujo pide elegir destinatario: se elige en el modal antes de enviar. --}}
-                        <button type="button" wire:click="abrirEnvioIntermedioModal" class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Enviar a revisión</button>
+                        <button type="button" wire:click="abrirEnvioIntermedioModal" class="form-action form-action--send" wire:loading.attr="disabled">Enviar a revisión</button>
                     @elseif($informeIntermedio['puede_enviar'])
-                        <button type="button" x-on:click.prevent="confirmDialog('¿Enviar el Informe Intermedio a revisión?').then((ok) => ok && $wire.enviarInformeIntermedio())"  class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Enviar a revisión</button>
+                        <button type="button" x-on:click.prevent="confirmDialog('¿Enviar el Informe Intermedio a revisión?').then((ok) => ok && $wire.enviarInformeIntermedio())"  class="form-action form-action--send">Enviar a revisión</button>
                     @endif
                 </div>
             </div>
@@ -252,9 +252,9 @@
                     @elseif($cierreInformeFinal['accion'] === 'continuar')
                         <a href="{{ route('proyectos.informe-final', $proyecto) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</a>
                     @elseif($cierreInformeFinal['accion'] === 'subsanar')
-                        <a href="{{ route('proyectos.informe-final', $proyecto) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Editar subsanación</a>
+                        <a href="{{ route('proyectos.informe-final', $proyecto) }}" class="form-action form-action--primary">Corregir informe</a>
                         @if($cierreInformeFinal['puede_enviar'])
-                            <button type="button" x-on:click.prevent="confirmDialog('¿Reenviar el INF-001 a la etapa que solicitó la subsanación?').then((ok) => ok && $wire.enviarInformeFinal())"  class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Reenviar informe final</button>
+                            <button type="button" x-on:click.prevent="confirmDialog('¿Reenviar el INF-001 a la etapa que solicitó la subsanación?').then((ok) => ok && $wire.enviarInformeFinal())"  class="form-action form-action--send">Reenviar informe final</button>
                         @endif
                     @elseif($cierreInformeFinal['accion'] === 'enviar' && $cierreInformeFinal['puede_enviar'])
                         {{-- Mientras no se envíe, el informe sigue siendo editable: sin este enlace no habría cómo volver a él. --}}
@@ -481,13 +481,13 @@
                     </div>
                     <div class="flex justify-end gap-3 pt-2">
                         <button wire:click="$set('subsanarModal', false)"
-                                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                class="form-action form-action--secondary" wire:loading.attr="disabled">
                             Cancelar
                         </button>
                         <button wire:click="subsanar"
                                 wire:loading.attr="disabled" wire:target="subsanar"
-                                class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">
-                            Subsanar
+                                class="form-action form-action--danger">
+                            Enviar a subsanación
                         </button>
                     </div>
                 </div>
@@ -536,11 +536,11 @@
 
                     <div class="flex justify-end gap-3 pt-2">
                         <button wire:click="$set('aprobarModal', false)"
-                                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                class="form-action form-action--secondary" wire:loading.attr="disabled">
                             Cancelar
                         </button>
                         <button wire:click="aprobarFirmaPendiente" wire:loading.attr="disabled" wire:target="aprobarFirmaPendiente"
-                                class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
+                                class="form-action form-action--approve">
                             Aprobar
                         </button>
                     </div>
@@ -566,12 +566,12 @@
                     </div>
                     <div class="flex justify-end gap-3 pt-2">
                         <button wire:click="$set('informeIntermedioModal', false)"
-                                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                class="form-action form-action--secondary" wire:loading.attr="disabled">
                             Cancelar
                         </button>
                         <button wire:click="guardarInformeIntermedio" wire:loading.attr="disabled" wire:target="guardarInformeIntermedio"
-                                class="rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-600 disabled:opacity-50">
-                            <span wire:loading.remove wire:target="guardarInformeIntermedio">Guardar borrador</span>
+                                class="form-action form-action--secondary">
+                            <span wire:loading.remove wire:target="guardarInformeIntermedio">Guardar como borrador</span>
                             <span wire:loading wire:target="guardarInformeIntermedio">Guardando...</span>
                         </button>
                     </div>

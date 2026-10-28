@@ -10,7 +10,7 @@ final class WorkflowResumptionPolicy
     /**
      * @param  Collection<int, array{stage_id: int|string, order: int, status: string, source: mixed}>  $snapshots
      */
-    public function plan(Collection $snapshots): WorkflowResumptionPlan
+    public function plan(Collection $snapshots, bool $includeEarlierPending = false): WorkflowResumptionPlan
     {
         if ($snapshots->isEmpty()) {
             throw new \RuntimeException('El último ciclo no contiene etapas que puedan reanudarse.');
@@ -56,7 +56,8 @@ final class WorkflowResumptionPolicy
         $rejectedStage = $rejectedStages->first();
 
         foreach ($ordered as $stage) {
-            if ($stage['order'] < $rejectedStage['order'] && $stage['status'] !== 'APPROVED') {
+            if ($stage['order'] < $rejectedStage['order'] && $stage['status'] !== 'APPROVED'
+                && ! ($includeEarlierPending && $stage['status'] === 'PENDING')) {
                 throw new \RuntimeException('El ciclo contiene estados inconsistentes antes de la etapa en subsanación.');
             }
 
@@ -67,7 +68,8 @@ final class WorkflowResumptionPolicy
 
         return new WorkflowResumptionPlan(
             $rejectedStage,
-            $ordered->filter(fn (array $stage): bool => $stage['order'] >= $rejectedStage['order'])->values(),
+            $ordered->filter(fn (array $stage): bool => $stage['order'] >= $rejectedStage['order']
+                || ($includeEarlierPending && $stage['status'] === 'PENDING'))->values(),
         );
     }
 

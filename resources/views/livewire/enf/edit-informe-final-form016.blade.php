@@ -284,18 +284,18 @@
         @endif
 
         <div class="mt-8 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>@if($currentStep > 1)<button type="button" wire:click="anterior" class="{{ $button }} border border-gray-300 bg-white text-gray-700">Anterior</button>@else<a href="{{ route('enf.acciones.show', $accion) }}" class="{{ $button }} border border-gray-300 bg-white text-gray-700">Volver</a>@endif</div>
+            <div>@if($currentStep > 1)<button type="button" wire:click="anterior" class="form-action form-action--secondary" wire:loading.attr="disabled">Anterior</button>@else<a href="{{ route('enf.acciones.show', $accion) }}" class="form-action form-action--secondary">Volver</a>@endif</div>
             <div class="flex flex-wrap items-center justify-end gap-3">
                 <span class="min-w-[78px] text-right text-xs">@if($estadoGuardado === 'guardando')Guardando...@elseif($estadoGuardado === 'error')<span class="text-red-600">Error al guardar</span>@else<span class="text-green-600">Guardado</span>@endif</span>
-                <button type="button" wire:click="guardarBorrador" class="{{ $button }} border border-gray-300 bg-white text-gray-700">Guardar borrador</button>
+                <button type="button" wire:click="guardarBorrador" class="form-action form-action--secondary" wire:loading.attr="disabled">Guardar como borrador</button>
                 @if($currentStep < count($steps))
-                    <button type="button" wire:click="siguiente" class="{{ $button }} bg-blue-600 text-white">Siguiente</button>
+                    <button type="button" wire:click="siguiente" class="form-action form-action--primary" wire:loading.attr="disabled">Siguiente</button>
                 @else
-                    <a target="_blank" href="{{ route('enf.acciones.informe-final.preview-pdf', $accion) }}" class="{{ $button }} border border-blue-300 text-blue-700">Vista previa</a>
-                    <a href="{{ route('enf.acciones.informe-final.pdf', $accion) }}" class="{{ $button }} border border-blue-300 text-blue-700">Descargar PDF</a>
-                    <button type="button" x-on:click.prevent="confirmDialog('Confirma que desea marcar completo el informe final FORM-DVUS-016?').then((ok) => ok && $wire.validarInforme())"  class="{{ $button }} bg-green-700 text-white">Validar informe</button>
+                    <a target="_blank" href="{{ route('enf.acciones.informe-final.preview-pdf', $accion) }}" class="form-action form-action--download">Vista previa</a>
+                    <a href="{{ route('enf.acciones.informe-final.pdf', $accion) }}" class="form-action form-action--download">Descargar PDF</a>
+                    <button type="button" x-on:click.prevent="confirmDialog('Confirma que desea marcar completo el informe final FORM-DVUS-016?').then((ok) => ok && $wire.validarInforme())"  class="form-action form-action--approve">Validar informe</button>
                     @if(($general['estado'] ?? null) === 'completo' || ($general['estado'] ?? null) === 'SUBSANACION')
-                        <a href="{{ route('enf.acciones.show', $accion) }}" class="{{ $button }} bg-emerald-700 text-white">Ir a envio</a>
+                        <a href="{{ route('enf.acciones.show', $accion) }}" class="form-action form-action--send">Ir a envio</a>
                     @endif
                 @endif
             </div>

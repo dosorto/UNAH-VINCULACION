@@ -1,5 +1,6 @@
 @php
     $isPdfMode = !empty($isPdf);
+    $regularizaciones = collect($proyecto->adopcionFlujoLegacy?->evidencia['firmas_regularizadas'] ?? [])->keyBy('firma_proyecto_id');
 
     // En pantalla la firma se sirve por URL; en el PDF se usa una ruta local
     // autorizada por el chroot de DomPDF. Toda esa lógica vive en el helper.
@@ -32,6 +33,7 @@
     // hay una fila de firma por cada candidato. El cuadro le corresponde a quien firmó:
     // mientras nadie lo haga queda en blanco, para no mostrar como firmante a quien no firmó.
     $firmaDelCargo = fn ($relacion) => $relacion
+        ->select('firma_proyecto.*')
         ->where('estado_revision', '!=', 'Anulado')
         ->get()
         ->firstWhere('estado_revision', 'Aprobado');
@@ -83,7 +85,7 @@
                 <td class="full-width" colspan="1" width="34%">
                     <input disabled type="text" class="input-field"
                         placeholder="Ingrese el nombre"
-                        value="{{ optional($cuadro['firma'])->empleado?->nombre_completo }}"
+                        value="{{ $regularizaciones->get($cuadro['firma']?->id)['nombre_firmante'] ?? optional($cuadro['firma'])->empleado?->nombre_completo }}"
                         disabled>
                 </td>
             @endforeach
@@ -96,8 +98,11 @@
                     // aunque el empleado sí conserve una firma activa. El sello pasa
                     // por FirmaProyecto::selloParaDocumento: la firma del coordinador
                     // nunca lo lleva, aunque el empleado tenga uno por otro cargo.
-                    $firmaSello = $firmaRegistro?->selloParaDocumento(respaldoPerfil: true);
-                    $firmaDigital = $firmaRegistro?->firma ?: $firmaRegistro?->empleado?->firma;
+                    $regularizacion = $regularizaciones->get($firmaRegistro?->id);
+                    $firmaSello = $regularizacion ? null : $firmaRegistro?->selloParaDocumento(respaldoPerfil: true);
+                    $firmaDigital = $regularizacion
+                        ? \App\Models\Personal\FirmaSelloEmpleado::withTrashed()->find($regularizacion['firma_id'])
+                        : ($firmaRegistro?->firma ?: $firmaRegistro?->empleado?->firma);
                     $sello = $resolverRutaFirma($firmaSello?->ruta_storage);
                     $firmaImg = $resolverRutaFirma($firmaDigital?->ruta_storage);
                     $selloDim = $sello ? $dimensionesContenidas($sello['path']) : null;
@@ -114,7 +119,7 @@
                     @if ($sello || $firmaImg)
                         <br>
                         <p class="signature-digital-caption">
-                            Firmado digitalmente<br>
+                            {{ $regularizacion ? 'Firma histórica incorporada por administración' : 'Firmado digitalmente' }}<br>
                             {{ $formatearFechaFirma(optional($cuadro['firma'])->fecha_firma) }}
                         </p>
                     @endif

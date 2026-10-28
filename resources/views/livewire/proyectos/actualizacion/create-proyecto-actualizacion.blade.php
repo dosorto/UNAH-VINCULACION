@@ -120,7 +120,7 @@
                         <p class="text-xs text-gray-500">{{ $nuevo->motivo_incorporacion }}</p>
                     </div>
                     <button type="button" x-on:click.prevent="confirmDialog('¿Cancelar esta solicitud de incorporación?', { type: 'danger' }).then((ok) => ok && $wire.cancelarSolicitud({{ $nuevo->id }}))" type="button"
-                        class="text-xs text-red-600 hover:text-red-800 ml-3 shrink-0">Cancelar</button>
+                        class="form-action form-action--secondary">Cancelar</button>
                 </div>
                 @endforeach
             </div>
@@ -199,12 +199,12 @@
         <div class="mt-8 flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
             <div>
                 @if($currentStep > 1)
-                <button wire:click="prevStep" type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
+                <button wire:click="prevStep" type="button" class="form-action form-action--secondary" wire:loading.attr="disabled">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                     Anterior
                 </button>
                 @else
-                <a href="{{ route('FichasActualizacionDocente') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
+                <a href="{{ route('FichasActualizacionDocente') }}" class="form-action form-action--secondary">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                     Volver
                 </a>
@@ -212,7 +212,7 @@
             </div>
             <div class="flex items-center gap-3">
                 @if($currentStep < 2)
-                <button wire:click="nextStep" type="button" class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                <button wire:click="nextStep" type="button" class="form-action form-action--primary" wire:loading.attr="disabled">
                     Siguiente
                     <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
@@ -239,7 +239,7 @@
                 @error('bajaMotivo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-                <button wire:click="$set('bajaModal', false)" type="button" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">Cancelar</button>
+                <button wire:click="$set('bajaModal', false)" type="button" class="form-action form-action--secondary" wire:loading.attr="disabled">Cancelar</button>
                 <button wire:click="confirmarBaja" type="button" class="px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700">Confirmar Baja</button>
             </div>
         </div>
@@ -269,7 +269,7 @@
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-                <button wire:click="$set('nuevoEmpleadoModal', false)" type="button" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">Cancelar</button>
+                <button wire:click="$set('nuevoEmpleadoModal', false)" type="button" class="form-action form-action--secondary" wire:loading.attr="disabled">Cancelar</button>
                 <button wire:click="agregarNuevoEmpleado" type="button" class="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">Solicitar</button>
             </div>
         </div>
@@ -299,7 +299,7 @@
                 </div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-                <button wire:click="$set('nuevoInternacionalModal', false)" type="button" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">Cancelar</button>
+                <button wire:click="$set('nuevoInternacionalModal', false)" type="button" class="form-action form-action--secondary" wire:loading.attr="disabled">Cancelar</button>
                 <button wire:click="agregarNuevoInternacional" type="button" class="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">Solicitar</button>
             </div>
         </div>
