@@ -5,8 +5,13 @@
                 Completa tu perfil
             </p>
             <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm mt-0">
-                Asegúrate de completar la información requerida. Después podrás mantener actualizados los datos editables de tu perfil.
+                Debes completar la información requerida para seguir usando el sistema. Después podrás mantener actualizados los datos editables de tu perfil.
             </p>
+            @if ($faltantes !== [])
+                <p class="text-red-700 dark:text-red-300 font-medium text-sm mt-1">
+                    Falta: {{ implode(', ', $faltantes) }}.
+                </p>
+            @endif
         </div>
     @endif
 

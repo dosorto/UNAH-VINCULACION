@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Personal\Perfil;
 
+use App\Models\JornadaLaboral;
 use App\Models\Personal\CategoriaEmpleado;
 use App\Models\Personal\Empleado;
 use App\Models\Personal\EmpleadoCodigoInvestigacion;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Spatie\Permission\Models\Role;
@@ -40,6 +42,9 @@ class EditPerfilDocente extends Component
     public string $numero_empleado = '';
 
     public string $celular = '';
+
+    /** Etiqueta del catálogo de jornadas laborales («07:00 - 15:00»). */
+    public string $jornada_laboral = '';
 
     public string $sexo = '';
 
@@ -73,6 +78,10 @@ class EditPerfilDocente extends Component
 
     public bool $completandoPerfil = false;
 
+    /** Solo se pide si falta (Microsoft no siempre lo envía); el que ya existe no se cambia. */
+    #[Locked]
+    public bool $numeroEmpleadoEditable = false;
+
     public function mount(): void
     {
         $this->record = Auth::user();
@@ -84,7 +93,15 @@ class EditPerfilDocente extends Component
         if ($empleado) {
             $this->nombre_completo = $empleado->nombre_completo ?? '';
             $this->numero_empleado = $empleado->numero_empleado ?? '';
+            $this->numeroEmpleadoEditable = $this->completandoPerfil && blank($empleado->numero_empleado);
             $this->celular = $empleado->celular ?? '';
+            // Un texto que no está en el catálogo (p. ej. «Tiempo completo», escrito a mano)
+            // se muestra igual cuando el perfil ya está completo, pero al completarlo hay que
+            // elegir una jornada del catálogo.
+            $jornada = (string) ($empleado->jornada_laboral ?? '');
+            $this->jornada_laboral = ! $this->completandoPerfil || in_array($jornada, JornadaLaboral::etiquetasActivas(), true)
+                ? $jornada
+                : '';
             $this->sexo = $empleado->sexo ?? '';
             $this->categoria_id = $empleado->categoria_id;
             $this->centro_facultad_id = $empleado->centro_facultad_id;
@@ -217,12 +234,18 @@ class EditPerfilDocente extends Component
 
         $empleado = $this->record->empleado;
         $completandoPerfil = ProfileCompletion::isRequired($this->record->fresh());
+        // Solo una cuenta nueva (con la bandera de incorporación) recibe el rol docente al
+        // terminar; a un usuario existente con datos faltantes no se le cambian los roles.
+        $esCuentaNueva = ProfileCompletion::hasPendingFlag($this->record);
 
         if (! $empleado) {
             throw ValidationException::withMessages([
                 'nombre_completo' => 'No existe un perfil de empleado asociado a esta cuenta.',
             ]);
         }
+
+        // Se calcula aquí y no con la propiedad: el número que ya existe no se puede cambiar.
+        $numeroEditable = $completandoPerfil && blank($empleado->numero_empleado);
 
         $rules = [
             'tiene_proyectos_previos' => [
@@ -231,9 +254,13 @@ class EditPerfilDocente extends Component
             ],
         ];
 
+        $jornadas = JornadaLaboral::etiquetasActivas();
+
         if ($completandoPerfil) {
             $rules = array_merge($rules, [
                 'celular' => 'required|numeric',
+                // Sin jornadas activas en el catálogo no se puede exigir (ProfileCompletion tampoco).
+                'jornada_laboral' => [Rule::requiredIf($jornadas !== []), 'nullable', 'string', Rule::in($jornadas)],
                 'sexo' => ['required', Rule::in(['Masculino', 'Femenino'])],
                 'categoria_id' => ['required', 'exists:categoria,id'],
                 'centro_facultad_id' => 'required|exists:centro_facultad,id',
@@ -251,9 +278,18 @@ class EditPerfilDocente extends Component
             ]);
         }
 
+        if ($numeroEditable) {
+            // El índice único de la base también cuenta a los empleados eliminados.
+            $rules['numero_empleado'] = ['required', 'string', 'max:255', Rule::unique('empleado', 'numero_empleado')->ignore($empleado->id)];
+        }
+
         $this->validate($rules, [
+            'numero_empleado.required' => 'Ingrese su número de empleado.',
+            'numero_empleado.unique' => 'Ese número de empleado ya está registrado a nombre de otra persona.',
             'celular.required' => 'Ingrese el número de celular.',
             'celular.numeric' => 'El celular solo debe contener números.',
+            'jornada_laboral.required' => 'Seleccione su jornada laboral.',
+            'jornada_laboral.in' => 'Seleccione una jornada laboral del catálogo.',
             'sexo.required' => 'Seleccione el sexo.',
             'categoria_id.required' => 'Seleccione una categoría.',
             'centro_facultad_id.required' => 'Seleccione una facultad o centro.',
@@ -303,19 +339,20 @@ class EditPerfilDocente extends Component
             }
         }
 
-        DB::transaction(function () use ($empleado, $completandoPerfil): void {
+        DB::transaction(function () use ($empleado, $completandoPerfil, $esCuentaNueva, $numeroEditable): void {
             if ($completandoPerfil) {
                 $empleado->update([
                     'celular' => $this->celular,
+                    'jornada_laboral' => $this->jornada_laboral !== '' ? $this->jornada_laboral : null,
                     'sexo' => $this->sexo,
                     'categoria_id' => $this->categoria_id,
                     'centro_facultad_id' => $this->centro_facultad_id,
                     'departamento_academico_id' => $this->departamento_academico_id,
                     'carrera_id' => $this->carrera_id,
-                ]);
+                ] + ($numeroEditable ? ['numero_empleado' => trim($this->numero_empleado)] : []));
             }
 
-            if ($completandoPerfil && $empleado->tipo_empleado === 'docente') {
+            if ($esCuentaNueva && $empleado->tipo_empleado === 'docente') {
                 $this->record->assignRole('docente');
                 $this->record->active_role_id = Role::where('name', 'docente')->first()?->id;
             }
@@ -336,6 +373,7 @@ class EditPerfilDocente extends Component
     {
         $centros = FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
         $categorias = CategoriaEmpleado::orderBy('nombre')->pluck('nombre', 'id');
+        $jornadas = JornadaLaboral::etiquetasActivas();
         $departamentos = $this->centro_facultad_id
             ? DepartamentoAcademico::where('centro_facultad_id', $this->centro_facultad_id)->orderBy('nombre')->pluck('nombre', 'id')
             : collect();
@@ -348,7 +386,7 @@ class EditPerfilDocente extends Component
         $codigos = $this->record->empleado?->codigosInvestigacion ?? collect();
         $anios = collect(range(date('Y') - 10, date('Y') + 2))->mapWithKeys(fn ($y) => [$y => $y]);
 
-        return view('livewire.personal.perfil.edit-perfil-docente', compact('centros', 'categorias', 'departamentos', 'carreras', 'firma', 'sello', 'codigos', 'anios'));
+        return view('livewire.personal.perfil.edit-perfil-docente', compact('centros', 'categorias', 'jornadas', 'departamentos', 'carreras', 'firma', 'sello', 'codigos', 'anios'));
     }
 
     private function ensureProfileCanBeEdited(): void

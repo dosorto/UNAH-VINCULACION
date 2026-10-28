@@ -77,7 +77,11 @@ class EditPerfilEstudiante extends Component
             ]);
         }
 
-        DB::transaction(function (): void {
+        // Solo una cuenta nueva (con la bandera de incorporación) recibe el rol de estudiante al
+        // terminar; a un usuario existente con datos faltantes no se le cambian los roles.
+        $esCuentaNueva = ProfileCompletion::hasPendingFlag(auth()->user());
+
+        DB::transaction(function () use ($esCuentaNueva): void {
             $this->record->update([
                 'nombre' => $this->nombre,
                 'apellido' => $this->apellido,
@@ -88,8 +92,10 @@ class EditPerfilEstudiante extends Component
             ]);
 
             $user = $this->record->user;
-            $user->assignRole('estudiante');
-            $user->active_role_id = Role::where('name', 'estudiante')->first()?->id;
+            if ($esCuentaNueva) {
+                $user->assignRole('estudiante');
+                $user->active_role_id = Role::where('name', 'estudiante')->first()?->id;
+            }
             ProfileCompletion::clear($user);
             $user->save();
         });
