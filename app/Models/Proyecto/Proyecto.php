@@ -409,7 +409,8 @@ class Proyecto extends Model
     // relacion de muchos a muchos con el modelo empleado llamada integrantes del proyecto
     public function integrantes()
     {
-        return $this->belongsToMany(Empleado::class, 'empleado_proyecto', 'proyecto_id', 'empleado_id');
+        return $this->belongsToMany(Empleado::class, 'empleado_proyecto', 'proyecto_id', 'empleado_id')
+            ->withPivot('rol');
     }
 
     public function docentes_proyecto()
@@ -877,6 +878,25 @@ class Proyecto extends Model
         'vol_int_maestria' => 'Estudiantes de maestría',
         'vol_int_doctorado' => 'Doctorados / posdoctorados',
     ];
+
+    /**
+     * Columna del voluntariado personal de la UNAH (ítem 13 del 001, 15 del 015)
+     * en la que cuenta un voluntario del equipo según la categoría de su perfil.
+     * Null si la categoría no tiene columna: docentes permanentes o sin categoría.
+     */
+    public static function columnaVoluntariadoPersonal(?string $categoria): ?string
+    {
+        $categoria = Str::of((string) $categoria)->ascii()->lower()->squish()->value();
+
+        return match (true) {
+            $categoria === '' => null,
+            str_starts_with($categoria, 'profesores') => 'vol_profesores_hora',
+            str_starts_with($categoria, 'administrativ') => 'vol_personal_administrativo',
+            str_starts_with($categoria, 'servicio') => 'vol_personal_servicio',
+            str_contains($categoria, 'asistente') || str_contains($categoria, 'instructor') => 'vol_asistentes_tecnicos',
+            default => null,
+        };
+    }
 
     public static function columnasVoluntariadoParticipacion(): array
     {

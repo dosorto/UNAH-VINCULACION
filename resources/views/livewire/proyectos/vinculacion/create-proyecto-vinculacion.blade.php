@@ -552,7 +552,7 @@
                 <div class="flex items-center justify-between mb-3">
                     <div>
                         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Integrantes del Equipo Docente Permanente Tiempo Completo</h4>
-                        <p class="text-xs text-gray-500 mt-0.5">Agregar más líneas de ser necesario.</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Agregar más líneas de ser necesario. Los voluntarios no se listan en el ítem {{ $esVoluntariado ? 12 : 10 }}: suman en «Voluntariado personal de la UNAH» según la categoría y el sexo de su perfil.</p>
                     </div>
                     <button wire:click="openEmpleadoModal" type="button"
                         class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
@@ -565,15 +565,37 @@
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Nombre</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Categoría</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Rol</th>
                                 <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500"></th>
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
                             @foreach($empleado_proyecto as $i => $emp)
-                            <tr>
+                            @php
+                                $perfilEmp = $perfilesEquipo[(int) ($emp['empleado_id'] ?? 0)] ?? null;
+                                // Una categoría registrada sin columna en el voluntariado (p. ej. Titular) no puede ser voluntaria;
+                                // en el 015 el ítem 12 solo admite docentes permanentes como integrantes.
+                                $voluntarioBloqueado = filled($perfilEmp['categoria'] ?? null) && blank($perfilEmp['columna'] ?? null);
+                                $integranteBloqueado = $esVoluntariado && !($perfilEmp['permanente'] ?? false) && filled($perfilEmp['columna'] ?? null);
+                                $esVoluntarioEmp = ($emp['rol'] ?? null) === 'Voluntario';
+                            @endphp
+                            <tr wire:key="equipo-{{ $emp['empleado_id'] ?? $i }}">
                                 <td class="px-4 py-2 text-gray-900 dark:text-white">{{ $emp['nombre'] ?: 'Empleado #'.($emp['empleado_id'] ?? '-') }}</td>
-                                <td class="px-4 py-2"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ $emp['rol'] ?? 'Integrante' }}</span></td>
+                                <td class="px-4 py-2 text-xs text-gray-600 dark:text-gray-400">{{ $perfilEmp['categoria'] ?? 'Sin categoría' }}</td>
+                                <td class="px-4 py-2">
+                                    <select wire:model.live="empleado_proyecto.{{ $i }}.rol" class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs focus:border-blue-500">
+                                        <option value="Integrante" @disabled($integranteBloqueado)>Integrante</option>
+                                        <option value="Voluntario" @disabled($voluntarioBloqueado)>Voluntario</option>
+                                    </select>
+                                    @if($esVoluntarioEmp && filled($perfilEmp['columna'] ?? null) && filled($perfilEmp['sexo'] ?? null))
+                                        <p class="text-[11px] text-gray-500 mt-1">Suma en «{{ \App\Models\Proyecto\Proyecto::VOLUNTARIADO_PERSONAL_UNAH[$perfilEmp['columna']] }}» ({{ $perfilEmp['sexo'] }}).</p>
+                                    @elseif($esVoluntarioEmp)
+                                        <p class="text-[11px] text-amber-600 mt-1">Complete la categoría y el sexo en su perfil para contarlo.</p>
+                                    @elseif($voluntarioBloqueado)
+                                        <p class="text-[11px] text-gray-400 mt-1">Docente permanente: no puede ser voluntario.</p>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-2 text-right"><button wire:click="removeEmpleado({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button></td>
                             </tr>
                             @endforeach
@@ -587,6 +609,14 @@
                     @foreach($mensajes as $mensaje) <p class="text-red-500 text-xs mt-1">{{ $mensaje }}</p> @endforeach
                 @endforeach
             </div>
+
+            {{-- Voluntariado personal de la UNAH: ítem 13 del FORM-DVUS-001, 15 del FORM-DVUS-015. Se calcula con el equipo de arriba. --}}
+            @include('livewire.proyectos.vinculacion.partials.voluntariado-bloque', ['bloque' => [
+                'titulo' => 'Voluntariado personal de la UNAH',
+                'subtitulo' => 'Desglose del tipo de participación de personal de la UNAH (cantidad)',
+                'columnas' => \App\Models\Proyecto\Proyecto::VOLUNTARIADO_PERSONAL_UNAH,
+                'automatico' => true,
+            ]])
 
             {{-- Integrantes Internacionales --}}
             <div>
@@ -763,34 +793,13 @@
                 @endif
             </div>
 
-            {{-- Voluntariado personal de la UNAH e internacional: ítems 13 y 14 del FORM-DVUS-001 (opcionales), 15 y 16 del FORM-DVUS-015 (obligatorios) --}}
-            @foreach([
-                ['titulo' => 'Voluntariado personal de la UNAH', 'subtitulo' => 'Desglose del tipo de participación de personal de la UNAH (cantidad)', 'columnas' => \App\Models\Proyecto\Proyecto::VOLUNTARIADO_PERSONAL_UNAH],
-                ['titulo' => 'Voluntariado internacional', 'subtitulo' => 'Desglose del voluntariado internacional (cantidad)', 'columnas' => \App\Models\Proyecto\Proyecto::VOLUNTARIADO_INTERNACIONAL],
-            ] as $bloque)
-            <div wire:key="voluntariado-{{ \Illuminate\Support\Str::slug($bloque['titulo']) }}">
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ $bloque['titulo'] }} @if($esVoluntariado)<span class="text-red-500">*</span>@endif</h4>
-                <p class="text-xs text-gray-500 mt-0.5 mb-3">{{ $bloque['subtitulo'] }}. {{ $esVoluntariado ? 'Registre 0 si no aplica.' : 'Deje en blanco o en 0 si no aplica.' }}</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 {{ count($bloque['columnas']) === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-3">
-                    @foreach($bloque['columnas'] as $prefijo => $etiqueta)
-                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-                        <p class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{{ $etiqueta }}</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            @foreach(['hombres' => 'Hombres', 'mujeres' => 'Mujeres'] as $sufijo => $sexo)
-                            <div>
-                                <label class="block text-[11px] text-gray-500 dark:text-gray-400 mb-1">{{ $sexo }}</label>
-                                <input type="number" min="0" step="1" inputmode="numeric" @unless($esVoluntariado) placeholder="0" @endunless
-                                    wire:model.blur="voluntariado_participacion.{{ $prefijo }}_{{ $sufijo }}"
-                                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm focus:border-blue-500" />
-                                @error("voluntariado_participacion.{$prefijo}_{$sufijo}") <p class="text-red-500 text-[11px] mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            @endforeach
+            {{-- Voluntariado internacional: ítem 14 del FORM-DVUS-001 (opcional), 16 del FORM-DVUS-015 (obligatorio) --}}
+            @include('livewire.proyectos.vinculacion.partials.voluntariado-bloque', ['bloque' => [
+                'titulo' => 'Voluntariado internacional',
+                'subtitulo' => 'Desglose del voluntariado internacional (cantidad)',
+                'columnas' => \App\Models\Proyecto\Proyecto::VOLUNTARIADO_INTERNACIONAL,
+                'automatico' => false,
+            ]])
         </div>
 
         {{-- Modal: Buscar y seleccionar empleado --}}
