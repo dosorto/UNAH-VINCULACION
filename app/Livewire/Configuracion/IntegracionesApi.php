@@ -16,6 +16,8 @@ use Spatie\Activitylog\Models\Activity;
 
 class IntegracionesApi extends Component
 {
+    private const UNAH_HEADERS = ['x-api-key-unah', 'token-unah', 'sistema-unah'];
+
     public ?int $editingId = null;
     public ?int $testingId = null;
     public bool $showForm = false;
@@ -66,8 +68,14 @@ class IntegracionesApi extends Component
             $this->form[$field] = $integration->{$field};
         }
 
+        $headers = $integration->headers_json ?: [];
+        if ($integration->codigo === 'estudiantes') {
+            foreach (self::UNAH_HEADERS as $header) {
+                unset($headers[$header]);
+            }
+        }
         $this->form['headers_json'] = json_encode(
-            $integration->headers_json ?: (object) [],
+            $headers ?: (object) [],
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
         );
         $this->form['mapeo_campos_json'] = json_encode(
@@ -75,7 +83,35 @@ class IntegracionesApi extends Component
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
         );
         $this->form['tiene_secreto'] = $this->hasRequiredSecret($integration);
+        $this->form['tiene_credenciales_unah'] = $this->tieneCredencialesUnah($integration->headers_json ?: []);
         $this->showForm = true;
+    }
+
+    public function aplicarPlantillaEstudiantesUnah(): void
+    {
+        $this->authorizeAccess();
+        $this->form = array_replace($this->form, [
+            'nombre' => 'Estudiantes UNAH',
+            'codigo' => 'estudiantes',
+            'tipo_perfil' => IntegracionApi::PERFIL_ESTUDIANTE,
+            'ruta_busqueda' => '/estudiantes/{cuentaEstudiantil}/datos-generales',
+            'metodo_http' => 'GET',
+            'tipo_autenticacion' => IntegracionApi::AUTH_NINGUNA,
+            'parametro_busqueda' => 'cuentaEstudiantil',
+            'ruta_respuesta' => 'data.table0',
+            'mapeo_campos_json' => json_encode([
+                'numero_cuenta' => 'cuentaEstudiantil',
+                'nombre_completo' => 'nombre',
+                'primer_nombre' => 'primerNombre',
+                'segundo_nombre' => 'segundioNombre',
+                'primer_apellido' => 'primerApellido',
+                'segundo_apellido' => 'segundoApellido',
+                'centro_codigo' => 'idCentro',
+                'centro_nombre' => 'centro',
+                'carrera_codigo' => 'idCarrera',
+                'carrera_nombre' => 'carrera',
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+        ]);
     }
 
     public function save(
@@ -125,10 +161,14 @@ class IntegracionesApi extends Component
             ? IntegracionApi::findOrFail($this->editingId)
             : new IntegracionApi(['created_by' => auth()->id()]);
 
-        if (! $this->secretsAreComplete($integration)) {
+        $headers = $this->combinarCredencialesUnah($headers, $integration);
+
+        if (! $this->secretsAreComplete($integration) || ! $this->credencialesUnahCompletas($headers)) {
             $this->addError(
                 'form.tipo_autenticacion',
-                'Debe configurar las credenciales requeridas para el tipo de autenticación.'
+                $this->form['codigo'] === 'estudiantes'
+                    ? 'Ingrese x-api-key-unah, token-unah y sistema-unah para la integración de estudiantes UNAH.'
+                    : 'Debe configurar las credenciales requeridas para el tipo de autenticación.'
             );
 
             return;
@@ -138,7 +178,11 @@ class IntegracionesApi extends Component
             'token',
             'usuario_api',
             'password_api',
+            'unah_api_key',
+            'unah_token',
+            'unah_sistema',
             'tiene_secreto',
+            'tiene_credenciales_unah',
         ])->all();
         $data['headers_json'] = $headers;
         $data['mapeo_campos_json'] = $mapping;
@@ -329,6 +373,9 @@ class IntegracionesApi extends Component
             'reintentos' => 0,
             'verificar_ssl' => true,
             'headers_json' => '{}',
+            'unah_api_key' => '',
+            'unah_token' => '',
+            'unah_sistema' => '',
             'ruta_respuesta' => '',
             'mapeo_campos_json' => json_encode([
                 'numero_cuenta' => 'numeroCuenta',
@@ -336,6 +383,7 @@ class IntegracionesApi extends Component
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
             'activo' => false,
             'tiene_secreto' => false,
+            'tiene_credenciales_unah' => false,
         ];
     }
 
@@ -375,6 +423,9 @@ class IntegracionesApi extends Component
             'form.token' => ['nullable', 'string', 'max:4096'],
             'form.usuario_api' => ['nullable', 'string', 'max:1024'],
             'form.password_api' => ['nullable', 'string', 'max:4096'],
+            'form.unah_api_key' => ['nullable', 'string', 'max:4096'],
+            'form.unah_token' => ['nullable', 'string', 'max:4096'],
+            'form.unah_sistema' => ['nullable', 'string', 'max:4096'],
             'form.api_key_header' => [
                 Rule::requiredIf($this->form['tipo_autenticacion'] === IntegracionApi::AUTH_API_KEY),
                 'nullable',
@@ -440,6 +491,7 @@ class IntegracionesApi extends Component
                 array_key_exists('numero_cuenta', $integration->mapeo_campos_json)
                 || array_key_exists('nombre_completo', $integration->mapeo_campos_json)
             )
+            && ($integration->codigo !== 'estudiantes' || $this->tieneCredencialesUnah($integration->headers_json ?: []))
             && $this->hasRequiredSecret($integration);
     }
 
@@ -453,5 +505,44 @@ class IntegracionesApi extends Component
                 && filled($integration->password_api_encriptado),
             default => false,
         };
+    }
+
+    private function combinarCredencialesUnah(array $headers, IntegracionApi $integration): array
+    {
+        if ($this->form['codigo'] !== 'estudiantes') {
+            return $headers;
+        }
+
+        $guardados = $integration->headers_json ?: [];
+        foreach ([
+            'x-api-key-unah' => 'unah_api_key',
+            'token-unah' => 'unah_token',
+            'sistema-unah' => 'unah_sistema',
+        ] as $header => $campo) {
+            $valor = trim((string) ($this->form[$campo] ?? ''));
+            $headers[$header] = $valor !== '' ? $valor : ($guardados[$header] ?? '');
+        }
+
+        return $headers;
+    }
+
+    private function credencialesUnahCompletas(array $headers): bool
+    {
+        if ($this->form['codigo'] !== 'estudiantes') {
+            return true;
+        }
+
+        return $this->tieneCredencialesUnah($headers);
+    }
+
+    private function tieneCredencialesUnah(array $headers): bool
+    {
+        foreach (self::UNAH_HEADERS as $header) {
+            if (blank($headers[$header] ?? null)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

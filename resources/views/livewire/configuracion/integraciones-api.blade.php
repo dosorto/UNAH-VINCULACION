@@ -116,6 +116,9 @@
                     <div class="max-h-[75vh] space-y-6 overflow-y-auto px-5 py-5">
                         <fieldset class="grid gap-4 md:grid-cols-3">
                             <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">Información general</legend>
+                            <div class="md:col-span-3">
+                                <button type="button" wire:click="aplicarPlantillaEstudiantesUnah" class="rounded-full border border-cyan-200 px-3 py-1.5 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-800 dark:text-cyan-300 dark:hover:bg-cyan-950/30">Usar plantilla API Estudiantes UNAH</button>
+                            </div>
                             <x-integration-field label="Nombre" model="form.nombre" />
                             <x-integration-field label="Slug" model="form.codigo" />
                             <label class="space-y-1.5">
@@ -137,6 +140,9 @@
                             <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">Endpoint</legend>
                             <div class="md:col-span-2"><x-integration-field label="Base URL" model="form.base_url" placeholder="https://api.institucion.edu" /></div>
                             <x-integration-field label="Ruta de búsqueda" model="form.ruta_busqueda" placeholder="/estudiantes/buscar" />
+                            @if (($form['codigo'] ?? '') === 'estudiantes')
+                                <p class="text-xs text-slate-500 dark:text-slate-400 md:col-span-3">Use <code>{cuentaEstudiantil}</code> en la ruta. Ejemplo: <code>/estudiantes/{cuentaEstudiantil}/datos-generales</code>. La cuenta se enviará en la URL, no como parámetro adicional.</p>
+                            @endif
                             <label class="space-y-1.5">
                                 <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Método HTTP</span>
                                 <select wire:model="form.metodo_http" class="w-full rounded-xl border-slate-300 bg-white text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"><option>GET</option><option>POST</option></select>
@@ -152,6 +158,18 @@
 
                         <fieldset class="grid gap-4 border-t border-slate-200 pt-5 dark:border-slate-800 md:grid-cols-3">
                             <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">Autenticación</legend>
+                            @if (($form['codigo'] ?? '') === 'estudiantes')
+                                <div class="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900 dark:border-cyan-900 dark:bg-cyan-950/30 dark:text-cyan-100 md:col-span-3">
+                                    <p class="font-semibold">Credenciales API Estudiantes UNAH</p>
+                                    <p class="mt-1 text-xs">Se almacenan cifradas y nunca se muestran nuevamente. Deje un campo vacío al editar para conservar su valor actual.</p>
+                                    <div class="mt-3 grid gap-4 md:grid-cols-3">
+                                        <x-integration-field label="x-api-key-unah" model="form.unah_api_key" type="password" />
+                                        <x-integration-field label="token-unah" model="form.unah_token" type="password" />
+                                        <x-integration-field label="sistema-unah" model="form.unah_sistema" type="password" />
+                                    </div>
+                                    @if ($form['tiene_credenciales_unah'] ?? false)<p class="mt-2 text-xs font-medium">Las tres credenciales ya están configuradas.</p>@endif
+                                </div>
+                            @endif
                             <label class="space-y-1.5">
                                 <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Tipo</span>
                                 <select wire:model.live="form.tipo_autenticacion" class="w-full rounded-xl border-slate-300 bg-white text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">

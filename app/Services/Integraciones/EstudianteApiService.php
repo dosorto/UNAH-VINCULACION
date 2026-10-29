@@ -75,9 +75,10 @@ class EstudianteApiService
             throw new IntegracionApiException('CONFIGURACION', 'Debe indicar un número de cuenta.');
         }
 
-        $url = $this->construirUrl($integracion);
+        $url = $this->construirUrl($integracion, $numeroCuenta);
         $request = $this->crearSolicitud($integracion);
-        $query = [$integracion->parametro_busqueda => $numeroCuenta];
+        $usaCuentaEnRuta = $this->rutaContieneCuenta($integracion->ruta_busqueda);
+        $query = $usaCuentaEnRuta ? [] : [$integracion->parametro_busqueda => $numeroCuenta];
 
         if (
             $integracion->tipo_autenticacion === IntegracionApi::AUTH_API_KEY
@@ -294,11 +295,22 @@ class EstudianteApiService
         };
     }
 
-    private function construirUrl(IntegracionApi $integracion): string
+    private function construirUrl(IntegracionApi $integracion, string $numeroCuenta): string
     {
         $this->validarUrlSegura($integracion->base_url);
 
-        return rtrim($integracion->base_url, '/') . '/' . ltrim($integracion->ruta_busqueda, '/');
+        $ruta = $integracion->ruta_busqueda;
+
+        foreach (['{cuentaEstudiantil}', '{numero_cuenta}'] as $placeholder) {
+            $ruta = str_replace($placeholder, rawurlencode($numeroCuenta), $ruta);
+        }
+
+        return rtrim($integracion->base_url, '/') . '/' . ltrim($ruta, '/');
+    }
+
+    private function rutaContieneCuenta(string $ruta): bool
+    {
+        return Str::contains($ruta, ['{cuentaEstudiantil}', '{numero_cuenta}']);
     }
 
     private function procesarRespuesta(IntegracionApi $integracion, Response $response): array
@@ -318,6 +330,17 @@ class EstudianteApiService
 
         if (! is_array($payload)) {
             throw new IntegracionApiException('JSON_INVALIDO', 'La respuesta de la API no contiene JSON válido.');
+        }
+
+        if (($payload['hasError'] ?? false) === true) {
+            $mensaje = data_get($payload, 'errors.0.descripcion');
+
+            throw new IntegracionApiException(
+                'RESPUESTA_API',
+                filled($mensaje)
+                    ? "La API institucional reportó: {$mensaje}"
+                    : 'La API institucional no pudo procesar la consulta.'
+            );
         }
 
         return $this->mapearRespuesta($integracion, $payload);

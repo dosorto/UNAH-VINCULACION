@@ -95,6 +95,45 @@ class EstudianteApiServiceTest extends TestCase
             && str_contains($request->url(), 'numero_cuenta=123'));
     }
 
+    public function test_api_unah_reemplaza_cuenta_en_ruta_y_no_agrega_query(): void
+    {
+        Http::fake(['https://api.example.test/*' => Http::response([
+            'data' => ['table0' => [[
+                'cuentaEstudiantil' => '20212320167',
+                'nombre' => 'JUAN PÉREZ',
+                'idCarrera' => 94,
+                'carrera' => 'INGENIERÍA EN SISTEMAS',
+            ]]],
+            'errors' => [],
+            'hasError' => false,
+        ])]);
+
+        $integration = $this->integration([
+            'ruta_busqueda' => '/estudiantes/{cuentaEstudiantil}/datos-generales',
+            'ruta_respuesta' => 'data.table0',
+            'headers_json' => [
+                'x-api-key-unah' => 'key',
+                'token-unah' => 'token',
+                'sistema-unah' => 'uuid',
+            ],
+            'mapeo_campos_json' => [
+                'numero_cuenta' => 'cuentaEstudiantil',
+                'nombre_completo' => 'nombre',
+                'carrera_codigo' => 'idCarrera',
+                'carrera_nombre' => 'carrera',
+            ],
+        ]);
+
+        $result = app(EstudianteApiService::class)->consultar($integration, '20212320167');
+
+        $this->assertSame('JUAN PÉREZ', $result['nombre_completo']);
+        $this->assertSame('INGENIERÍA EN SISTEMAS', $result['carrera_nombre']);
+        Http::assertSent(fn (Request $request): bool => $request->url() === 'https://api.example.test/estudiantes/20212320167/datos-generales'
+            && $request->hasHeader('x-api-key-unah', 'key')
+            && $request->hasHeader('token-unah', 'token')
+            && $request->hasHeader('sistema-unah', 'uuid'));
+    }
+
     public function test_maneja_timeout_error_http_y_json_invalido_sin_exponer_respuesta(): void
     {
         $service = app(EstudianteApiService::class);
