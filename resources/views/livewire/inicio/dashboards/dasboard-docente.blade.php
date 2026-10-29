@@ -84,11 +84,12 @@
             @endif
 
             {{--
-                Mis proyectos con su stepper.
+                Mis proyectos con su progreso compacto: una línea por trámite y el
+                detalle de las etapas en un tooltip, para que la tabla no crezca.
 
                 La estructura de esta tabla está fijada por
                 DashboardMisProyectosLayoutTest: los anchos del <colgroup> y las
-                etiquetas de texto-truncado y stepper-progreso se comprueban
+                etiquetas de texto-truncado y progreso-compacto se comprueban
                 literalmente, porque es la función que no puede perderse en el
                 rediseño. Todo lo demás (cabecera, envoltorio, estado vacío) sí
                 cambia.
@@ -97,10 +98,10 @@
                 subtitulo="Avance de cada trámite por su flujo de aprobación"
                 icono="heroicon-o-list-bullet" :sinPadding="true">
                 <div class="relative overflow-x-auto">
-                    <table class="w-full min-w-[1100px] table-fixed text-left text-sm text-slate-500 dark:text-slate-400">
+                    <table class="w-full min-w-[900px] table-fixed text-left text-sm text-slate-500 dark:text-slate-400">
                         <colgroup>
-                            <col class="w-[18%]">
-                            <col class="w-[38%]">
+                            <col class="w-[28%]">
+                            <col class="w-[28%]">
                             <col class="w-[15%]">
                             <col class="w-[15%]">
                             <col class="w-[14%]">
@@ -126,20 +127,8 @@
                                             <x-dashboard.texto-truncado :texto="$formulario['nombre']" />
                                         @endif
                                     </th>
-                                    <td class="px-5 py-4 align-top">
-                                        @if (! empty($formulario['stepper']))
-                                            @php
-                                                $faseClase = match ($formulario['fase'] ?? 'Aprobación') {
-                                                    'Informe Intermedio' => 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300',
-                                                    'Informe Final' => 'bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
-                                                    default => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-                                                };
-                                            @endphp
-                                            <span class="mb-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide {{ $faseClase }}">
-                                                {{ $formulario['fase'] ?? 'Aprobación' }}
-                                            </span>
-                                        @endif
-                                        <x-dashboard.stepper-progreso :stepper="$formulario['stepper']" />
+                                    <td class="px-5 py-4">
+                                        <x-dashboard.progreso-compacto :stepper="$formulario['stepper']" :fase="$formulario['fase'] ?? 'Aprobación'" />
                                     </td>
                                     <td class="px-5 py-4">
                                         {{ $formulario['fecha_inicio'] ? \Carbon\Carbon::parse($formulario['fecha_inicio'])->isoFormat('D MMM YYYY') : '—' }}
