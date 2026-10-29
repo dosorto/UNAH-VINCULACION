@@ -83,6 +83,61 @@ class CreatePasantia extends Component
 
     public $convenioMarcoArchivo = null;
 
+    public bool $showAnexoModal = false;
+    public string $nuevoAnexoTipo = '';
+    public $nuevoAnexoArchivo = null;
+
+    public const TIPOS_ANEXO = [
+        'carta_formalizacion' => 'Carta de formalización',
+        'convenio_marco' => 'Convenio marco',
+    ];
+
+    public function openAnexoModal(): void
+    {
+        $this->closeAnexoModal();
+        $this->showAnexoModal = true;
+    }
+
+    public function closeAnexoModal(): void
+    {
+        $this->reset('showAnexoModal', 'nuevoAnexoTipo', 'nuevoAnexoArchivo');
+        $this->resetValidation(['nuevoAnexoTipo', 'nuevoAnexoArchivo']);
+    }
+
+    public function quitarArchivoPendiente(): void
+    {
+        $this->reset('nuevoAnexoArchivo');
+        $this->resetValidation('nuevoAnexoArchivo');
+    }
+
+    public function uploadAnexo(): void
+    {
+        $this->validate([
+            'nuevoAnexoTipo' => ['required', Rule::in(array_keys(self::TIPOS_ANEXO))],
+            'nuevoAnexoArchivo' => ['required', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
+        ]);
+        $propiedad = $this->nuevoAnexoTipo === 'carta_formalizacion'
+            ? 'cartaFormalizacionArchivo' : 'convenioMarcoArchivo';
+        $this->{$propiedad} = $this->nuevoAnexoArchivo;
+        try {
+            $this->guardarBorrador(false);
+        } finally {
+            $this->{$propiedad} = null;
+        }
+        $this->closeAnexoModal();
+    }
+
+    public function deleteAnexo(string $tipo): void
+    {
+        abort_unless(array_key_exists($tipo, self::TIPOS_ANEXO), 422);
+        $registro = Pasantia::findOrFail($this->registroId);
+        abort_unless($this->puedeEditar($registro), 403);
+        $registro->forceFill(['archivo_'.$tipo => null, 'adjunta_'.$tipo => false])->save();
+        $this->form['archivo_'.$tipo] = null;
+        $this->form['adjunta_'.$tipo] = 'No';
+    }
+
+
     // Envío al flujo, con el mismo patrón de confirmación utilizado por
     // FORM-DVUS-014.
     public bool $showEnviarModal = false;
@@ -485,7 +540,8 @@ class CreatePasantia extends Component
     public function isStepComplete(int $paso): bool
     {
         if ($paso === 7) {
-            return true;
+            return filled($this->form['archivo_carta_formalizacion'] ?? null)
+                || filled($this->form['archivo_convenio_marco'] ?? null);
         }
 
         foreach ($this->camposRequeridosDelPaso($paso) as $campo) {

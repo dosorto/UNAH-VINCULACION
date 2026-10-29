@@ -21,6 +21,34 @@ class PasantiaLivewireTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_anexos_modal_guarda_cancela_y_actualiza_el_indicador(): void
+    {
+        Storage::fake('public');
+        $component = Livewire::test(CreatePasantia::class)->set('pasoActual', 7);
+        $this->assertFalse($component->instance()->isStepComplete(7));
+        $component->assertSee('No hay anexos agregados.')
+            ->call('openAnexoModal')
+            ->assertSee('Tipo de documento')
+            ->call('uploadAnexo')
+            ->assertHasErrors(['nuevoAnexoTipo', 'nuevoAnexoArchivo'])
+            ->set('nuevoAnexoTipo', 'carta_formalizacion')
+            ->set('nuevoAnexoArchivo', UploadedFile::fake()->create('carta.pdf', 10, 'application/pdf'))
+            ->call('closeAnexoModal')
+            ->assertSet('nuevoAnexoArchivo', null)
+            ->assertSet('registroId', null)
+            ->call('openAnexoModal')
+            ->set('nuevoAnexoTipo', 'carta_formalizacion')
+            ->set('nuevoAnexoArchivo', UploadedFile::fake()->create('carta.pdf', 10, 'application/pdf'))
+            ->call('uploadAnexo')->assertHasNoErrors()
+            ->assertSet('showAnexoModal', false);
+        $this->assertTrue($component->instance()->isStepComplete(7));
+        $registro = Pasantia::findOrFail($component->get('registroId'));
+        Storage::disk('public')->assertExists($registro->archivo_carta_formalizacion);
+        $component->call('deleteAnexo', 'carta_formalizacion')->assertHasNoErrors();
+        $this->assertFalse($component->instance()->isStepComplete(7));
+        $this->assertNull($registro->fresh()->archivo_carta_formalizacion);
+    }
+
     public function test_siguiente_exige_campos_obligatorios_en_cada_seccion(): void
     {
         foreach ([1 => 'numero_cuenta', 2 => 'tipo_pasantia', 3 => 'resumen_responsabilidades',

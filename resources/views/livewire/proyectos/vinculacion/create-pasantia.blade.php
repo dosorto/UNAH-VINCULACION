@@ -68,7 +68,9 @@
         <p class="mb-3 text-sm text-gray-500">Los campos con * son obligatorios para avanzar. Puede guardar un borrador incompleto.</p>
         <h2 class="mb-5 text-lg font-semibold text-gray-900">Paso {{ $pasoActual }}: {{ $pasos[$pasoActual] }}</h2>
         <div wire:key="pasantia-paso-{{ $pasoActual }}" class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        @if($pasoActual === 3)
+        @if($pasoActual === 7)
+            @include('livewire.proyectos.vinculacion.partials.pasantia-anexos')
+        @elseif($pasoActual === 3)
             @include('livewire.proyectos.vinculacion.partials.pasantia-experiencia')
         @else
         @foreach($secciones[$pasoActual] as $indice => [$campo, $etiqueta, $tipo])
