@@ -2401,15 +2401,22 @@ class Proyecto extends Model
         $this->agregarEstado($empleado, $tipoEstado->id, $comentario);
     }
 
+    // Un borrador antiguo puede no tener ninguna fila de estado: cuenta como Borrador,
+    // igual que en estado_general.
     public function proyectoIsInEstadoByName(string $estadoNombre): bool
     {
-        return $this->estado->tipoestado->nombre === $estadoNombre;
+        return ($this->estado?->tipoestado?->nombre ?? 'Borrador') === $estadoNombre;
     }
 
     public function proyectoIsInAnyEstados(array $estadoNombres): bool
     {
-        return in_array($this->obtenerUltimoEstado()
-            ->tipo_estado_id, TipoEstado::whereIn('nombre', $estadoNombres)
+        $ultimo = $this->obtenerUltimoEstado();
+
+        if (! $ultimo) {
+            return in_array('Borrador', $estadoNombres, true);
+        }
+
+        return in_array($ultimo->tipo_estado_id, TipoEstado::whereIn('nombre', $estadoNombres)
             ->pluck('id')->toArray());
     }
 

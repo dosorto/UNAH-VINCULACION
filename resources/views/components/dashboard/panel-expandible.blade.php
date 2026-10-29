@@ -17,6 +17,8 @@
 --}}
 <section
     x-data="{ abierto: {{ $abierto ? 'true' : 'false' }} }"
+    {{-- Con id, otra parte de la página puede abrirlo: $dispatch('abrir-panel', id). --}}
+    x-on:abrir-panel.window="if ($event.detail === $el.id) { abierto = true; $nextTick(() => $el.scrollIntoView({ behavior: 'smooth', block: 'start' })) }"
     {{ $attributes->merge(['class' => 'overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900']) }}
 >
     <h2>

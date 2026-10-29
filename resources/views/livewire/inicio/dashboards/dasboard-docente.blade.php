@@ -21,13 +21,20 @@
         </x-slot:acciones>
 
         <x-slot:metricas>
+            {{-- Cada cifra abre su detalle: los trámites, Mi historial filtrado por el mismo
+                 estado con el que se cuentan; personas y horas, el panel «Mi aporte». --}}
+            @php
+                $historial = fn (?string $estado = null) => auth()->user()?->can('docente.proyectos')
+                    ? route('proyectosDocente', array_filter(['estado' => $estado]))
+                    : null;
+            @endphp
             <div class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-6">
-                <x-dashboard.cifra-cabecera :valor="$resumen['total']" etiqueta="Mis trámites" icono="heroicon-o-folder" :destacada="true" />
-                <x-dashboard.cifra-cabecera :valor="$resumen['en_revision']" etiqueta="En revisión" icono="heroicon-o-clipboard-document-list" />
-                <x-dashboard.cifra-cabecera :valor="$resumen['en_curso']" etiqueta="Registrados" icono="heroicon-o-play-circle" />
-                <x-dashboard.cifra-cabecera :valor="$resumen['finalizado']" etiqueta="Finalizados" icono="heroicon-o-check-badge" />
-                <x-dashboard.cifra-cabecera :valor="$poblacion['poblacion']" etiqueta="Personas alcanzadas" icono="heroicon-o-users" />
-                <x-dashboard.cifra-cabecera :valor="$esfuerzo['horas']" etiqueta="Horas registradas" icono="heroicon-o-clock" />
+                <x-dashboard.cifra-cabecera :valor="$resumen['total']" etiqueta="Mis trámites" icono="heroicon-o-folder" :destacada="true" :href="$historial()" />
+                <x-dashboard.cifra-cabecera :valor="$resumen['en_revision']" etiqueta="En revisión" icono="heroicon-o-clipboard-document-list" :href="$historial(\App\Support\Dashboard\EstadoGeneral::EN_REVISION)" />
+                <x-dashboard.cifra-cabecera :valor="$resumen['en_curso']" etiqueta="Registrados" icono="heroicon-o-play-circle" :href="$historial(\App\Support\Dashboard\EstadoGeneral::APROBADO)" />
+                <x-dashboard.cifra-cabecera :valor="$resumen['finalizado']" etiqueta="Finalizados" icono="heroicon-o-check-badge" :href="$historial(\App\Support\Dashboard\EstadoGeneral::FINALIZADO)" />
+                <x-dashboard.cifra-cabecera :valor="$poblacion['poblacion']" etiqueta="Personas alcanzadas" icono="heroicon-o-users" href="#mi-aporte" />
+                <x-dashboard.cifra-cabecera :valor="$esfuerzo['horas']" etiqueta="Horas registradas" icono="heroicon-o-clock" href="#mi-aporte" />
             </div>
         </x-slot:metricas>
     </x-dashboard.cabecera>
@@ -179,7 +186,7 @@
                     :detalle="$serieGrafico['detalle']" :alto="190" />
             </x-dashboard.panel>
 
-            <x-dashboard.panel-expandible titulo="Mi aporte"
+            <x-dashboard.panel-expandible id="mi-aporte" titulo="Mi aporte"
                 subtitulo="Lo que suman tus proyectos" icono="heroicon-o-scale"
                 :resumen="number_format($estudiantes['total']).' estudiantes'">
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">

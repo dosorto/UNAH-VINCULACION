@@ -1016,7 +1016,7 @@ class ProyectoVinculacionFormularioTest extends TestCase
         return view('livewire.docente.proyectos.proyectos-docente-list', [
             'records' => $records,
             'categorias' => collect(),
-            'estadosTipo' => collect(),
+            'estadosGenerales' => [],
             'opcionesDestinatariosIntermedioEnf' => collect(),
             'filterTipoAccion' => 'todas',
             'informeIntermedioModal' => false,
