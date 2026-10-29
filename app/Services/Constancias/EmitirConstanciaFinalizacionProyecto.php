@@ -128,8 +128,11 @@ class EmitirConstanciaFinalizacionProyecto
     {
         $informe->loadMissing(['beneficiarios', 'equipoDocente', 'estudiantes', 'voluntarios', 'presupuestoDetalles']);
         $autoridad = $this->autoridad->resolver($documento);
+        // Solo quienes participaron: los estados no_participo, no_finalizo y retirado quedan fuera.
+        // El coordinador se conserva siempre: la constancia lo nombra.
+        $activos = fn ($filas) => $filas->filter(fn ($fila) => ($fila->estado_participacion ?? 'activo') === 'activo');
         $equipo = $informe->equipoDocente
-            ->where('estado_participacion', '!=', 'removido')
+            ->filter(fn ($persona) => $persona->es_coordinador || ($persona->estado_participacion ?? 'activo') === 'activo')
             ->map(fn ($persona) => [
                 'nombre' => $persona->nombre ?: 'No registrado',
                 'numero_empleado' => $persona->numero_empleado ?: 'No registrado',
@@ -144,8 +147,8 @@ class EmitirConstanciaFinalizacionProyecto
             'departamento' => 'No registrado', 'horas' => '0.00', 'rol' => 'Coordinador/a del proyecto',
         ];
         $beneficiarios = $informe->beneficiarios;
-        $voluntarios = $informe->voluntarios->where('estado_participacion', '!=', 'removido');
-        $estudiantes = $informe->estudiantes->where('estado_participacion', '!=', 'removido');
+        $voluntarios = $activos($informe->voluntarios);
+        $estudiantes = $activos($informe->estudiantes);
 
         return [
             'constancia' => ['numero' => $numero, 'codigo_validacion' => $codigo, 'fecha_emision' => $fecha->toIso8601String(), 'ciudad_emision' => 'Ciudad Universitaria José Trinidad Reyes'],
