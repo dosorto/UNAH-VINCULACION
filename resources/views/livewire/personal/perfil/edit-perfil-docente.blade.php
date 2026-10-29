@@ -31,15 +31,31 @@
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50" />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">N° de Empleado</label>
-                    <input type="text" wire:model="numero_empleado" disabled
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">N° de Empleado @if ($canEditEmployeeData && $numeroEmpleadoEditable)<span class="text-red-500">*</span>@endif</label>
+                    <input type="text" wire:model="numero_empleado" maxlength="255" {{ !($canEditEmployeeData && $numeroEmpleadoEditable) ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50" />
+                    @error('numero_empleado') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Celular <span class="text-red-500">*</span></label>
                     <input type="text" wire:model="celular" {{ !$canEditEmployeeData ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50" />
                     @error('celular') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jornada laboral @if ($jornadas !== [])<span class="text-red-500">*</span>@endif</label>
+                    <select wire:model="jornada_laboral" {{ !$canEditEmployeeData ? 'disabled' : '' }}
+                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
+                        <option value="">Seleccione...</option>
+                        @foreach ($jornadas as $jornada)
+                            <option value="{{ $jornada }}">{{ $jornada }}</option>
+                        @endforeach
+                        {{-- Valor anterior escrito a mano: solo se muestra, no se puede elegir. --}}
+                        @if ($jornada_laboral !== '' && ! in_array($jornada_laboral, $jornadas, true))
+                            <option value="{{ $jornada_laboral }}" disabled>{{ $jornada_laboral }}</option>
+                        @endif
+                    </select>
+                    @error('jornada_laboral') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sexo <span class="text-red-500">*</span></label>

@@ -97,7 +97,7 @@ class ListInformesSolicitado extends Component
             $doc->load(['proyecto.coordinador_proyecto.empleado.user']);
             if ($doc->proyecto?->coordinador?->user) {
                 Mail::to($doc->proyecto->coordinador->user->email)->send(
-                    new ProyectoEstadoCambiado($doc->proyecto, $doc->proyecto->coordinador->user, 'Subsanación de ' . $doc->tipo_documento, $this->rechazarComentario, 'rechazo de informe')
+                    new ProyectoEstadoCambiado($doc->proyecto, $doc->proyecto->coordinador->user, 'Subsanación de ' . $doc->tipo_documento, $this->rechazarComentario, 'rechazo de informe', tipoDocumento: $doc->tipo_documento)
                 );
             }
         } catch (\Exception $e) {
@@ -197,7 +197,7 @@ class ListInformesSolicitado extends Component
             $doc->load(['proyecto.coordinador_proyecto.empleado.user']);
             if ($doc->proyecto?->coordinador?->user) {
                 Mail::to($doc->proyecto->coordinador->user->email)->send(
-                    new ProyectoEstadoCambiado($doc->proyecto, $doc->proyecto->coordinador->user, $estadoInforme, $mensajeAprobacion, 'aprobación de informe')
+                    new ProyectoEstadoCambiado($doc->proyecto, $doc->proyecto->coordinador->user, $estadoInforme, $mensajeAprobacion, 'aprobación de informe', tipoDocumento: $doc->tipo_documento)
                 );
             }
         } catch (\Exception $e) {

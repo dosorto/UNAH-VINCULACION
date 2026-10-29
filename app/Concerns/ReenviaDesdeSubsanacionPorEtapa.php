@@ -10,6 +10,7 @@ use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
 use App\Services\Workflow\WorkflowResumptionPolicy;
+use App\Services\Proyecto\NotificadorCoordinadorProyecto;
 use App\Services\Proyecto\ProyectoWorkflowService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -221,6 +222,17 @@ trait ReenviaDesdeSubsanacionPorEtapa
             $this->registrarEstadoDeReenvioPorEtapa($proyecto, $documento, (int) $tipoEstadoId, (int) $empleadoId, $primeraFirma);
             $this->validarReenvioPorEtapaCompletado($proyecto, $documento, $firmaBloqueada, $primeraFirma);
             $this->notificarPrimeraEtapaReanudada($proyecto, $documento, $primeraFirma);
+            app(NotificadorCoordinadorProyecto::class)->notificar(
+                $proyecto,
+                ($documento?->tipo_documento ?: 'Proyecto').' reenviado a revisión',
+                sprintf(
+                    '%s retomó la revisión en la etapa "%s".',
+                    $documento ? 'El '.$documento->tipo_documento : 'Su proyecto',
+                    $primeraFirma->etapa_nombre ?: $primeraFirma->etapa_codigo
+                ),
+                'reenvío a revisión',
+                tipoDocumento: $documento?->tipo_documento
+            );
 
             Log::info('Registro de proyecto reenviado desde subsanación', [
                 'proceso' => $documento

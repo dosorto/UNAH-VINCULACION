@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmación de Registro de Proyecto - {{ $appName }}</title>
+    <title>Confirmación de envío a revisión - {{ $appName }}</title>
     <style>
         body {
             font-family: 'Times New Roman', Times, serif;
@@ -254,7 +254,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Confirmación de Registro de Proyecto</h1>
+            <h1>Confirmación de envío a revisión</h1>
             <div class="subtitle">Sistema de Gestión de Proyectos de Vinculación</div>
         </div>
         
@@ -300,7 +300,7 @@
                 <p style="margin-bottom: 15px; font-weight: 600; color: #004080;">
                     Acceda a su panel institucional para seguimiento:
                 </p>
-                <a href="https://nexo.unah.edu.hn/" class="action-button">
+                <a href="{{ $actionUrl }}" class="action-button">
                     Acceder al Sistema Institucional
                 </a>
             </div>

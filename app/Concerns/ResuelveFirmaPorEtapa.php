@@ -4,7 +4,6 @@ namespace App\Concerns;
 
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Mail\EtapaFlujoPendiente;
-use App\Mail\ProyectoEstadoCambiado;
 use App\Models\Estado\TipoEstado;
 use App\Models\InformeFinal\InformeFinalProyecto;
 use App\Models\InformeIntermedio\InformeIntermedioProyecto;
@@ -15,6 +14,7 @@ use App\Models\Proyecto\Proyecto;
 use App\Models\User;
 use App\Services\Constancias\EmitirConstanciaFinalizacionProyecto;
 use App\Services\Constancias\EmitirConstanciaRegistroProyecto;
+use App\Services\Proyecto\NotificadorCoordinadorProyecto;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -216,10 +216,11 @@ trait ResuelveFirmaPorEtapa
             sprintf(
                 'La etapa "%s" fue aprobada y %s avanzó a la etapa "%s".',
                 $firmaAprobada->etapa_nombre ?: $firmaAprobada->etapa_codigo,
-                $documento ? 'el documento' : 'su proyecto',
+                $documento ? 'el '.$documento->tipo_documento : 'su proyecto',
                 $siguienteFirma->etapa_nombre ?: $siguienteFirma->etapa_codigo
             ),
-            'avance de etapa'
+            'avance de etapa',
+            tipoDocumento: $documento?->tipo_documento
         );
     }
 
@@ -270,15 +271,17 @@ trait ResuelveFirmaPorEtapa
                     $proyecto,
                     'Informe intermedio aprobado',
                     $comentarioHabilitado,
-                    'aprobación de informe',
-                    route('proyectos.informe-final', $proyecto)
+                    'aprobación del informe intermedio',
+                    route('proyectos.informe-final', $proyecto),
+                    $documento->tipo_documento
                 );
             } elseif ($documento->tipo_documento === 'Informe Final') {
                 $this->notificarCoordinadorProyecto(
                     $proyecto,
                     'Informe Final aprobado',
                     'El Informe Final INF-001 fue aprobado y el proyecto fue cerrado.',
-                    'aprobación de informe'
+                    'cierre del proyecto',
+                    tipoDocumento: $documento->tipo_documento
                 );
             }
 
@@ -391,7 +394,8 @@ trait ResuelveFirmaPorEtapa
                 $proyecto,
                 $documento ? $documento->tipo_documento.' en subsanación' : 'Proyecto en subsanación',
                 $comentario,
-                'solicitud de subsanación'
+                'solicitud de subsanación',
+                tipoDocumento: $documento?->tipo_documento
             );
 
             return $firmaRechazada->fresh();
@@ -616,21 +620,8 @@ trait ResuelveFirmaPorEtapa
         string $comentario,
         string $accion,
         ?string $actionUrl = null,
+        ?string $tipoDocumento = null,
     ): void {
-        $coordinador = $proyecto->coordinador_proyecto()->first()?->empleado?->user;
-
-        if (! $coordinador || ! $coordinador->email) {
-            return;
-        }
-
-        try {
-            Mail::to($coordinador->email)->queue(
-                (new ProyectoEstadoCambiado($proyecto, $coordinador, $nuevoEstado, $comentario, $accion, $actionUrl))->afterCommit()
-            );
-        } catch (\Throwable $exception) {
-            Log::warning('No se pudo notificar al coordinador del proyecto: '.$exception->getMessage(), [
-                'proyecto_id' => $proyecto->id,
-            ]);
-        }
+        app(NotificadorCoordinadorProyecto::class)->notificar($proyecto, $nuevoEstado, $comentario, $accion, $actionUrl, $tipoDocumento);
     }
 }

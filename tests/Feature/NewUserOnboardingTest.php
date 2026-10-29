@@ -6,6 +6,7 @@ use App\Livewire\Login\Login;
 use App\Livewire\Personal\Perfil\EditPerfilDocente;
 use App\Livewire\Personal\Perfil\EditPerfilEstudiante;
 use App\Models\Estudiante\Estudiante;
+use App\Models\JornadaLaboral;
 use App\Models\Personal\CategoriaEmpleado;
 use App\Models\UnidadAcademica\Campus;
 use App\Models\UnidadAcademica\Carrera;
@@ -26,6 +27,8 @@ use Tests\TestCase;
 class NewUserOnboardingTest extends TestCase
 {
     use DatabaseTransactions;
+
+    protected bool $exigePerfilCompleto = true;
 
     public function test_microsoft_crea_usuario_nuevo_y_lo_envia_a_completar_perfil(): void
     {
@@ -139,12 +142,14 @@ class NewUserOnboardingTest extends TestCase
         $numeroEmpleado = (string) random_int(10000000, 99999999);
         $user = app(NewUserOnboardingService::class)->prepareEmployeeProfile($user, $numeroEmpleado, 'Perfil Nuevo Completo');
         [$centro, $categoria, $departamento] = $this->catalogosAcademicos();
+        $jornada = JornadaLaboral::firstOrCreate(['hora_inicio' => '05:10:00', 'hora_fin' => '13:10:00'], ['activo' => true, 'orden' => 0]);
 
         $component = Livewire::actingAs($user)->test(EditPerfilDocente::class)
             ->set('celular', '99999999')
             ->set('centro_facultad_id', $centro->id)
             ->call('save')
             ->assertHasErrors([
+                'jornada_laboral',
                 'sexo',
                 'categoria_id',
                 'departamento_academico_id',
@@ -153,6 +158,7 @@ class NewUserOnboardingTest extends TestCase
             ->assertHasNoErrors(['carrera_id']);
 
         $component
+            ->set('jornada_laboral', $jornada->etiqueta)
             ->set('sexo', 'Masculino')
             ->set('categoria_id', $categoria->id)
             ->set('departamento_academico_id', $departamento->id)
@@ -176,6 +182,7 @@ class NewUserOnboardingTest extends TestCase
 
         $this->assertSame($numeroEmpleado, $user->empleado->numero_empleado);
         $this->assertSame('Masculino', $user->empleado->sexo);
+        $this->assertSame($jornada->etiqueta, $user->empleado->jornada_laboral);
         $this->assertSame($categoria->id, $user->empleado->categoria_id);
         $this->assertSame($departamento->id, $user->empleado->departamento_academico_id);
         $this->assertNull($user->empleado->carrera_id);
