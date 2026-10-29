@@ -95,7 +95,13 @@ class EmpleadoProyectosApiTest extends IsolatedApiTestCase
     public static function estados(): array
     {
         return [['Finalizado', 'finalizado'], ['Aprobado', 'aprobado'], ['En curso', 'en curso'],
+            ['Coordinador Proyecto', 'en curso'], ['Enlace Vinculacion', 'en curso'],
+            ['Jefe Departamento', 'en curso'], ['Director Centro', 'en curso'],
+            ['En revision', 'en curso'], ['En revisión', 'en curso'],
             ['En revision final', 'en curso'], ['En revisión final', 'en curso'],
+            ['Subsanacion', 'en curso'], ['Subsanación', 'en curso'],
+            ['Inscrito', 'en curso'], ['Registrado', 'registrado'],
+            ['Actualizacion realizada', 'en curso'], ['Actualización realizada', 'en curso'],
             ['Informe Final Habilitado', 'en curso'], ['Rechazado', null], ['Cancelado', null],
             ['Borrador', null], ['Autoguardado', null], ['No aprobado', null],
             ['Finalizado parcialmente', null], ['Estado nuevo', null]];

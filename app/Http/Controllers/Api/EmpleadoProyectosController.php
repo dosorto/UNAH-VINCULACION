@@ -27,6 +27,7 @@ class EmpleadoProyectosController extends Controller
         'subsanacion' => 'en curso',
         'subsanación' => 'en curso',
         'inscrito' => 'en curso',
+        'registrado' => 'registrado',
         'actualizacion realizada' => 'en curso',
         'actualización realizada' => 'en curso',
         'informe final habilitado' => 'en curso',
