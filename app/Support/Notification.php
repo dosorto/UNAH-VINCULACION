@@ -60,8 +60,10 @@ class Notification
             'id'    => uniqid(),
         ];
 
-        // Para redirecciones (controladores HTTP): guardar en sesión
-        session()->push('flash_notifications', $data);
+        // Para redirecciones: guardar en sesión como flash. Si una petición Livewire termina
+        // sin redirección, Livewire descarta el flash (el aviso ya salió con el evento) y no
+        // reaparece en la siguiente página que se cargue.
+        session()->flash('flash_notifications', [...session()->get('flash_notifications', []), $data]);
 
         // Para requests Livewire (AJAX): despachar evento al componente
         if (Livewire::isLivewireRequest()) {
