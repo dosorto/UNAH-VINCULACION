@@ -456,7 +456,7 @@ class CreateProyectoVinculacion extends Component
         $this->resolverEsVoluntariado();
         $this->voluntariado_participacion += array_fill_keys(Proyecto::columnasVoluntariadoParticipacion(), null);
         $this->initDefaults();
-        $this->recalcularVoluntariadoPersonal();
+        $this->calcularRolesYVoluntariado();
         $this->cargarOpcionesPracticaAsignatura();
         $this->cargarMetasPorOds();
     }
@@ -1019,8 +1019,7 @@ class CreateProyectoVinculacion extends Component
         if ($step === 2) {
             $this->validarTotalesGruposEstudiantes();
             $this->validarIntegrantesInternacionalesParaFicha();
-            $this->validarVoluntariosEquipo();
-            $this->validarIntegrantesPermanentes();
+            $this->validarPerfilesEquipo();
 
             foreach ($this->estudiante_proyecto as $i => $item) {
                 $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '')
@@ -1067,7 +1066,7 @@ class CreateProyectoVinculacion extends Component
     {
         match ($step) {
             1 => $this->validarMetasPorOds(),
-            2 => $this->validarPerfilesEquipoVoluntariado(),
+            2 => $this->validarPerfilCoordinador(),
             3 => $this->validarCompromisosContrapartes(),
             6 => $this->validarBeneficiariosDirectos(),
             default => null,
@@ -1094,7 +1093,7 @@ class CreateProyectoVinculacion extends Component
         }
     }
 
-    private function validarPerfilesEquipoVoluntariado(): void
+    private function validarPerfilCoordinador(): void
     {
         $coordinador = auth()->user()?->empleado;
 
@@ -1102,34 +1101,7 @@ class CreateProyectoVinculacion extends Component
             $faltantes = $this->camposFaltantesPerfilEmpleado($coordinador, true);
 
             if ($faltantes !== []) {
-                $this->addError('coordinador', 'Su perfil (11. Coordinador/a del Programa) no tiene: ' . implode(', ', $faltantes) . '. Complete su perfil antes de continuar.');
-            }
-        }
-
-        $empleados = Empleado::with(['categoria', 'departamento_academico', 'user'])
-            ->whereIn('id', collect($this->empleado_proyecto)->pluck('empleado_id')->filter()->all())
-            ->get()
-            ->keyBy('id');
-
-        foreach ($this->empleado_proyecto as $i => $item) {
-            $empleado = $empleados->get((int) ($item['empleado_id'] ?? 0));
-            $nombre = $empleado?->nombre_completo ?? ($item['nombre'] ?? 'Integrante');
-
-            if (!$empleado) {
-                $this->addError("empleado_proyecto.$i", "El integrante «{$nombre}» ya no existe.");
-                continue;
-            }
-
-            // Los voluntarios no van en el ítem 12; se validan en validarVoluntariosEquipo().
-            // Que el integrante sea docente permanente lo valida validarIntegrantesPermanentes().
-            if (($item['rol'] ?? null) === self::ROL_VOLUNTARIO) {
-                continue;
-            }
-
-            $faltantes = $this->camposFaltantesPerfilEmpleado($empleado);
-
-            if ($faltantes !== []) {
-                $this->addError("empleado_proyecto.$i", "El perfil de «{$nombre}» no tiene: " . implode(', ', $faltantes) . '.');
+                $this->addError('coordinador', 'Su perfil no tiene: ' . implode(', ', $faltantes) . '. Complete su perfil antes de continuar.');
             }
         }
     }
@@ -1165,8 +1137,8 @@ class CreateProyectoVinculacion extends Component
 
     /**
      * Lo que decide cómo cuenta cada empleado del equipo, tomado de su perfil:
-     * [empleado_id => ['categoria' => ?string, 'columna' => ?string,
-     *                  'sexo' => 'hombres'|'mujeres'|null, 'permanente' => bool]].
+     * [empleado_id => ['categoria' => ?string, 'columna' => ?string, 'sexo' => 'hombres'|'mujeres'|null,
+     *                  'permanente' => bool, 'rol' => ?string, 'faltantes' => list<string>]].
      */
     public function perfilesEquipo(): array
     {
@@ -1182,64 +1154,68 @@ class CreateProyectoVinculacion extends Component
             return [];
         }
 
-        return Empleado::with('categoria')
+        return Empleado::with(['categoria', 'departamento_academico', 'user'])
             ->whereIn('id', $ids)
             ->get()
             ->mapWithKeys(fn(Empleado $empleado) => [$empleado->id => $this->perfilEquipo($empleado)])
             ->all();
     }
 
+    /**
+     * El rol no se elige en el formulario: lo da la categoría del perfil. El docente permanente
+     * (Titular o Auxiliar) es integrante y el personal con categoría del voluntariado personal de
+     * la UNAH, voluntario. Sin una de esas categorías no hay rol: el perfil está incompleto.
+     */
     private function perfilEquipo(Empleado $empleado): array
     {
         $categoria = $empleado->categoria?->nombre;
+        $columna = Proyecto::columnaVoluntariadoPersonal($categoria);
+        $sexo = match (Str::of((string) $empleado->sexo)->ascii()->lower()->trim()->value()) {
+            'masculino', 'hombre', 'm' => 'hombres',
+            'femenino', 'mujer', 'f' => 'mujeres',
+            default => null,
+        };
+        $permanente = $this->esDocentePermanente($empleado);
+        $rol = match (true) {
+            $permanente => self::ROL_INTEGRANTE,
+            filled($columna) => self::ROL_VOLUNTARIO,
+            default => null,
+        };
 
         return [
             'categoria' => $categoria,
-            'columna' => Proyecto::columnaVoluntariadoPersonal($categoria),
-            'sexo' => match (Str::of((string) $empleado->sexo)->ascii()->lower()->trim()->value()) {
-                'masculino', 'hombre', 'm' => 'hombres',
-                'femenino', 'mujer', 'f' => 'mujeres',
-                default => null,
-            },
-            'permanente' => $this->esDocentePermanente($empleado),
+            'columna' => $columna,
+            'sexo' => $sexo,
+            'permanente' => $permanente,
+            'rol' => $rol,
+            'faltantes' => $this->faltantesPerfilMiembro($empleado, $rol, $sexo),
         ];
     }
 
-    /** Una categoría registrada sin columna en el ítem 13 (p. ej. Titular) no puede ser voluntaria. */
-    private function voluntarioNoPermitido(?array $perfil): bool
+    /** Datos del perfil que le faltan a un miembro del equipo para tener rol y contar en el formulario. */
+    private function faltantesPerfilMiembro(Empleado $empleado, ?string $rol, ?string $sexo): array
     {
-        return filled($perfil['categoria'] ?? null) && blank($perfil['columna'] ?? null);
+        return match ($rol) {
+            null => [blank($empleado->categoria?->nombre)
+                ? 'categoría'
+                : 'una categoría docente (Titular o Auxiliar) o de personal voluntario'],
+            // El voluntario cuenta en la fila de su sexo.
+            self::ROL_VOLUNTARIO => $sexo ? [] : ['sexo'],
+            // El 015 lista del integrante su número de empleado, correo y departamento.
+            default => $this->esVoluntariado ? $this->camposFaltantesPerfilEmpleado($empleado) : [],
+        };
     }
 
-    /** Al cambiar el rol de un empleado del equipo se valida y se recalcula el voluntariado. */
-    private function aplicarRolEquipo(int $i): void
+    private function mensajePerfilIncompleto(string $nombre, array $faltantes): string
     {
-        if (!isset($this->empleado_proyecto[$i])) {
-            return;
-        }
-
-        $item = $this->empleado_proyecto[$i];
-        $rol = ($item['rol'] ?? null) === self::ROL_VOLUNTARIO ? self::ROL_VOLUNTARIO : self::ROL_INTEGRANTE;
-        $perfil = $this->perfilesEquipo()[(int) ($item['empleado_id'] ?? 0)] ?? null;
-
-        if ($rol === self::ROL_VOLUNTARIO && $this->voluntarioNoPermitido($perfil)) {
-            $rol = self::ROL_INTEGRANTE;
-            Notification::make()
-                ->title('No puede ser voluntario')
-                ->body("La categoría de «{$item['nombre']}» ({$perfil['categoria']}) es de docente permanente. Como voluntarios solo cuentan profesores por hora u horarios, personal administrativo, de servicio y asistentes técnicos o instructores.")
-                ->warning()
-                ->send();
-        }
-
-        $this->empleado_proyecto[$i]['rol'] = $rol;
-        $this->recalcularVoluntariadoPersonal();
+        return "«{$nombre}» debe completar su perfil; le falta: " . implode(', ', $faltantes) . '. Comuníquese con esa persona para que lo complete.';
     }
 
     /**
-     * El voluntariado personal de la UNAH no se captura: se cuenta con los
-     * voluntarios del equipo, en la columna de su categoría y la fila de su sexo.
+     * Asigna a cada miembro el rol que le da su perfil y cuenta el voluntariado personal de la
+     * UNAH con los voluntarios, en la columna de su categoría y la fila de su sexo.
      */
-    private function recalcularVoluntariadoPersonal(): void
+    private function calcularRolesYVoluntariado(): void
     {
         foreach (array_keys(Proyecto::VOLUNTARIADO_PERSONAL_UNAH) as $prefijo) {
             $this->voluntariado_participacion["{$prefijo}_hombres"] = 0;
@@ -1248,99 +1224,48 @@ class CreateProyectoVinculacion extends Component
 
         $perfiles = $this->perfilesEquipo();
 
-        foreach ($this->empleado_proyecto as $item) {
+        foreach ($this->empleado_proyecto as $i => $item) {
             $perfil = $perfiles[(int) ($item['empleado_id'] ?? 0)] ?? null;
 
-            if (($item['rol'] ?? null) !== self::ROL_VOLUNTARIO || blank($perfil['columna'] ?? null) || blank($perfil['sexo'] ?? null)) {
+            // Sin rol el perfil está incompleto; el paso 2 lo pide antes de avanzar.
+            if (blank($perfil['rol'] ?? null)) {
                 continue;
             }
 
-            $this->voluntariado_participacion["{$perfil['columna']}_{$perfil['sexo']}"]++;
+            $this->empleado_proyecto[$i]['rol'] = $perfil['rol'];
+
+            if ($perfil['rol'] === self::ROL_VOLUNTARIO && filled($perfil['sexo'])) {
+                $this->voluntariado_participacion["{$perfil['columna']}_{$perfil['sexo']}"]++;
+            }
         }
     }
 
-    /** Cada voluntario necesita una categoría con columna en el ítem 13 y el sexo en su perfil. */
-    private function validarVoluntariosEquipo(): void
+    /** Cada miembro del equipo necesita el perfil completo: sin él no tiene rol o no cuenta. */
+    private function validarPerfilesEquipo(): void
     {
         $perfiles = $this->perfilesEquipo();
 
         foreach ($this->empleado_proyecto as $i => $item) {
-            if (($item['rol'] ?? null) !== self::ROL_VOLUNTARIO) {
-                continue;
-            }
-
+            $nombre = ($item['nombre'] ?? '') ?: 'El integrante';
             $perfil = $perfiles[(int) ($item['empleado_id'] ?? 0)] ?? null;
-            $nombre = ($item['nombre'] ?? '') ?: 'El voluntario';
 
             if (!$perfil) {
                 $this->addError("empleado_proyecto.$i", "El empleado «{$nombre}» ya no existe.");
                 continue;
             }
 
-            if ($this->voluntarioNoPermitido($perfil)) {
-                $this->addError("empleado_proyecto.$i", "«{$nombre}» no puede ser voluntario: su categoría ({$perfil['categoria']}) es de docente permanente.");
-                continue;
-            }
-
-            $faltantes = array_keys(array_filter([
-                'categoría' => blank($perfil['categoria']),
-                'sexo' => blank($perfil['sexo']),
-            ]));
-
-            if ($faltantes !== []) {
-                $this->addError("empleado_proyecto.$i", "El perfil de «{$nombre}» no tiene " . implode(' ni ', $faltantes) . '. Complételo para contarlo en el voluntariado personal de la UNAH.');
+            if ($perfil['faltantes'] !== []) {
+                $this->addError("empleado_proyecto.$i", $this->mensajePerfilIncompleto($nombre, $perfil['faltantes']));
             }
         }
     }
 
-    /** Ítem del formato con el equipo docente permanente: 10 en el 001, 12 en el 015. */
-    private function itemEquipoDocente(): int
-    {
-        return $this->esVoluntariado ? 12 : 10;
-    }
-
-    /** Índices del equipo marcados como integrantes que no son docentes permanentes (Titular o Auxiliar). */
-    private function integrantesNoPermanentes(): array
+    private function perfilesEquipoCompletos(): bool
     {
         $perfiles = $this->perfilesEquipo();
 
         return collect($this->empleado_proyecto)
-            ->filter(function (array $item) use ($perfiles): bool {
-                $perfil = $perfiles[(int) ($item['empleado_id'] ?? 0)] ?? null;
-
-                return ($item['rol'] ?? null) !== self::ROL_VOLUNTARIO && $perfil && !$perfil['permanente'];
-            })
-            ->keys()
-            ->all();
-    }
-
-    /** El ítem 10 del 001 (12 del 015) solo admite al equipo docente permanente; el resto va como voluntario. */
-    private function validarIntegrantesPermanentes(): void
-    {
-        $perfiles = $this->perfilesEquipo();
-        $item = $this->itemEquipoDocente();
-
-        foreach ($this->integrantesNoPermanentes() as $i) {
-            $integrante = $this->empleado_proyecto[$i];
-            $nombre = ($integrante['nombre'] ?? '') ?: 'El integrante';
-
-            $this->addError("empleado_proyecto.$i", blank($perfiles[(int) $integrante['empleado_id']]['categoria'] ?? null)
-                ? "El perfil de «{$nombre}» no tiene categoría; el ítem {$item} solo admite al equipo docente permanente tiempo completo (Titular o Auxiliar). Complete su categoría."
-                : "«{$nombre}» no es docente permanente (Titular o Auxiliar); el ítem {$item} solo admite al equipo docente permanente tiempo completo. Si su categoría cuenta como voluntariado personal de la UNAH, márquelo como voluntario.");
-        }
-    }
-
-    private function voluntariosEquipoCompletos(): bool
-    {
-        $perfiles = $this->perfilesEquipo();
-
-        return collect($this->empleado_proyecto)
-            ->filter(fn(array $item) => ($item['rol'] ?? null) === self::ROL_VOLUNTARIO)
-            ->every(function (array $item) use ($perfiles): bool {
-                $perfil = $perfiles[(int) ($item['empleado_id'] ?? 0)] ?? null;
-
-                return filled($perfil['columna'] ?? null) && filled($perfil['sexo'] ?? null);
-            });
+            ->every(fn(array $item) => ($perfiles[(int) ($item['empleado_id'] ?? 0)]['faltantes'] ?? null) === []);
     }
 
     private function validarCompromisosContrapartes(): void
@@ -1615,8 +1540,7 @@ class CreateProyectoVinculacion extends Component
                         && !empty($integrante['nivel_academico_nombre'])
                         && in_array($integrante['sexo'] ?? '', ['masculino', 'femenino'], true)
                 )
-                && $this->voluntariosEquipoCompletos()
-                && $this->integrantesNoPermanentes() === [],
+                && $this->perfilesEquipoCompletos(),
             3 => !empty(array_filter(array_column($this->entidad_contraparte, 'nombre')))
                 && collect($this->entidad_contraparte)
                     ->filter(fn(array $contraparte) => !empty($contraparte['nombre']))
@@ -1740,10 +1664,6 @@ class CreateProyectoVinculacion extends Component
 
         if ($propertyName === 'carrera_no_aplica' && $this->carrera_no_aplica) {
             $this->carreras = [];
-        }
-
-        if (preg_match('/^empleado_proyecto\.(\d+)\.rol$/', $propertyName, $coincidencia)) {
-            $this->aplicarRolEquipo((int) $coincidencia[1]);
         }
 
         if (!$this->autoguardadoActivo || !$this->debeAutoguardar($propertyName)) {
@@ -1888,7 +1808,7 @@ class CreateProyectoVinculacion extends Component
         $this->calcTotales();
         $this->recalculateAporteInstitucional();
         $this->filtrarMunicipiosImpactoSeleccionados();
-        $this->recalcularVoluntariadoPersonal();
+        $this->calcularRolesYVoluntariado();
 
         $secciones = [
             'nombre' => fn () => $this->guardarNombreProyectoParcial($record),
@@ -2907,27 +2827,25 @@ class CreateProyectoVinculacion extends Component
             }
         }
 
-        $empleado = Empleado::with('categoria')->find($empleadoId);
+        $empleado = Empleado::with(['categoria', 'departamento_academico', 'user'])->find($empleadoId);
 
         if (!$empleado) {
             return;
         }
 
-        // Quien no es docente permanente y tiene una categoría del voluntariado personal
-        // (profesor por hora, administrativo, servicio, asistente técnico) entra como voluntario.
+        // El rol lo da el perfil; con el perfil incompleto no se puede asignar ni contar.
         $perfil = $this->perfilEquipo($empleado);
-        $rol = !$perfil['permanente'] && $perfil['columna'] ? self::ROL_VOLUNTARIO : self::ROL_INTEGRANTE;
 
-        if ($rol === self::ROL_INTEGRANTE && !$perfil['permanente']) {
+        if ($perfil['faltantes'] !== []) {
             Notification::make()
-                ->title('No es docente permanente')
-                ->body("El ítem {$this->itemEquipoDocente()} solo admite al equipo docente permanente tiempo completo (categoría Titular o Auxiliar), y la categoría de este empleado tampoco cuenta como voluntariado personal de la UNAH. Verifique la categoría en el perfil del empleado.")
+                ->title('Perfil incompleto')
+                ->body($this->mensajePerfilIncompleto($nombre, $perfil['faltantes']))
                 ->warning()
                 ->send();
             return;
         }
 
-        $this->empleado_proyecto[] = ['empleado_id' => $empleadoId, 'rol' => $rol, 'nombre' => $nombre];
+        $this->empleado_proyecto[] = ['empleado_id' => $empleadoId, 'rol' => $perfil['rol'], 'nombre' => $nombre];
         $this->showEmpleadoModal = false;
         $this->empleadoModalSearch = '';
         $this->autoGuardarBorrador();
