@@ -4413,12 +4413,6 @@ class CreateProyectoVinculacion extends Component
             return true;
         }
 
-        try {
-            Mail::to($user->email)->send(new ProyectoCreado($proyecto, $user));
-        } catch (\Exception $e) {
-            \Log::warning($e->getMessage());
-        }
-
         Notification::make()->title('Proyecto reenviado a revisión')->success()->send();
         redirect()->route('proyectosDocente');
 
@@ -4484,10 +4478,13 @@ class CreateProyectoVinculacion extends Component
         $esReenvio = $this->modalEsReenvioSubsanacion;
         $this->modalEsReenvioSubsanacion = false;
 
-        try {
-            Mail::to(auth()->user()->email)->send(new ProyectoCreado($proyecto, auth()->user()));
-        } catch (\Exception $e) {
-            \Log::warning($e->getMessage());
+        // El reenvío ya avisa al coordinador desde reenviarDesdeSubsanacionPorEtapa().
+        if (! $esReenvio) {
+            try {
+                Mail::to(auth()->user()->email)->send(new ProyectoCreado($proyecto, auth()->user()));
+            } catch (\Exception $e) {
+                \Log::warning($e->getMessage());
+            }
         }
 
         Notification::make()->title($esReenvio ? 'Proyecto reenviado a revisión' : 'Proyecto enviado a firmar')->success()->send();

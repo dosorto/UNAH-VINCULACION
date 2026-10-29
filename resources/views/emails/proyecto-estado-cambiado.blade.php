@@ -167,13 +167,20 @@
     </style>
 </head>
 <body>
+    @php
+        $esFicha = str_contains($accion, 'ficha');
+        // Lo que se revisa: la ficha, el informe (Intermedio o Final) o la inscripción del proyecto.
+        $objeto = $esFicha ? 'ficha de actualización' : ($tipoDocumento ?: 'proyecto');
+    @endphp
     <div class="container">
         <div class="header">
             <h1>
-                @if(str_contains($accion, 'rechazo'))
-                    {{ str_contains($accion, 'ficha') ? 'FICHA DE ACTUALIZACIÓN RECHAZADA' : 'PROYECTO RECHAZADO' }}
+                @if($tipoAviso === 'subsanacion')
+                    {{ $esFicha ? 'FICHA DE ACTUALIZACIÓN RECHAZADA' : 'SUBSANACIÓN REQUERIDA' }}
                 @elseif(str_contains($accion, 'aprobación de ficha'))
                     FICHA DE ACTUALIZACIÓN APROBADA
+                @elseif($tipoAviso === 'cierre')
+                    {{ mb_strtoupper($nuevoEstado) }}
                 @else
                     CAMBIO DE ESTADO
                 @endif
@@ -189,8 +196,10 @@
             </p>
 
             <p style="text-align: justify; margin: 20px 0;">
-                @if(str_contains($accion, 'ficha'))
+                @if($esFicha)
                     Le informamos que su ficha de actualización de proyecto ha tenido una actualización importante en su estado de revisión.
+                @elseif($tipoDocumento)
+                    Le informamos que el {{ $tipoDocumento }} de su proyecto de vinculación ha tenido una actualización importante en su estado de revisión.
                 @else
                     Le informamos que su proyecto de vinculación ha tenido una actualización importante en su estado de revisión.
                 @endif
@@ -203,6 +212,12 @@
                     <span class="detail-label">Nombre del proyecto:</span>
                     <span class="detail-value">{{ $proyecto->nombre_proyecto }}</span>
                 </div>
+                @if($tipoDocumento)
+                <div class="detail-row">
+                    <span class="detail-label">Documento:</span>
+                    <span class="detail-value">{{ $tipoDocumento }}</span>
+                </div>
+                @endif
                 <div class="detail-row">
                     <span class="detail-label">Fecha de registro:</span>
                     <span class="detail-value">{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('d/m/Y H:i') : 'No especificada' }}</span>
@@ -213,21 +228,33 @@
                 </div>
             </div>
 
-            <div class="status-change {{ $accion === 'rechazo' ? 'rejected' : '' }}">
+            <div class="status-change {{ $tipoAviso === 'subsanacion' ? 'rejected' : '' }}">
                 <h3>
-                    {{ $accion === 'rechazo' ? '❌ PROYECTO RECHAZADO' : '✅ ESTADO ACTUALIZADO' }}
+                    @if($tipoAviso === 'subsanacion')
+                        {{ $esFicha ? '❌ FICHA RECHAZADA' : '⚠️ SUBSANACIÓN REQUERIDA' }}
+                    @elseif($tipoAviso === 'cierre')
+                        ✅ REVISIÓN COMPLETADA
+                    @else
+                        ✅ ESTADO ACTUALIZADO
+                    @endif
                 </h3>
                 <p style="font-size: 16px; margin: 15px 0;">
-                    {{ $accion === 'rechazo' ? 'Su proyecto ha sido rechazado y requiere subsanación.' : 'El estado de su proyecto ha sido actualizado exitosamente.' }}
+                    @if($tipoAviso === 'subsanacion')
+                        {{ $esFicha ? 'Su ficha de actualización fue rechazada y requiere correcciones.' : 'Su '.$objeto.' fue devuelto para subsanación y requiere correcciones antes de continuar.' }}
+                    @elseif($tipoAviso === 'cierre')
+                        Su {{ $objeto }} completó todas las etapas de revisión.
+                    @else
+                        El estado de su {{ $objeto }} ha sido actualizado.
+                    @endif
                 </p>
-                <span class="status-badge {{ $accion === 'rechazo' ? 'rejected' : '' }}">
+                <span class="status-badge {{ $tipoAviso === 'subsanacion' ? 'rejected' : '' }}">
                     {{ $nuevoEstado }}
                 </span>
             </div>
 
             @if($comentario && trim($comentario) !== '')
             <div class="comment-section">
-                <h4>Comentarios del revisor</h4>
+                <h4>{{ $tipoAviso === 'subsanacion' ? 'Observaciones del revisor' : 'Detalle' }}</h4>
                 <div class="comment-text">
                     {{ $comentario }}
                 </div>
@@ -242,8 +269,8 @@
             
             <div class="institutional-notice">
                 <h3>📢 Próximos Pasos</h3>
-                @if(str_contains($accion, 'rechazo'))
-                    @if(str_contains($accion, 'ficha'))
+                @if($tipoAviso === 'subsanacion')
+                    @if($esFicha)
                     <ul>
                         <li><strong>Revisión de observaciones:</strong> Analice cuidadosamente los comentarios del revisor sobre su ficha de actualización</li>
                         <li><strong>Corrección de la ficha:</strong> Realice las correcciones y mejoras solicitadas en la ficha</li>
@@ -254,7 +281,7 @@
                     <ul>
                         <li><strong>Revisión de observaciones:</strong> Analice cuidadosamente los comentarios del revisor</li>
                         <li><strong>Subsanación de observaciones:</strong> Realice las correcciones y mejoras solicitadas</li>
-                        <li><strong>Reenvío para revisión:</strong> Una vez corregido, reenvíe el proyecto para nueva evaluación</li>
+                        <li><strong>Reenvío para revisión:</strong> Una vez corregido, reenvíe el {{ $objeto }} para nueva evaluación</li>
                         <li><strong>Seguimiento continuo:</strong> Manténgase atento a las notificaciones del sistema</li>
                     </ul>
                     @endif
@@ -265,9 +292,15 @@
                     <li><strong>Continuar con el proyecto:</strong> Su proyecto puede continuar con las actividades programadas</li>
                     <li><strong>Consulta de cambios:</strong> Puede revisar los cambios aplicados desde su panel institucional</li>
                 </ul>
+                @elseif($tipoAviso === 'cierre')
+                <ul>
+                    <li><strong>Revisión completada:</strong> Todas las etapas del flujo de aprobación fueron aprobadas</li>
+                    <li><strong>Lo que sigue:</strong> El detalle de esta notificación indica qué quedó habilitado</li>
+                    <li><strong>Consulta del expediente:</strong> Puede consultar el expediente desde su panel institucional</li>
+                </ul>
                 @else
                 <ul>
-                    <li><strong>Seguimiento del proceso:</strong> Su proyecto continúa en el flujo de revisión institucional</li>
+                    <li><strong>Seguimiento del proceso:</strong> Su {{ $objeto }} continúa en el flujo de revisión institucional</li>
                     <li><strong>Validación por etapas:</strong> Se realizarán las validaciones correspondientes a este estado</li>
                     <li><strong>Notificaciones automáticas:</strong> Recibirá actualizaciones sobre cualquier cambio de estado</li>
                     <li><strong>Consulta de avances:</strong> Puede consultar el progreso desde su panel institucional</li>

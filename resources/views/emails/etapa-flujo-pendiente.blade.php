@@ -2,7 +2,17 @@
     $tipoRegistroVisible = $tipoRegistro === 'pps-servicio-social'
         ? 'PPS/Servicio Social'
         : ucfirst(str_replace(['-', '_'], ' ', $tipoRegistro));
-    $articuloRegistro = $tipoRegistro === 'proyecto' ? 'un proyecto' : 'un registro de '.$tipoRegistroVisible;
+    $esInforme = str_starts_with($tipoRegistro, 'Informe');
+    $articuloRegistro = match (true) {
+        $tipoRegistro === 'proyecto' => 'un proyecto',
+        $esInforme => 'un '.$tipoRegistroVisible,
+        default => 'un registro de '.$tipoRegistroVisible,
+    };
+    $objetoRevision = match (true) {
+        $tipoRegistro === 'proyecto' => 'el proyecto',
+        $esInforme => 'el '.mb_strtolower($tipoRegistroVisible),
+        default => 'el registro de '.mb_strtolower($tipoRegistroVisible),
+    };
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -241,7 +251,7 @@
 
             <div class="action-section">
                 <p style="margin-bottom: 15px; font-weight: 600; color: #004080;">
-                    Acceda al sistema para revisar {{ $tipoRegistro === 'proyecto' ? 'el proyecto' : 'el registro de '.mb_strtolower($tipoRegistroVisible) }}:
+                    Acceda al sistema para revisar {{ $objetoRevision }}:
                 </p>
                 <a href="{{ $actionUrl }}" class="action-button">
                     Ir al sistema NEXO
