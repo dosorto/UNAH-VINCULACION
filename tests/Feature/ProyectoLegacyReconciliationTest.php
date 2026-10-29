@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Mail\EtapaFlujoPendiente;
+use App\Mail\ProyectoEstadoCambiado;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
@@ -321,8 +322,10 @@ class ProyectoLegacyReconciliationTest extends TestCase
         $resumed = $sender->send($cycle[2], $users[0]);
         $this->assertSame($stages->slice(2)->pluck('id')->values()->all(), $resumed->pluck('flujo_aprobacion_etapa_id')->all());
         $this->assertSame('En revision', $project->fresh()->estado->tipoestado->nombre);
-        Mail::assertQueuedCount(1);
+        // Al revisor que retoma la etapa y la confirmación de reenvío al coordinador.
+        Mail::assertQueuedCount(2);
         Mail::assertQueued(EtapaFlujoPendiente::class, fn ($mail) => $mail->hasTo($users[2]->email));
+        Mail::assertQueued(ProyectoEstadoCambiado::class, fn ($mail) => $mail->nuevoEstado === 'Proyecto reenviado a revisión');
         // Simular las decisiones aprobadas y comprobar la bandeja real en cada avance.
         foreach ($resumed as $current) {
             foreach ($users as $user) {
@@ -717,7 +720,9 @@ class ProyectoLegacyReconciliationTest extends TestCase
         $resumed = $sender->send($signatures[0], $users[0]);
         $this->assertSame([1, 2, 3], $resumed->pluck('orden_revision')->all());
         $this->assertSame(['Pendiente', 'Pendiente', 'Pendiente'], $resumed->pluck('estado_revision')->all());
-        Mail::assertQueuedCount(1);
+        // Al revisor que retoma la etapa y la confirmación de reenvío al coordinador.
+        Mail::assertQueuedCount(2);
         Mail::assertQueued(EtapaFlujoPendiente::class, fn ($mail) => $mail->hasTo($users[1]->email));
+        Mail::assertQueued(ProyectoEstadoCambiado::class, fn ($mail) => $mail->nuevoEstado === 'Proyecto reenviado a revisión');
     }
 }

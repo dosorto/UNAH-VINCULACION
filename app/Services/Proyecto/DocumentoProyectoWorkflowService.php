@@ -5,6 +5,7 @@ namespace App\Services\Proyecto;
 use App\Mail\EtapaFlujoPendiente;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
+use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
 use App\Services\Workflow\WorkflowResumptionPolicy;
@@ -34,7 +35,8 @@ class DocumentoProyectoWorkflowService
             $usuariosElegidosPorEtapa
         );
 
-        $this->notificarFirmaActual($proyecto, $documento);
+        $etapa = $this->notificarFirmaActual($proyecto, $documento);
+        $this->confirmarEnvioAlCoordinador($proyecto, $documento, $etapa->nombre ?: $etapa->codigo, false);
 
         return $documento;
     }
@@ -136,7 +138,8 @@ class DocumentoProyectoWorkflowService
             ),
         ]);
 
-        $this->notificarFirmaActual($proyecto, $documento);
+        $etapa = $this->notificarFirmaActual($proyecto, $documento);
+        $this->confirmarEnvioAlCoordinador($proyecto, $documento, $etapa->nombre ?: $etapa->codigo, true);
 
         Log::info('Documento de proyecto reenviado desde subsanación', [
             'proceso' => Proyecto::procesoFlujoParaDocumento($documento->tipo_documento),
@@ -151,7 +154,10 @@ class DocumentoProyectoWorkflowService
         return $documento->fresh();
     }
 
-    public function notificarFirmaActual(Proyecto $proyecto, DocumentoProyecto $documento): void
+    /**
+     * Avisa a los revisores de la etapa actual del documento y devuelve esa etapa.
+     */
+    public function notificarFirmaActual(Proyecto $proyecto, DocumentoProyecto $documento): FlujoAprobacionEtapa
     {
         $flujoId = $proyecto->resolveFlujoAprobacion()?->id;
         $ciclo = $flujoId
@@ -185,5 +191,27 @@ class DocumentoProyectoWorkflowService
                 (new EtapaFlujoPendiente($proyecto, $usuario, $etapa, $documento->tipo_documento))->afterCommit()
             );
         }
+
+        return $etapa;
+    }
+
+    private function confirmarEnvioAlCoordinador(
+        Proyecto $proyecto,
+        DocumentoProyecto $documento,
+        string $nombreEtapa,
+        bool $esReenvio
+    ): void {
+        app(NotificadorCoordinadorProyecto::class)->notificar(
+            $proyecto,
+            $documento->tipo_documento.($esReenvio ? ' reenviado a revisión' : ' enviado a revisión'),
+            sprintf(
+                'El %s %s en la etapa "%s".',
+                $documento->tipo_documento,
+                $esReenvio ? 'retomó la revisión' : 'fue enviado y espera revisión',
+                $nombreEtapa
+            ),
+            $esReenvio ? 'reenvío a revisión' : 'envío a revisión',
+            tipoDocumento: $documento->tipo_documento
+        );
     }
 }

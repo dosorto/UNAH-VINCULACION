@@ -44,10 +44,13 @@ class EtapaFlujoPendiente extends Mailable implements ShouldQueue
         } else {
             $this->nombreProyecto = $firmable->nombre_proyecto ?? 'Proyecto sin nombre';
             $this->tipoRegistro = $tipoRegistro ?: 'proyecto';
-            $this->actionUrl = $revisor->can('proyectos.informes')
-                ? route('listarInformesSolicitado')
-                : ($revisor->can('docente.proyectos')
-                    ? route('SolicitudProyectosDocente')
+            // La bandeja lista proyectos e informes de todas las etapas.
+            // «Revisión de Informes» solo lista informes: mandar ahí a quien
+            // revisa una inscripción le escondía el proyecto.
+            $this->actionUrl = $revisor->can('docente.trazabilidad')
+                ? route('SolicitudProyectosDocente')
+                : ($this->tipoRegistro !== 'proyecto' && $revisor->can('proyectos.informes')
+                    ? route('listarInformesSolicitado')
                     : url('/'));
         }
 

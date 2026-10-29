@@ -21,6 +21,7 @@ class ProyectoCreado extends Mailable implements ShouldQueue
     public $usuario;
     public $nombreCompleto;
     public $fechaCreacion;
+    public string $actionUrl;
 
     /**
      * Create a new message instance.
@@ -34,6 +35,9 @@ class ProyectoCreado extends Mailable implements ShouldQueue
             ?? ($usuario->nombre . ' ' . $usuario->apellido);
         $this->fechaCreacion = optional($proyecto->fecha_registro)->format('d/m/Y')
             ?? now()->format('d/m/Y');
+        $this->actionUrl = $usuario->can('docente.proyectos')
+            ? route('historialproyecto', $proyecto)
+            : url('/');
     }
 
     /**
@@ -43,7 +47,7 @@ class ProyectoCreado extends Mailable implements ShouldQueue
     {
         return new Envelope(
             from: new Address(env('MAIL_FROM_ADDRESS', 'nexo@unah.edu.hn'), env('APP_NAME', 'NEXO')),
-            subject: 'Proyecto Creado Exitosamente - ' . $this->proyecto->nombre_proyecto,
+            subject: 'Proyecto enviado a revisión - ' . $this->proyecto->nombre_proyecto,
         );
     }
 
@@ -58,12 +62,12 @@ class ProyectoCreado extends Mailable implements ShouldQueue
                 'proyecto' => $this->proyecto,
                 'usuario' => $this->usuario,
                 'nombreCompleto' => $this->nombreCompleto,
-                'subject' => 'Proyecto Creado Exitosamente',
-                'mensaje' => 'Su proyecto "' . $this->proyecto->nombre_proyecto . '" ha sido registrado exitosamente en el sistema NEXO.',
+                'subject' => 'Proyecto enviado a revisión',
+                'mensaje' => 'Su proyecto "' . $this->proyecto->nombre_proyecto . '" fue enviado a revisión en el sistema NEXO.',
                 'fechaCreacion' => $this->fechaCreacion,
                 'logoUrl' => asset('images/Image/logo_nexo.png'),
                 'appName' => env('APP_NAME', 'NEXO'),
-                'actionUrl' => 'https://nexo.unah.edu.hn/',
+                'actionUrl' => $this->actionUrl,
             ]
         ); 
     }
