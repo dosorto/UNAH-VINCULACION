@@ -121,6 +121,46 @@ class ProyectoVinculacionVoluntariosTest extends TestCase
         $this->assertSame('No es docente permanente', collect(session('flash_notifications'))->last()['title']);
     }
 
+    public function test_en_el_001_un_integrante_no_permanente_no_deja_avanzar_el_paso_2(): void
+    {
+        [$component] = $this->componenteConProyecto();
+        $horaria = $this->empleado('Horaria como integrante', 'Profesores horarios', 'Femenino');
+        $sinCategoria = $this->empleado('Docente sin categoría', null, 'Masculino');
+        $titular = $this->empleado('Titular', 'Titular I', 'Femenino');
+        $component->estudiante_proyecto = [[
+            'tipo_participacion_estudiante' => 'Voluntariado',
+            'cantidad_estudiantes_hombres' => 1,
+            'cantidad_estudiantes_mujeres' => 1,
+        ]];
+        $component->empleado_proyecto = [
+            $this->fila($horaria, 'Integrante'),
+            $this->fila($sinCategoria, 'Integrante'),
+            $this->fila($titular, 'Integrante'),
+        ];
+
+        (new \ReflectionMethod($component, 'validarIntegrantesPermanentes'))->invoke($component);
+
+        $this->assertStringContainsString('el ítem 10 solo admite al equipo docente permanente', $component->getErrorBag()->first('empleado_proyecto.0'));
+        $this->assertStringContainsString('no tiene categoría', $component->getErrorBag()->first('empleado_proyecto.1'));
+        $this->assertFalse($component->getErrorBag()->has('empleado_proyecto.2'));
+        $this->assertFalse($component->isStepComplete(2));
+
+        $component->empleado_proyecto[0]['rol'] = 'Voluntario';
+        unset($component->empleado_proyecto[1]);
+        $this->assertTrue($component->isStepComplete(2));
+    }
+
+    public function test_en_el_001_no_se_agrega_quien_no_es_permanente_ni_voluntario(): void
+    {
+        [$component] = $this->componenteConProyecto();
+        $sinCategoria = $this->empleado('Docente sin categoría', null, 'Masculino');
+
+        $component->selectEmpleadoFromModal($sinCategoria->id, $sinCategoria->nombre_completo);
+
+        $this->assertSame([], $component->empleado_proyecto);
+        $this->assertSame('No es docente permanente', collect(session('flash_notifications'))->last()['title']);
+    }
+
     public function test_el_paso_2_muestra_el_rol_y_el_voluntariado_calculado(): void
     {
         [, $proyecto] = $this->componenteConProyecto();

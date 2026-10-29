@@ -575,9 +575,9 @@
                             @php
                                 $perfilEmp = $perfilesEquipo[(int) ($emp['empleado_id'] ?? 0)] ?? null;
                                 // Una categoría registrada sin columna en el voluntariado (p. ej. Titular) no puede ser voluntaria;
-                                // en el 015 el ítem 12 solo admite docentes permanentes como integrantes.
+                                // el ítem 10 del 001 (12 del 015) solo admite docentes permanentes como integrantes.
                                 $voluntarioBloqueado = filled($perfilEmp['categoria'] ?? null) && blank($perfilEmp['columna'] ?? null);
-                                $integranteBloqueado = $esVoluntariado && !($perfilEmp['permanente'] ?? false) && filled($perfilEmp['columna'] ?? null);
+                                $integranteBloqueado = !($perfilEmp['permanente'] ?? false) && filled($perfilEmp['columna'] ?? null);
                                 $esVoluntarioEmp = ($emp['rol'] ?? null) === 'Voluntario';
                             @endphp
                             <tr wire:key="equipo-{{ $emp['empleado_id'] ?? $i }}">
