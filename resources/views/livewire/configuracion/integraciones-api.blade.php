@@ -140,7 +140,7 @@
                             <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">Endpoint</legend>
                             <div class="md:col-span-2"><x-integration-field label="Base URL" model="form.base_url" placeholder="https://api.institucion.edu" /></div>
                             <x-integration-field label="Ruta de búsqueda" model="form.ruta_busqueda" placeholder="/estudiantes/buscar" />
-                            @if (($form['codigo'] ?? '') === 'estudiantes')
+                            @if (($form['tipo_perfil'] ?? '') === 'ESTUDIANTE')
                                 <p class="text-xs text-slate-500 dark:text-slate-400 md:col-span-3">Use <code>{cuentaEstudiantil}</code> en la ruta. Ejemplo: <code>/estudiantes/{cuentaEstudiantil}/datos-generales</code>. La cuenta se enviará en la URL, no como parámetro adicional.</p>
                             @endif
                             <label class="space-y-1.5">
@@ -158,7 +158,7 @@
 
                         <fieldset class="grid gap-4 border-t border-slate-200 pt-5 dark:border-slate-800 md:grid-cols-3">
                             <legend class="mb-3 text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">Autenticación</legend>
-                            @if (($form['codigo'] ?? '') === 'estudiantes')
+                            @if (($form['tipo_perfil'] ?? '') === 'ESTUDIANTE')
                                 <div class="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900 dark:border-cyan-900 dark:bg-cyan-950/30 dark:text-cyan-100 md:col-span-3">
                                     <p class="font-semibold">Credenciales API Estudiantes UNAH</p>
                                     <p class="mt-1 text-xs">Se almacenan cifradas y nunca se muestran nuevamente. Deje un campo vacío al editar para conservar su valor actual.</p>
