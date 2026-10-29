@@ -1782,7 +1782,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamento <span class="text-red-500">*</span></label>
-                        <div wire:key="departamentos-impacto" x-data="{
+                        <div wire:key="departamentos-impacto" wire:ignore x-data="{
                             open: false,
                             search: '',
                             _debounce: null,
@@ -1818,10 +1818,13 @@
                             },
                             syncSelection() {
                                 const values = this.selectedValues();
-                                this.$wire.set('departamento_geo', values, false);
+                                // $wire se resuelve aquí: si se quitó con la × de un chip, x-for elimina
+                                // ese chip antes del setTimeout y desde él ya no se encuentra el componente.
+                                const wire = this.$wire;
+                                wire.set('departamento_geo', values, false);
                                 clearTimeout(this._debounce);
                                 this._debounce = setTimeout(() => {
-                                    this.$wire.call('actualizarDepartamentosImpacto', values);
+                                    wire.call('actualizarDepartamentosImpacto', values);
                                 }, 450);
                             },
                             isSelected(id) { return this.selectedValues().includes(String(id)); },
@@ -1860,7 +1863,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Municipio <span class="text-red-500">*</span></label>
-                        <div wire:key="municipios-impacto-{{ md5(json_encode($departamento_geo)) }}-{{ md5(json_encode($municipiosGeo->keys()->values()->toArray())) }}" x-data="{
+                        <div wire:ignore wire:key="municipios-impacto-{{ md5(json_encode($departamento_geo)) }}-{{ md5(json_encode($municipiosGeo->keys()->values()->toArray())) }}" x-data="{
                             open: false,
                             search: '',
                             _debounce: null,
@@ -1902,10 +1905,12 @@
                             syncSelection() {
                                 const values = this.selectedValues();
                                 this.selected = values;
-                                this.$wire.set('municipio_geo', values, false);
+                                // Igual que en departamentos: $wire se resuelve antes de que x-for quite el chip.
+                                const wire = this.$wire;
+                                wire.set('municipio_geo', values, false);
                                 clearTimeout(this._debounce);
                                 this._debounce = setTimeout(() => {
-                                    this.$wire.call('actualizarMunicipiosImpacto', values);
+                                    wire.call('actualizarMunicipiosImpacto', values);
                                 }, 450);
                             },
                             isSelected(id) { return this.selectedValues().includes(String(id)); },
@@ -1946,7 +1951,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">País <span class="text-red-500">*</span></label>
-                        <div wire:key="paises-impacto" x-data="{
+                        <div wire:key="paises-impacto" wire:ignore x-data="{
                             open: false,
                             search: '',
                             selected: @js(collect($pais)->map(fn($p) => (string) $p)->values()->toArray()),
