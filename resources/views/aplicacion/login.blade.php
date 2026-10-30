@@ -235,9 +235,11 @@
                 const color = COLORS[~~(Math.random() * COLORS.length)];
                 const x = Math.floor(Math.random() * 100);
                 const y = Math.floor(Math.random() * 100);
-                layer.push(${x}vw ${y}vh 0 ${color}, ${x}vw ${y + 100}vh 0 ${color});
+                layer.push(`${x}vw ${y}vh 0 ${color}, ${x}vw ${y + 100}vh 0 ${color}`);
             }
             const container = document.querySelector(selector);
+            // La plantilla no incluye las capas .space-N; sin ellas no hay nada que dibujar.
+            if (!container) return;
             container.style.setProperty("--size", size);
             container.style.setProperty("--duration", duration);
             container.style.setProperty("--space-layer", layer.join(","));

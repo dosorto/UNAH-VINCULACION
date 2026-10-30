@@ -72,14 +72,16 @@
             @endforeach
         </select>
 
+        @endif
+
+        {{-- El estado filtra todos los formularios; las cifras del panel llegan con ?estado=… --}}
         <select wire:model.live="filterEstado"
                 class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
             <option value="">Todos los estados</option>
-            @foreach ($estadosTipo as $id => $nombre)
-                <option value="{{ $id }}">{{ $nombre }}</option>
+            @foreach ($estadosGenerales as $clave => $nombre)
+                <option value="{{ $clave }}">{{ $nombre }}</option>
             @endforeach
         </select>
-        @endif
     </div>
 
     {{-- Tabla --}}
@@ -138,7 +140,8 @@
                                 @if ($row['kind'] === 'proyectos')
                                     @php
                                         $proyecto = $row['record'];
-                                        $estadoProyecto = $proyecto->estado?->tipoestado?->nombre ?? '';
+                                        // Sin fila de estado es un borrador antiguo.
+                                        $estadoProyecto = $proyecto->estado?->tipoestado?->nombre ?? 'Borrador';
                                         $esCoordinador = $proyecto->coordinador?->id === $docente->id;
                                         $puedeSeguirEditando = $esCoordinador && (
                                             in_array($estadoProyecto, ['Borrador', 'Subsanacion', 'Subsanación'], true)

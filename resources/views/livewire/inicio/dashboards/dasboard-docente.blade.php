@@ -21,13 +21,20 @@
         </x-slot:acciones>
 
         <x-slot:metricas>
+            {{-- Cada cifra abre su detalle: los trámites, Mi historial filtrado por el mismo
+                 estado con el que se cuentan; personas y horas, el panel «Mi aporte». --}}
+            @php
+                $historial = fn (?string $estado = null) => auth()->user()?->can('docente.proyectos')
+                    ? route('proyectosDocente', array_filter(['estado' => $estado]))
+                    : null;
+            @endphp
             <div class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-6">
-                <x-dashboard.cifra-cabecera :valor="$resumen['total']" etiqueta="Mis trámites" icono="heroicon-o-folder" :destacada="true" />
-                <x-dashboard.cifra-cabecera :valor="$resumen['en_revision']" etiqueta="En revisión" icono="heroicon-o-clipboard-document-list" />
-                <x-dashboard.cifra-cabecera :valor="$resumen['en_curso']" etiqueta="Registrados" icono="heroicon-o-play-circle" />
-                <x-dashboard.cifra-cabecera :valor="$resumen['finalizado']" etiqueta="Finalizados" icono="heroicon-o-check-badge" />
-                <x-dashboard.cifra-cabecera :valor="$poblacion['poblacion']" etiqueta="Personas alcanzadas" icono="heroicon-o-users" />
-                <x-dashboard.cifra-cabecera :valor="$esfuerzo['horas']" etiqueta="Horas registradas" icono="heroicon-o-clock" />
+                <x-dashboard.cifra-cabecera :valor="$resumen['total']" etiqueta="Mis trámites" icono="heroicon-o-folder" :destacada="true" :href="$historial()" />
+                <x-dashboard.cifra-cabecera :valor="$resumen['en_revision']" etiqueta="En revisión" icono="heroicon-o-clipboard-document-list" :href="$historial(\App\Support\Dashboard\EstadoGeneral::EN_REVISION)" />
+                <x-dashboard.cifra-cabecera :valor="$resumen['en_curso']" etiqueta="Registrados" icono="heroicon-o-play-circle" :href="$historial(\App\Support\Dashboard\EstadoGeneral::APROBADO)" />
+                <x-dashboard.cifra-cabecera :valor="$resumen['finalizado']" etiqueta="Finalizados" icono="heroicon-o-check-badge" :href="$historial(\App\Support\Dashboard\EstadoGeneral::FINALIZADO)" />
+                <x-dashboard.cifra-cabecera :valor="$poblacion['poblacion']" etiqueta="Personas alcanzadas" icono="heroicon-o-users" href="#mi-aporte" />
+                <x-dashboard.cifra-cabecera :valor="$esfuerzo['horas']" etiqueta="Horas registradas" icono="heroicon-o-clock" href="#mi-aporte" />
             </div>
         </x-slot:metricas>
     </x-dashboard.cabecera>
@@ -84,11 +91,12 @@
             @endif
 
             {{--
-                Mis proyectos con su stepper.
+                Mis proyectos con su progreso compacto: una línea por trámite y el
+                detalle de las etapas en un tooltip, para que la tabla no crezca.
 
                 La estructura de esta tabla está fijada por
                 DashboardMisProyectosLayoutTest: los anchos del <colgroup> y las
-                etiquetas de texto-truncado y stepper-progreso se comprueban
+                etiquetas de texto-truncado y progreso-compacto se comprueban
                 literalmente, porque es la función que no puede perderse en el
                 rediseño. Todo lo demás (cabecera, envoltorio, estado vacío) sí
                 cambia.
@@ -97,10 +105,10 @@
                 subtitulo="Avance de cada trámite por su flujo de aprobación"
                 icono="heroicon-o-list-bullet" :sinPadding="true">
                 <div class="relative overflow-x-auto">
-                    <table class="w-full min-w-[1100px] table-fixed text-left text-sm text-slate-500 dark:text-slate-400">
+                    <table class="w-full min-w-[900px] table-fixed text-left text-sm text-slate-500 dark:text-slate-400">
                         <colgroup>
-                            <col class="w-[18%]">
-                            <col class="w-[38%]">
+                            <col class="w-[28%]">
+                            <col class="w-[28%]">
                             <col class="w-[15%]">
                             <col class="w-[15%]">
                             <col class="w-[14%]">
@@ -126,20 +134,8 @@
                                             <x-dashboard.texto-truncado :texto="$formulario['nombre']" />
                                         @endif
                                     </th>
-                                    <td class="px-5 py-4 align-top">
-                                        @if (! empty($formulario['stepper']))
-                                            @php
-                                                $faseClase = match ($formulario['fase'] ?? 'Aprobación') {
-                                                    'Informe Intermedio' => 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300',
-                                                    'Informe Final' => 'bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
-                                                    default => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-                                                };
-                                            @endphp
-                                            <span class="mb-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide {{ $faseClase }}">
-                                                {{ $formulario['fase'] ?? 'Aprobación' }}
-                                            </span>
-                                        @endif
-                                        <x-dashboard.stepper-progreso :stepper="$formulario['stepper']" />
+                                    <td class="px-5 py-4">
+                                        <x-dashboard.progreso-compacto :stepper="$formulario['stepper']" :fase="$formulario['fase'] ?? 'Aprobación'" />
                                     </td>
                                     <td class="px-5 py-4">
                                         {{ $formulario['fecha_inicio'] ? \Carbon\Carbon::parse($formulario['fecha_inicio'])->isoFormat('D MMM YYYY') : '—' }}
@@ -190,7 +186,7 @@
                     :detalle="$serieGrafico['detalle']" :alto="190" />
             </x-dashboard.panel>
 
-            <x-dashboard.panel-expandible titulo="Mi aporte"
+            <x-dashboard.panel-expandible id="mi-aporte" titulo="Mi aporte"
                 subtitulo="Lo que suman tus proyectos" icono="heroicon-o-scale"
                 :resumen="number_format($estudiantes['total']).' estudiantes'">
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">

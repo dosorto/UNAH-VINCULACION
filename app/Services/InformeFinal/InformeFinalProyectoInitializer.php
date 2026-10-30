@@ -2,16 +2,21 @@
 
 namespace App\Services\InformeFinal;
 
+use App\Models\InformeFinal\InformeFinalActividadParticipante;
 use App\Models\InformeFinal\InformeFinalProyecto;
+use App\Models\Personal\Empleado;
 use App\Models\Proyecto\EntidadContraparteProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Support\InformeFinal\ConceptosPresupuestoInf001;
 use App\Support\InformeFinal\ParticipacionEstudiantil;
+use App\Support\InformeFinal\VoluntariadoPersonal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class InformeFinalProyectoInitializer
 {
+    private const ROL_VOLUNTARIO = 'Voluntario';
+
     public function initialize(Proyecto $proyecto, ?int $userId = null): InformeFinalProyecto
     {
         return DB::transaction(function () use ($proyecto, $userId) {
@@ -113,6 +118,11 @@ class InformeFinalProyectoInitializer
                 if (! $empleado) {
                     continue;
                 }
+                // Los voluntarios del registro no son equipo docente: van en el apartado IV.
+                if ($miembro->rol === self::ROL_VOLUNTARIO) {
+                    $informe->voluntarios()->create($this->datosVoluntario($empleado));
+                    continue;
+                }
                 $informe->equipoDocente()->create([
                     'empleado_id' => $empleado->id,
                     'nombre' => $empleado->nombre_completo,
@@ -197,6 +207,7 @@ class InformeFinalProyectoInitializer
                 ]);
             }
 
+            $voluntarios = $informe->voluntarios()->whereNotNull('empleado_id')->pluck('id', 'empleado_id')->all();
             foreach ($proyecto->actividades as $actividad) {
                 $snapshot = $informe->actividades()->create([
                     'actividad_id' => $actividad->id,
@@ -206,7 +217,7 @@ class InformeFinalProyectoInitializer
                     'fecha_final' => $actividad->fecha_finalizacion,
                     'horas_dedicadas' => max(0, (float) $actividad->horas),
                 ]);
-                $this->crearParticipantesActividad($snapshot, $actividad->empleados);
+                $this->crearParticipantesActividad($snapshot, $actividad->empleados, $voluntarios);
             }
 
             // Apartado X: los 12 conceptos UNAH (k y l se calculan) y los 7 de la contraparte.
@@ -285,7 +296,7 @@ class InformeFinalProyectoInitializer
             }
             $actividad = $proyecto->actividades->firstWhere('id', $snapshot->actividad_id);
             if ($actividad) {
-                $this->crearParticipantesActividad($snapshot, $actividad->empleados);
+                $this->crearParticipantesActividad($snapshot, $actividad->empleados, $informe->voluntarios->whereNotNull('empleado_id')->pluck('id', 'empleado_id')->all());
                 if (blank($snapshot->responsable)) {
                     $snapshot->update(['responsable' => $actividad->empleados->first()?->nombre_completo]);
                 }
@@ -341,13 +352,84 @@ class InformeFinalProyectoInitializer
         }
     }
 
-    private function crearParticipantesActividad($snapshot, $empleados): void
+    /** $voluntarios: [empleado_id => id en informe_final_voluntarios]; esos responsables participan como voluntarios. */
+    private function crearParticipantesActividad($snapshot, $empleados, array $voluntarios = []): void
     {
         foreach ($empleados->unique('id')->values() as $orden => $empleado) {
+            $voluntarioId = $voluntarios[$empleado->id] ?? null;
             $snapshot->participantes()->firstOrCreate(
-                ['tipo' => 'docente', 'empleado_id' => $empleado->id],
+                $voluntarioId
+                    ? ['tipo' => 'voluntario', 'informe_final_voluntario_id' => $voluntarioId]
+                    : ['tipo' => 'docente', 'empleado_id' => $empleado->id],
                 ['nombre' => $empleado->nombre_completo, 'rol' => $orden === 0 ? 'Responsable principal' : 'Participante', 'es_responsable' => $orden === 0, 'orden' => $orden, 'origen' => 'PLANIFICADO', 'estado_participacion' => 'activo']
             );
+        }
+    }
+
+    private function datosVoluntario(Empleado $empleado): array
+    {
+        $empleado->loadMissing(['categoria', 'departamento_academico']);
+
+        return [
+            'empleado_id' => $empleado->id,
+            'nombre' => $empleado->nombre_completo,
+            'sexo' => $empleado->sexo,
+            'identidad' => $empleado->numero_empleado,
+            'departamento' => $empleado->departamento_academico?->nombre,
+            'tipo' => VoluntariadoPersonal::tipoParaCategoria($empleado->categoria?->nombre),
+            'horas_dedicadas' => 0,
+        ];
+    }
+
+    /**
+     * Los voluntarios del registro van en el apartado IV, no en el equipo docente. Corrige
+     * los borradores creados cuando se copiaban al equipo: la fila pasa a voluntarios con
+     * sus horas y su estado, y sus participaciones en actividades pasan a ser de voluntario.
+     */
+    private function sincronizarVoluntariosEquipo(InformeFinalProyecto $informe, Proyecto $proyecto): void
+    {
+        $miembros = $proyecto->docentes_proyecto()
+            ->where('rol', self::ROL_VOLUNTARIO)
+            ->with(['empleado.categoria', 'empleado.departamento_academico'])
+            ->get();
+
+        foreach ($miembros as $miembro) {
+            $empleado = $miembro->empleado;
+            if (! $empleado) {
+                continue;
+            }
+
+            $equipo = $informe->equipoDocente()->where('empleado_id', $empleado->id)->first();
+            $voluntario = $informe->voluntarios()->where('empleado_id', $empleado->id)->first()
+                ?? $informe->voluntarios()->create(array_replace(
+                    $this->datosVoluntario($empleado),
+                    $equipo ? $equipo->only(['horas_dedicadas', 'estado_participacion', 'observacion_no_participacion', 'removido_en', 'removido_por']) : []
+                ));
+
+            if (! $equipo) {
+                continue;
+            }
+
+            $participaciones = InformeFinalActividadParticipante::query()
+                ->whereIn('informe_final_actividad_id', $informe->actividades()->select('id'))
+                ->where(fn ($query) => $query
+                    ->where(fn ($docente) => $docente->where('tipo', 'docente')->where('empleado_id', $empleado->id))
+                    ->orWhere(fn ($comoVoluntario) => $comoVoluntario->where('tipo', 'voluntario')->where('informe_final_voluntario_id', $voluntario->id)))
+                ->get()
+                ->groupBy('informe_final_actividad_id');
+
+            foreach ($participaciones as $filas) {
+                $comoDocente = $filas->firstWhere('tipo', 'docente');
+                if (! $comoDocente) {
+                    continue;
+                }
+                // Si ya participaba como voluntario en esa actividad, la fila de docente sobra.
+                $filas->contains('tipo', 'voluntario')
+                    ? $comoDocente->delete()
+                    : $comoDocente->update(['tipo' => 'voluntario', 'empleado_id' => null, 'informe_final_voluntario_id' => $voluntario->id]);
+            }
+
+            $equipo->delete();
         }
     }
 
@@ -486,6 +568,7 @@ class InformeFinalProyectoInitializer
 
     public function sincronizarBorrador(InformeFinalProyecto $informe, Proyecto $proyecto): void
     {
+        $this->sincronizarVoluntariosEquipo($informe, $proyecto);
         $this->sincronizarTipoInstrumentoContraparte($informe, $proyecto);
         $this->asegurarConceptosPresupuesto($informe);
 

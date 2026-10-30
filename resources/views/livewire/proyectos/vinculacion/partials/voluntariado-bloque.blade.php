@@ -4,7 +4,7 @@
     <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ $bloque['titulo'] }} @if($esVoluntariado && !$bloque['automatico'])<span class="text-red-500">*</span>@endif</h4>
     <p class="text-xs text-gray-500 mt-0.5 mb-3">{{ $bloque['subtitulo'] }}.
         @if($bloque['automatico'])
-            Se calcula con los empleados del equipo marcados como voluntarios, según la categoría y el sexo de su perfil.
+            Se calcula con los voluntarios del equipo, según la categoría y el sexo de su perfil.
         @else
             {{ $esVoluntariado ? 'Registre 0 si no aplica.' : 'Deje en blanco o en 0 si no aplica.' }}
         @endif

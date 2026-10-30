@@ -20,6 +20,7 @@ use App\Services\InformeFinal\InformeFinalProyectoValidator;
 use App\Services\InformeFinal\InformeFinalProyectoWorkflowService;
 use App\Services\Integraciones\IntegracionApiService;
 use App\Support\InformeFinal\ParticipacionEstudiantil;
+use App\Support\InformeFinal\VoluntariadoPersonal;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Arr;
@@ -481,6 +482,11 @@ class EditInformeFinalProyecto extends Component
             $this->addError('voluntarioBusquedaNumero', 'No se encontró una persona del proyecto con ese número de empleado.');
             return;
         }
+        if ($this->estaEnEquipoDocente($empleado->id)) {
+            $this->voluntarioEncontrado = null;
+            $this->addError('voluntarioBusquedaNumero', 'Esta persona ya forma parte del equipo docente (paso 2); no puede registrarse también como voluntario.');
+            return;
+        }
         $this->voluntarioEncontrado = ['empleado_id'=>$empleado->id,'nombre'=>$empleado->nombre_completo,'sexo'=>$this->sexoVisual($empleado->sexo),'identidad'=>$empleado->numero_empleado,'departamento'=>$empleado->departamento_academico?->nombre];
         $this->voluntarioModal = array_replace($this->voluntarioModal, $this->voluntarioEncontrado);
     }
@@ -501,6 +507,10 @@ class EditInformeFinalProyecto extends Component
         });
         if ($duplicate) {
             $this->addError('voluntarioModal.nombre', 'Esta persona ya fue agregada.');
+            return;
+        }
+        if (! empty($this->voluntarioModal['empleado_id']) && $this->estaEnEquipoDocente((int) $this->voluntarioModal['empleado_id'])) {
+            $this->addError('voluntarioModal.nombre', 'Esta persona ya forma parte del equipo docente (paso 2).');
             return;
         }
         $index = $this->editVoluntarioIndex;
@@ -1791,6 +1801,39 @@ class EditInformeFinalProyecto extends Component
             'registrados' => ['hombres'=>$registradosHombres,'mujeres'=>$registradasMujeres,'total'=>$registradosHombres+$registradasMujeres],
             'pendientes' => ['hombres'=>max(0,$planificadosHombres-$registradosHombres),'mujeres'=>max(0,$planificadasMujeres-$registradasMujeres),'total'=>max(0,$planificadosHombres+$planificadasMujeres-$registradosHombres-$registradasMujeres)],
         ];
+    }
+
+    private function estaEnEquipoDocente(int $empleadoId): bool
+    {
+        return collect($this->equipo)->contains(fn ($row) => (int) ($row['empleado_id'] ?? 0) === $empleadoId);
+    }
+
+    /**
+     * Voluntariado personal planificado en el registro frente a los voluntarios activos, por tipo
+     * del INF-001. Vacío si el registro no planificó voluntarios (proyectos anteriores al dato).
+     */
+    public function getResumenPlanificacionVoluntariosProperty(): array
+    {
+        $planificado = VoluntariadoPersonal::planificado($this->proyecto);
+        if (collect($planificado)->flatten()->sum() === 0) {
+            return [];
+        }
+
+        $activos = collect($this->voluntarios)->filter(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo');
+        $etiquetas = ['profesor_hora' => 'Profesores x hora y horarios (PH)', 'pas' => 'Personal administrativo y de servicios (PAS)', 'profesor_permanente' => 'Profesores permanentes (PP)', 'egresado' => 'Egresados(as) (EGR)'];
+
+        return collect($etiquetas)->map(function (string $etiqueta, string $tipo) use ($planificado, $activos) {
+            $delTipo = $activos->where('tipo', $tipo);
+
+            return [
+                'etiqueta' => $etiqueta,
+                'planificados' => $planificado[$tipo] ?? null,
+                'registrados' => [
+                    'hombres' => $delTipo->filter(fn ($row) => $this->sexoCanonico($row['sexo'] ?? null) === 'masculino')->count(),
+                    'mujeres' => $delTipo->filter(fn ($row) => $this->sexoCanonico($row['sexo'] ?? null) === 'femenino')->count(),
+                ],
+            ];
+        })->all();
     }
 
     public function getTotalesParticipacionProperty(): array

@@ -4,12 +4,12 @@ namespace App\Livewire\Docente\Proyectos;
 
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\ENF\EnfAccion;
-use App\Models\Estado\TipoEstado;
 use App\Models\PpsServicioSocial;
 use App\Models\Pasantia;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
 use App\Services\ENF\EnfWorkflowService;
+use App\Support\Dashboard\EstadoGeneral;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,6 +31,9 @@ class ProyectosDocenteList extends Component
     public string $search = '';
     public string $filterCategoria = '';
     public string $filterRol = '';
+    // Estado general (EstadoGeneral), el mismo con el que cuenta el panel: sus cifras
+    // abren este historial con ?estado=… y el filtro alcanza a todos los formularios.
+    #[Url(as: 'estado', except: '')]
     public string $filterEstado = '';
     #[Url(as: 'tipo', except: 'todas')]
     public string $filterTipoAccion = 'todas';
@@ -41,6 +44,15 @@ class ProyectosDocenteList extends Component
     private const ACTION_PPS = 'pps_servicio_social';
     private const ACTION_PASANTIAS = 'pasantias';
     private const ACTION_VOLUNTARIADO = 'voluntariado';
+
+    /** Estados del filtro: las tarjetas del panel, con sus nombres. */
+    private const ESTADOS_FILTRO = [
+        EstadoGeneral::BORRADOR => 'Borrador',
+        EstadoGeneral::EN_REVISION => 'En revisión',
+        EstadoGeneral::SUBSANACION => 'Subsanación',
+        EstadoGeneral::APROBADO => 'Registrado',
+        EstadoGeneral::FINALIZADO => 'Finalizado',
+    ];
 
     public bool $informeIntermedioModal = false;
     public ?int $informeIntermedioProyectoId = null;
@@ -214,10 +226,10 @@ class ProyectosDocenteList extends Component
         $records = $this->paginateRows($this->historialRows());
 
         $categorias = \App\Models\Proyecto\Categoria::orderBy('nombre')->pluck('nombre', 'id');
-        $estadosTipo = \App\Support\Proyecto\EstadoGeneralProyecto::opciones();
+        $estadosGenerales = self::ESTADOS_FILTRO;
         $opcionesDestinatariosIntermedioEnf = $this->opcionesDestinatariosIntermedioEnf();
 
-        return view('livewire.docente.proyectos.proyectos-docente-list', compact('records', 'categorias', 'estadosTipo', 'opcionesDestinatariosIntermedioEnf'));
+        return view('livewire.docente.proyectos.proyectos-docente-list', compact('records', 'categorias', 'estadosGenerales', 'opcionesDestinatariosIntermedioEnf'));
     }
 
     private function opcionesDestinatariosIntermedioEnf(): Collection
@@ -237,15 +249,16 @@ class ProyectosDocenteList extends Component
     {
         return Proyecto::query()
             ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-            ->join('estado_proyecto', function ($join) {
+            // LEFT JOIN: los borradores antiguos no tienen fila de estado y también son del docente.
+            ->leftJoin('estado_proyecto', function ($join) {
                 $join->on('estado_proyecto.estadoable_id', '=', 'proyecto.id')
                     ->where('estado_proyecto.estadoable_type', '=', 'App\Models\Proyecto\Proyecto')
                     ->where('estado_proyecto.es_actual', '=', true);
             })
-            ->join('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
+            ->leftJoin('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
             ->select('proyecto.*')
             ->where('empleado_proyecto.empleado_id', $this->docente->id)
-            ->where('tipo_estado.nombre', '!=', 'PendienteInformacion')
+            ->where(fn ($q) => $q->whereNull('tipo_estado.nombre')->orWhere('tipo_estado.nombre', '!=', 'PendienteInformacion'))
             ->whereNotExists(function ($query) {
                 $query->select('*')
                     ->from('empleado_codigos_investigacion')
@@ -262,7 +275,6 @@ class ProyectosDocenteList extends Component
                 fn($q2) => $q2->where('categorias.id', $this->filterCategoria)
             ))
             ->when($this->filterRol, fn($q) => $q->where('empleado_proyecto.rol', $this->filterRol))
-            ->when($this->filterEstado, fn($q) => $q->whereIn('tipo_estado.nombre', \App\Support\Proyecto\EstadoGeneralProyecto::compatibles(TipoEstado::find($this->filterEstado)?->nombre ?? '')))
             ->when($this->filterTipoAccion === self::ACTION_VOLUNTARIADO, fn($q) => $q->whereHas(
                 'tipoAccion',
                 fn($t) => $t->where('codigo', 'VOLUNTARIADO')
@@ -296,6 +308,10 @@ class ProyectosDocenteList extends Component
         }
 
         return $rows
+            ->when(
+                array_key_exists($this->filterEstado, self::ESTADOS_FILTRO),
+                fn (Collection $filas) => $filas->where('clave_estado', $this->filterEstado)
+            )
             ->sortByDesc(fn (array $row) => $row['sort_date']?->timestamp ?? 0)
             ->values();
     }
@@ -333,6 +349,7 @@ class ProyectosDocenteList extends Component
                     'tipo_accion' => $this->projectActionLabel($proyecto),
                     'rol' => $rolDocente,
                     'estado' => $estado ?: '-',
+                    'clave_estado' => EstadoGeneral::clasificar($estado),
                     'fecha' => $proyecto->fecha_inicio ?: $proyecto->created_at,
                     'sort_date' => $proyecto->created_at,
                 ];
@@ -399,6 +416,7 @@ class ProyectosDocenteList extends Component
                     'rol' => $isPending ? 'Pendiente por revisar' : ($isOwn ? 'Creador' : '-'),
                     'es_creador' => $isOwn,
                     'estado' => $this->enfEstadoLabel($accion->estado_flujo),
+                    'clave_estado' => EstadoGeneral::clasificar($accion->estado_flujo),
                     'fecha' => $accion->fecha_solicitud ?: $accion->created_at,
                     'sort_date' => $accion->created_at,
                     'puede_subir_intermedio' => $workflow->puedeGestionarInformeIntermedio($accion, $user)
@@ -455,6 +473,7 @@ class ProyectosDocenteList extends Component
                     'tipo_accion' => 'PPS / Servicio Social',
                     'rol' => $isPending ? 'Pendiente por revisar' : ($isOwn ? 'Creador' : '-'),
                     'estado' => ucfirst(str_replace('_', ' ', $registro->estado ?: 'sin estado')),
+                    'clave_estado' => EstadoGeneral::clasificar($registro->estado),
                     'fecha' => $registro->fecha_envio ?: $registro->created_at,
                     'sort_date' => $registro->created_at,
                 ];
@@ -480,6 +499,7 @@ class ProyectosDocenteList extends Component
                 'secondary_code' => $registro->numero_cuenta, 'nombre' => $registro->nombre_estudiante ?: 'Sin estudiante',
                 'descripcion' => $registro->nombre_institucion ?: 'Pasantía', 'tipo_accion' => 'Pasantías (FORM-DVUS-013)',
                 'rol' => 'Creador', 'estado' => ucfirst($registro->estado ?: 'borrador'),
+                'clave_estado' => EstadoGeneral::clasificar($registro->estado),
                 'fecha' => $registro->fecha_registro ?: $registro->created_at, 'sort_date' => $registro->created_at,
             ]);
     }

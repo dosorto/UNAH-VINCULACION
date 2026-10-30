@@ -120,6 +120,15 @@ class MisFormulariosService
                     ->where('empleado_proyecto.empleado_id', $empleadoId)
                     ->whereNull('empleado_proyecto.deleted_at')
             )
+            // Como en Mi historial: las vinculaciones anteriores al sistema (pendientes de
+            // información, o finalizadas que vienen de un código de investigación) tienen su
+            // propia pantalla y no cuentan como trámites.
+            ->whereDoesntHave('estadoActual.tipoestado', fn (Builder $tipo) => $tipo->where('nombre', 'PendienteInformacion'))
+            ->whereNot(fn (Builder $query) => $query
+                ->whereHas('estadoActual.tipoestado', fn (Builder $tipo) => $tipo->where('nombre', 'Finalizado'))
+                ->whereExists(fn ($sub) => $sub->selectRaw('1')
+                    ->from('empleado_codigos_investigacion')
+                    ->whereColumn('empleado_codigos_investigacion.codigo_proyecto', 'proyecto.codigo_proyecto')))
             ->with(['categoria', 'estadoActual.tipoestado'])
             ->get()
             ->each(function (Proyecto $proyecto) use ($filas): void {

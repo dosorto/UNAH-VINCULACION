@@ -8,14 +8,34 @@ use Tests\TestCase;
 
 class DashboardMisProyectosLayoutTest extends TestCase
 {
-    public function test_docente_limita_el_nombre_y_prioriza_el_ancho_del_progreso(): void
+    public function test_docente_muestra_el_progreso_en_una_linea(): void
     {
         $vista = file_get_contents(resource_path('views/livewire/inicio/dashboards/dasboard-docente.blade.php'));
 
-        $this->assertStringContainsString('<col class="w-[18%]">', $vista);
-        $this->assertStringContainsString('<col class="w-[38%]">', $vista);
+        $this->assertStringContainsString('<col class="w-[28%]">', $vista);
         $this->assertStringContainsString('<x-dashboard.texto-truncado :texto="$formulario[\'nombre\']" />', $vista);
-        $this->assertStringContainsString('<x-dashboard.stepper-progreso :stepper="$formulario[\'stepper\']" />', $vista);
+        $this->assertStringContainsString('<x-dashboard.progreso-compacto :stepper="$formulario[\'stepper\']" :fase="$formulario[\'fase\'] ?? \'Aprobación\'" />', $vista);
+        $this->assertStringNotContainsString('<x-dashboard.stepper-progreso', $vista);
+    }
+
+    public function test_progreso_compacto_muestra_la_etapa_actual_y_el_detalle_en_tooltip(): void
+    {
+        $html = (string) $this->blade('<x-dashboard.progreso-compacto :stepper="$stepper" fase="Aprobación" />', ['stepper' => [
+            ['nombre' => 'Enlace Vinculacion', 'estado' => 'aprobado'],
+            ['nombre' => 'Jefe Departamento', 'estado' => 'actual'],
+            ['nombre' => 'Director centro', 'estado' => 'pendiente'],
+        ]]);
+
+        $this->assertStringContainsString('Jefe Departamento</span>', $html);
+        $this->assertStringContainsString('2/3', $html);
+        // El detalle va en un tooltip teletransportado y anclado, fuera del scroll de la tabla.
+        $this->assertStringContainsString('x-teleport="body"', $html);
+        $this->assertStringContainsString('x-anchor.bottom-start.offset.6="$refs.disparador"', $html);
+        $this->assertStringContainsString('role="tooltip"', $html);
+        $this->assertStringContainsString('1 de 3 etapas completadas', $html);
+        $this->assertSame(3, substr_count($html, '<li class="flex items-center gap-2">'));
+
+        $this->assertStringContainsString('Sin enviar', (string) $this->blade('<x-dashboard.progreso-compacto :stepper="[]" />'));
     }
 
     public function test_director_limita_el_nombre_y_usa_el_stepper_compartido(): void

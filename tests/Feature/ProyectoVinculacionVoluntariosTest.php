@@ -51,47 +51,54 @@ class ProyectoVinculacionVoluntariosTest extends TestCase
         );
     }
 
-    public function test_cambiar_un_voluntario_a_integrante_lo_descuenta(): void
+    public function test_el_rol_se_toma_del_perfil_aunque_el_guardado_diga_otro(): void
     {
-        [$component] = $this->componenteConProyecto();
+        [$component, $proyecto] = $this->componenteConProyecto();
         $profesora = $this->empleado('Profesora por hora', 'Profesores horarios', 'Femenino');
-        $component->empleado_proyecto = [$this->fila($profesora, 'Voluntario')];
-        $component->autoGuardarBorrador();
-        $this->assertSame(1, $component->voluntariado_participacion['vol_profesores_hora_mujeres']);
-
-        $component->empleado_proyecto[0]['rol'] = 'Integrante';
-        $component->updated('empleado_proyecto.0.rol');
-
-        $this->assertSame(0, $component->voluntariado_participacion['vol_profesores_hora_mujeres']);
-    }
-
-    public function test_un_docente_permanente_no_puede_ser_voluntario(): void
-    {
-        [$component] = $this->componenteConProyecto();
         $titular = $this->empleado('Titular', 'Titular II', 'Masculino');
-        $component->empleado_proyecto = [$this->fila($titular, 'Voluntario')];
+        // Borradores anteriores, cuando el rol se elegía a mano.
+        $component->empleado_proyecto = [
+            $this->fila($profesora, 'Integrante'),
+            $this->fila($titular, 'Voluntario'),
+        ];
 
-        $component->updated('empleado_proyecto.0.rol');
+        $this->assertTrue($component->autoGuardarBorrador());
 
-        $this->assertSame('Integrante', $component->empleado_proyecto[0]['rol']);
-        $this->assertSame('No puede ser voluntario', collect(session('flash_notifications'))->last()['title']);
+        $this->assertSame(['Voluntario', 'Integrante'], array_column($component->empleado_proyecto, 'rol'));
+        $this->assertSame(1, $component->voluntariado_participacion['vol_profesores_hora_mujeres']);
+        $this->assertSame('Voluntario', $proyecto->empleado_proyecto()->where('empleado_id', $profesora->id)->value('rol'));
+        $this->assertSame('Integrante', $proyecto->empleado_proyecto()->where('empleado_id', $titular->id)->value('rol'));
     }
 
-    public function test_un_voluntario_sin_sexo_o_categoria_no_deja_avanzar_el_paso_2(): void
+    public function test_el_paso_2_pide_completar_el_perfil_de_quien_le_falta_categoria_o_sexo(): void
     {
         [$component] = $this->componenteConProyecto();
         $sinSexo = $this->empleado('Sin sexo', 'Servicios', null);
         $sinCategoria = $this->empleado('Sin categoría', null, 'Femenino');
+        $titular = $this->empleado('Titular', 'Titular I', 'Femenino');
+        $component->estudiante_proyecto = [[
+            'tipo_participacion_estudiante' => 'Voluntariado',
+            'cantidad_estudiantes_hombres' => 1,
+            'cantidad_estudiantes_mujeres' => 1,
+        ]];
         $component->empleado_proyecto = [
             $this->fila($sinSexo, 'Voluntario'),
-            $this->fila($sinCategoria, 'Voluntario'),
+            $this->fila($sinCategoria, 'Integrante'),
+            $this->fila($titular, 'Integrante'),
         ];
 
-        (new \ReflectionMethod($component, 'validarVoluntariosEquipo'))->invoke($component);
+        (new \ReflectionMethod($component, 'validarPerfilesEquipo'))->invoke($component);
 
-        $this->assertStringContainsString('no tiene sexo', $component->getErrorBag()->first('empleado_proyecto.0'));
-        $this->assertStringContainsString('no tiene categoría', $component->getErrorBag()->first('empleado_proyecto.1'));
+        $this->assertSame(
+            '«Sin sexo» debe completar su perfil; le falta: sexo. Comuníquese con esa persona para que lo complete.',
+            $component->getErrorBag()->first('empleado_proyecto.0')
+        );
+        $this->assertStringContainsString('le falta: categoría.', $component->getErrorBag()->first('empleado_proyecto.1'));
+        $this->assertFalse($component->getErrorBag()->has('empleado_proyecto.2'));
         $this->assertFalse($component->isStepComplete(2));
+
+        $component->empleado_proyecto = [$this->fila($titular, 'Integrante')];
+        $this->assertTrue($component->isStepComplete(2));
     }
 
     public function test_al_agregar_personal_no_permanente_entra_como_voluntario(): void
@@ -107,6 +114,19 @@ class ProyectoVinculacionVoluntariosTest extends TestCase
         $this->assertSame(1, $component->voluntariado_participacion['vol_asistentes_tecnicos_hombres']);
     }
 
+    public function test_no_se_agrega_a_quien_tiene_el_perfil_incompleto(): void
+    {
+        [$component] = $this->componenteConProyecto();
+        $sinCategoria = $this->empleado('Docente sin categoría', null, 'Masculino');
+
+        $component->selectEmpleadoFromModal($sinCategoria->id, $sinCategoria->nombre_completo);
+
+        $this->assertSame([], $component->empleado_proyecto);
+        $aviso = collect(session('flash_notifications'))->last();
+        $this->assertSame('Perfil incompleto', $aviso['title']);
+        $this->assertSame('«Docente sin categoría» debe completar su perfil; le falta: categoría. Comuníquese con esa persona para que lo complete.', $aviso['body']);
+    }
+
     public function test_en_el_015_el_personal_administrativo_entra_como_voluntario(): void
     {
         [$component] = $this->componenteConProyecto();
@@ -118,7 +138,7 @@ class ProyectoVinculacionVoluntariosTest extends TestCase
         $component->selectEmpleadoFromModal($docenteSinCategoria->id, $docenteSinCategoria->nombre_completo);
 
         $this->assertSame(['Voluntario'], array_column($component->empleado_proyecto, 'rol'));
-        $this->assertSame('No es docente permanente', collect(session('flash_notifications'))->last()['title']);
+        $this->assertSame('Perfil incompleto', collect(session('flash_notifications'))->last()['title']);
     }
 
     public function test_el_paso_2_muestra_el_rol_y_el_voluntariado_calculado(): void
@@ -131,7 +151,7 @@ class ProyectoVinculacionVoluntariosTest extends TestCase
             ->set('currentStep', 2)
             // El voluntariado personal va justo debajo del equipo docente; el internacional, al final.
             ->assertSeeInOrder([
-                'Integrantes del Equipo Docente Permanente Tiempo Completo',
+                'Integrantes del equipo',
                 'Voluntariado personal de la UNAH',
                 'Docentes Internacionales Participantes en el Proyecto',
                 'Voluntariado internacional',
@@ -139,7 +159,8 @@ class ProyectoVinculacionVoluntariosTest extends TestCase
             ->assertSee('Voluntaria Horaria Vista')
             ->assertSee('Profesores horarios')
             ->assertSee('Suma en «Profesores horario x hora» (mujeres).')
-            ->assertSee('Se calcula con los empleados del equipo marcados como voluntarios')
+            ->assertSee('Se calcula con los voluntarios del equipo')
+            ->assertDontSeeHtml('wire:model.live="empleado_proyecto.0.rol"')
             ->assertSet('voluntariado_participacion.vol_profesores_hora_mujeres', 1);
     }
 

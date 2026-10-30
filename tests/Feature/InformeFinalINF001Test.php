@@ -2246,6 +2246,88 @@ class InformeFinalINF001Test extends TestCase
         $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Luis Martínez','horas_dedicadas'=>12]);
     }
 
+    public function test_los_voluntarios_del_registro_van_al_apartado_de_voluntarios_y_no_al_equipo_docente(): void
+    {
+        [$user,$project]=$this->scenario();
+        [$titular,$horaria,$administrativo]=$this->equipoConVoluntarios($project);
+
+        $report=$this->initialize($project,$user);
+
+        $this->assertSame([$user->empleado->id,$titular->id],$report->equipoDocente->pluck('empleado_id')->sort()->values()->all());
+        $this->assertSame(
+            [$horaria->id=>'profesor_hora',$administrativo->id=>'pas'],
+            $report->voluntarios->sortBy('empleado_id')->pluck('tipo','empleado_id')->all()
+        );
+        $this->assertSame($horaria->numero_empleado,$report->voluntarios->firstWhere('empleado_id',$horaria->id)->identidad);
+        // La voluntaria responsable de la actividad participa en ella como voluntaria, no como docente.
+        $participantes=$report->actividades->first()->participantes;
+        $this->assertTrue($participantes->contains(fn ($p) => $p->tipo==='voluntario' && (int) $p->informe_final_voluntario_id===$report->voluntarios->firstWhere('empleado_id',$horaria->id)->id));
+        $this->assertFalse($participantes->contains(fn ($p) => $p->tipo==='docente' && (int) $p->empleado_id===$horaria->id));
+
+        $this->livewireComponent($user,$project)->set('currentStep',3)
+            ->assertSee('Voluntariado personal planificado en el registro')
+            ->assertSet('resumenPlanificacionVoluntarios.profesor_hora.planificados.mujeres',1)
+            ->assertSet('resumenPlanificacionVoluntarios.profesor_hora.registrados.mujeres',1)
+            ->assertSet('resumenPlanificacionVoluntarios.pas.registrados.hombres',1);
+    }
+
+    public function test_un_borrador_con_voluntarios_en_el_equipo_docente_se_corrige_al_abrirlo(): void
+    {
+        [$user,$project]=$this->scenario();
+        [,$horaria]=$this->equipoConVoluntarios($project);
+        $report=$this->initialize($project,$user);
+        // Estado de los borradores creados antes: la voluntaria copiada al equipo y como docente en la actividad.
+        $report->voluntarios()->where('empleado_id',$horaria->id)->delete();
+        $report->equipoDocente()->create(['empleado_id'=>$horaria->id,'nombre'=>$horaria->nombre_completo,'tipo_participacion'=>'Voluntario','horas_dedicadas'=>6]);
+        $participante=$report->actividades->first()->participantes()->where('tipo','voluntario')->firstOrFail();
+        $participante->update(['tipo'=>'docente','empleado_id'=>$horaria->id,'informe_final_voluntario_id'=>null]);
+
+        $this->livewireComponent($user,$project);
+
+        $report->refresh();
+        $this->assertFalse($report->equipoDocente()->where('empleado_id',$horaria->id)->exists());
+        $voluntaria=$report->voluntarios()->where('empleado_id',$horaria->id)->firstOrFail();
+        $this->assertEquals(6,$voluntaria->horas_dedicadas);
+        $this->assertSame('voluntario',$participante->fresh()->tipo);
+        $this->assertSame($voluntaria->id,(int) $participante->fresh()->informe_final_voluntario_id);
+    }
+
+    public function test_quien_esta_en_el_equipo_docente_no_se_registra_tambien_como_voluntario(): void
+    {
+        [$user,$project]=$this->scenario();
+        [$titular]=$this->equipoConVoluntarios($project);
+        $this->initialize($project,$user);
+
+        $this->livewireComponent($user,$project)
+            ->call('openVoluntarioModal')
+            ->set('voluntarioBusquedaNumero',$titular->numero_empleado)
+            ->call('buscarVoluntario')
+            ->assertHasErrors('voluntarioBusquedaNumero')
+            ->assertSet('voluntarioEncontrado',null);
+    }
+
+    /**
+     * Agrega al proyecto una integrante Titular y dos voluntarios (profesora horaria y
+     * administrativo) con el ítem 13 calculado; la horaria es responsable de la actividad.
+     *
+     * @return array{0: Empleado, 1: Empleado, 2: Empleado}
+     */
+    private function equipoConVoluntarios(Proyecto $project): array
+    {
+        $miembro=function (string $nombre, string $categoria, string $sexo, string $rol) use ($project): Empleado {
+            $usuario=User::factory()->create(['email'=>'equipo.'.uniqid().'@example.test']);
+            $empleado=Empleado::create(['nombre_completo'=>$nombre,'numero_empleado'=>(string) random_int(100000,999999),'sexo'=>$sexo,'user_id'=>$usuario->id,'tipo_empleado'=>'docente','categoria_id'=>\App\Models\Personal\CategoriaEmpleado::firstOrCreate(['nombre'=>$categoria],['descripcion'=>$categoria])->id]);
+            EmpleadoProyecto::create(['empleado_id'=>$empleado->id,'proyecto_id'=>$project->id,'rol'=>$rol]);
+            return $empleado;
+        };
+        $titular=$miembro('Integrante Titular','Titular II','Femenino','Integrante');
+        $horaria=$miembro('Voluntaria Horaria','Profesores horarios','Femenino','Voluntario');
+        $administrativo=$miembro('Voluntario Administrativo','Administrativo','Masculino','Voluntario');
+        $project->update(['vol_profesores_hora_mujeres'=>1,'vol_personal_administrativo_hombres'=>1]);
+        $project->actividades()->first()->empleados()->attach($horaria->id);
+        return [$titular,$horaria,$administrativo];
+    }
+
     private function livewireComponent(User $user, Proyecto $project)
     {
         return Livewire::actingAs($user)->test(EditInformeFinalProyecto::class,['proyecto'=>$project]);

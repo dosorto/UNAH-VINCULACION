@@ -551,8 +551,8 @@
             <div>
                 <div class="flex items-center justify-between mb-3">
                     <div>
-                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Integrantes del Equipo Docente Permanente Tiempo Completo</h4>
-                        <p class="text-xs text-gray-500 mt-0.5">Agregar más líneas de ser necesario. Los voluntarios no se listan en el ítem {{ $esVoluntariado ? 12 : 10 }}: suman en «Voluntariado personal de la UNAH» según la categoría y el sexo de su perfil.</p>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Integrantes del equipo</h4>
+                        <p class="text-xs text-gray-500 mt-0.5">El rol se toma del perfil de cada empleado: los docentes permanentes (Titular o Auxiliar) son integrantes; el resto del personal participa como voluntario y suma en «Voluntariado personal de la UNAH».</p>
                     </div>
                     <button wire:click="openEmpleadoModal" type="button"
                         class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
@@ -574,26 +574,25 @@
                             @foreach($empleado_proyecto as $i => $emp)
                             @php
                                 $perfilEmp = $perfilesEquipo[(int) ($emp['empleado_id'] ?? 0)] ?? null;
-                                // Una categoría registrada sin columna en el voluntariado (p. ej. Titular) no puede ser voluntaria;
-                                // en el 015 el ítem 12 solo admite docentes permanentes como integrantes.
-                                $voluntarioBloqueado = filled($perfilEmp['categoria'] ?? null) && blank($perfilEmp['columna'] ?? null);
-                                $integranteBloqueado = $esVoluntariado && !($perfilEmp['permanente'] ?? false) && filled($perfilEmp['columna'] ?? null);
-                                $esVoluntarioEmp = ($emp['rol'] ?? null) === 'Voluntario';
+                                $rolEmp = $perfilEmp['rol'] ?? null;
+                                $faltantesEmp = $perfilEmp['faltantes'] ?? [];
                             @endphp
                             <tr wire:key="equipo-{{ $emp['empleado_id'] ?? $i }}">
                                 <td class="px-4 py-2 text-gray-900 dark:text-white">{{ $emp['nombre'] ?: 'Empleado #'.($emp['empleado_id'] ?? '-') }}</td>
                                 <td class="px-4 py-2 text-xs text-gray-600 dark:text-gray-400">{{ $perfilEmp['categoria'] ?? 'Sin categoría' }}</td>
                                 <td class="px-4 py-2">
-                                    <select wire:model.live="empleado_proyecto.{{ $i }}.rol" class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs focus:border-blue-500">
-                                        <option value="Integrante" @disabled($integranteBloqueado)>Integrante</option>
-                                        <option value="Voluntario" @disabled($voluntarioBloqueado)>Voluntario</option>
-                                    </select>
-                                    @if($esVoluntarioEmp && filled($perfilEmp['columna'] ?? null) && filled($perfilEmp['sexo'] ?? null))
+                                    {{-- El rol no se elige: lo da la categoría del perfil del empleado. --}}
+                                    @if($rolEmp)
+                                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $rolEmp === 'Voluntario' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }}">{{ $rolEmp }}</span>
+                                    @elseif($perfilEmp)
+                                        <span class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Perfil incompleto</span>
+                                    @endif
+                                    @if($faltantesEmp)
+                                        <p class="text-[11px] text-amber-600 mt-1">Le falta: {{ implode(', ', $faltantesEmp) }}. Comuníquese con esa persona para que complete su perfil.</p>
+                                    @elseif($rolEmp === 'Voluntario')
                                         <p class="text-[11px] text-gray-500 mt-1">Suma en «{{ \App\Models\Proyecto\Proyecto::VOLUNTARIADO_PERSONAL_UNAH[$perfilEmp['columna']] }}» ({{ $perfilEmp['sexo'] }}).</p>
-                                    @elseif($esVoluntarioEmp)
-                                        <p class="text-[11px] text-amber-600 mt-1">Complete la categoría y el sexo en su perfil para contarlo.</p>
-                                    @elseif($voluntarioBloqueado)
-                                        <p class="text-[11px] text-gray-400 mt-1">Docente permanente: no puede ser voluntario.</p>
+                                    @elseif($rolEmp)
+                                        <p class="text-[11px] text-gray-400 mt-1">Docente permanente.</p>
                                     @endif
                                 </td>
                                 <td class="px-4 py-2 text-right"><button wire:click="removeEmpleado({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button></td>
@@ -603,7 +602,7 @@
                     </table>
                 </div>
                 @else
-                <p class="text-sm text-gray-500 text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">Sin empleados integrantes agregados.</p>
+                <p class="text-sm text-gray-500 text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">Sin integrantes agregados.</p>
                 @endif
                 @foreach($errors->get('empleado_proyecto.*') as $mensajes)
                     @foreach($mensajes as $mensaje) <p class="text-red-500 text-xs mt-1">{{ $mensaje }}</p> @endforeach
@@ -1782,7 +1781,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamento <span class="text-red-500">*</span></label>
-                        <div wire:key="departamentos-impacto" x-data="{
+                        <div wire:key="departamentos-impacto" wire:ignore x-data="{
                             open: false,
                             search: '',
                             _debounce: null,
@@ -1818,10 +1817,13 @@
                             },
                             syncSelection() {
                                 const values = this.selectedValues();
-                                this.$wire.set('departamento_geo', values, false);
+                                // $wire se resuelve aquí: si se quitó con la × de un chip, x-for elimina
+                                // ese chip antes del setTimeout y desde él ya no se encuentra el componente.
+                                const wire = this.$wire;
+                                wire.set('departamento_geo', values, false);
                                 clearTimeout(this._debounce);
                                 this._debounce = setTimeout(() => {
-                                    this.$wire.call('actualizarDepartamentosImpacto', values);
+                                    wire.call('actualizarDepartamentosImpacto', values);
                                 }, 450);
                             },
                             isSelected(id) { return this.selectedValues().includes(String(id)); },
@@ -1860,7 +1862,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Municipio <span class="text-red-500">*</span></label>
-                        <div wire:key="municipios-impacto-{{ md5(json_encode($departamento_geo)) }}-{{ md5(json_encode($municipiosGeo->keys()->values()->toArray())) }}" x-data="{
+                        <div wire:ignore wire:key="municipios-impacto-{{ md5(json_encode($departamento_geo)) }}-{{ md5(json_encode($municipiosGeo->keys()->values()->toArray())) }}" x-data="{
                             open: false,
                             search: '',
                             _debounce: null,
@@ -1902,10 +1904,12 @@
                             syncSelection() {
                                 const values = this.selectedValues();
                                 this.selected = values;
-                                this.$wire.set('municipio_geo', values, false);
+                                // Igual que en departamentos: $wire se resuelve antes de que x-for quite el chip.
+                                const wire = this.$wire;
+                                wire.set('municipio_geo', values, false);
                                 clearTimeout(this._debounce);
                                 this._debounce = setTimeout(() => {
-                                    this.$wire.call('actualizarMunicipiosImpacto', values);
+                                    wire.call('actualizarMunicipiosImpacto', values);
                                 }, 450);
                             },
                             isSelected(id) { return this.selectedValues().includes(String(id)); },
@@ -1946,7 +1950,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">País <span class="text-red-500">*</span></label>
-                        <div wire:key="paises-impacto" x-data="{
+                        <div wire:key="paises-impacto" wire:ignore x-data="{
                             open: false,
                             search: '',
                             selected: @js(collect($pais)->map(fn($p) => (string) $p)->values()->toArray()),
