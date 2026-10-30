@@ -32,6 +32,32 @@ class PerfilCompletoObligatorioTest extends TestCase
 
     protected bool $exigePerfilCompleto = true;
 
+    public function test_quitar_fondo_actualiza_firma_existente_y_conserva_el_archivo_original(): void
+    {
+        if (! extension_loaded('imagick')) {
+            $this->markTestSkipped('Se necesita Imagick.');
+        }
+
+        Storage::fake('public');
+        $user = $this->usuarioConRol('docente');
+        $empleado = $this->empleado($user);
+        $archivo = UploadedFile::fake()->image('firma.png', 320, 120);
+        $rutaOriginal = $archivo->store('images/firmas', 'public');
+        $original = FirmaSelloEmpleado::create([
+            'empleado_id' => $empleado->id, 'tipo' => 'firma', 'ruta_storage' => $rutaOriginal,
+        ]);
+
+        Livewire::actingAs($user)->test(EditPerfilDocente::class)
+            ->assertSee('Quitar fondo')
+            ->call('quitarFondoFirma')->assertHasNoErrors();
+
+        $firmaActual = $empleado->fresh()->firma;
+        $this->assertNotSame($original->id, $firmaActual->id);
+        $this->assertNotSame($rutaOriginal, $firmaActual->ruta_storage);
+        Storage::disk('public')->assertExists($rutaOriginal);
+        Storage::disk('public')->assertExists($firmaActual->ruta_storage);
+    }
+
     public function test_un_empleado_existente_con_datos_faltantes_no_puede_navegar(): void
     {
         $user = $this->usuarioConRol('docente');

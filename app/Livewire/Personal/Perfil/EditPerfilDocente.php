@@ -13,11 +13,13 @@ use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
+use App\Services\Personal\ProcesadorFirma;
 use App\Support\Notification;
 use App\Support\ProfileCompletion;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
@@ -143,6 +145,51 @@ class EditPerfilDocente extends Component
 
         $this->firmaUpload = null;
         Notification::make()->title('Firma subida')->body('La firma ha sido guardada correctamente.')->success()->send();
+    }
+
+    public function quitarFondoFirma(): void
+    {
+        $this->ensureProfileCanBeEdited();
+        $this->resetValidation('firmaProcesada');
+        $empleado = $this->record->empleado;
+        $firma = $empleado?->firma()->first();
+
+        if (! $firma || ! Storage::disk('public')->exists($firma->ruta_storage)) {
+            $this->addError('firmaProcesada', 'No se encontró la firma guardada.');
+
+            return;
+        }
+
+        try {
+            $ruta = app(ProcesadorFirma::class)->guardar(Storage::disk('public')->path($firma->ruta_storage));
+        } catch (\RuntimeException $exception) {
+            report($exception);
+            $this->addError('firmaProcesada', 'No se pudo procesar la firma. Inténtelo de nuevo o contacte al administrador.');
+
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($empleado, $firma, $ruta): void {
+                $actual = $empleado->firma()->lockForUpdate()->first();
+                if (! $actual || $actual->id !== $firma->id) {
+                    throw ValidationException::withMessages([
+                        'firmaProcesada' => 'La firma cambió durante el procesamiento. Inténtelo de nuevo.',
+                    ]);
+                }
+                FirmaSelloEmpleado::create([
+                    'empleado_id' => $empleado->id,
+                    'ruta_storage' => $ruta,
+                    'tipo' => 'firma',
+                ]);
+            });
+        } catch (\Throwable $exception) {
+            Storage::disk('public')->delete($ruta);
+            throw $exception;
+        }
+
+        $empleado->unsetRelation('firma');
+        Notification::make()->title('Firma actualizada')->body('Se guardó la firma sin fondo.')->success()->send();
     }
 
     public function subirSello(): void
@@ -381,7 +428,7 @@ class EditPerfilDocente extends Component
             ? $this->carrerasDelDepartamento()->orderBy('nombre')->pluck('nombre', 'id')
             : collect();
 
-        $firma = $this->record->empleado?->firma;
+        $firma = $this->record->empleado?->firma()->first();
         $sello = $this->record->empleado?->sello;
         $codigos = $this->record->empleado?->codigosInvestigacion ?? collect();
         $anios = collect(range(date('Y') - 10, date('Y') + 2))->mapWithKeys(fn ($y) => [$y => $y]);
@@ -396,7 +443,18 @@ class EditPerfilDocente extends Component
 
     private function storeFirmaSello(Empleado $empleado, string $tipo, mixed $upload): void
     {
-        $path = $upload->store('images/firmas', 'public');
+        if ($tipo === 'firma') {
+            try {
+                $path = app(ProcesadorFirma::class)->guardar($upload->getRealPath());
+            } catch (\RuntimeException $exception) {
+                report($exception);
+                throw ValidationException::withMessages([
+                    'firmaUpload' => 'No se pudo procesar la firma. Inténtelo con otra imagen o contacte al administrador.',
+                ]);
+            }
+        } else {
+            $path = $upload->store('images/firmas', 'public');
+        }
 
         FirmaSelloEmpleado::create([
             'empleado_id' => $empleado->id,

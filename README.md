@@ -64,3 +64,7 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+### Procesamiento de firmas
+
+El procesamiento de firmas requiere la extensión PHP **Imagick** habilitada en el entorno web. Las firmas nuevas se procesan al subirse; la opción «Quitar fondo» procesa las firmas ya guardadas y conserva el archivo anterior. Los sellos no se procesan. El servidor debe contar también con ImageMagick y los formatos de imagen que se vayan a admitir.

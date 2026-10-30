@@ -134,15 +134,24 @@
             </div>
         @endif
         @if ($canEdit)
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
                 <input type="file" wire:model="firmaUpload" accept="image/*" class="text-sm text-gray-600 dark:text-gray-400" />
                 <button wire:click="subirFirma" type="button"
                     class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                     Subir Firma
                 </button>
+                @if ($firma)
+                    <button wire:click="quitarFondoFirma" type="button" wire:loading.attr="disabled" wire:target="quitarFondoFirma,firmaUpload,subirFirma"
+                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md border border-blue-600 text-blue-700 hover:bg-blue-50 disabled:opacity-50 dark:text-blue-300">
+                        <span wire:loading.remove wire:target="quitarFondoFirma">Quitar fondo</span>
+                        <span wire:loading wire:target="quitarFondoFirma">Procesando...</span>
+                    </button>
+                @endif
             </div>
         @endif
         @error('firmaUpload') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        @error('firmaProcesada') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+
     </div>
 
     {{-- Sello --}}
