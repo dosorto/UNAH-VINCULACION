@@ -32,7 +32,8 @@ class ProcesadorFirma
             if ($imagen->getImageAlphaChannel()) {
                 $alpha = clone $imagen;
                 $alpha->setImageAlphaChannel(Imagick::ALPHACHANNEL_EXTRACT);
-                $tieneTransparencia = $alpha->getImageRange()['minima'] < $quantum;
+                $rango = $alpha->getImageChannelRange(Imagick::CHANNEL_RED);
+                $tieneTransparencia = $rango['minima'] < $quantum;
                 $alpha->clear();
             }
 
